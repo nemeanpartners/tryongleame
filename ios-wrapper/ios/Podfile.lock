@@ -63,6 +63,6 @@ SPEC CHECKSUMS:
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
   webview_flutter_wkwebview: 1821ceac936eba6f7984d89a9f3bcb4dea99ebb2
 
-PODFILE CHECKSUM: 40c5b8908d8d8be7b07a785059753273d7bcbadb
+PODFILE CHECKSUM: 44ff9e78fa70c12ada728b9686190a69fee3ea6a
 
 COCOAPODS: 1.16.2

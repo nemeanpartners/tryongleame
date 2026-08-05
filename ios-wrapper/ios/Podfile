@@ -37,6 +37,17 @@ target 'Runner' do
 end
 
 post_install do |installer|
+  deepar_plugin = File.expand_path(
+    File.join(
+      __dir__,
+      '.symlinks',
+      'plugins',
+      'deepar_flutter_plus',
+      'ios',
+      'Classes',
+      'SwiftDeepArPlugin.swift'
+    )
+  )
   deepar_camera = File.expand_path(
     File.join(
       __dir__,
@@ -59,12 +70,166 @@ post_install do |installer|
     marker = "            let isGameTargetEmpty = String.isNilOrEmpty(string: targetGameObject)\n\n"
     unless source.include?(reset_guard)
       File.write(deepar_camera, source.sub(marker, marker + reset_guard))
+      source = File.read(deepar_camera)
+    end
+
+    unless source.include?('GLEAME_SIMULATOR_STUB')
+      simulator_stub = <<~SWIFT
+        #if targetEnvironment(simulator)
+        // GLEAME_SIMULATOR_STUB: DeepAR's iOS binary is device-only here, so the
+        // simulator gets a lightweight platform view for UI and web-wrapper previews.
+        import Flutter
+        import UIKit
+
+        class DeepARCameraFactory: NSObject, FlutterPlatformViewFactory {
+            private var messenger: FlutterBinaryMessenger
+
+            init(messenger: FlutterBinaryMessenger, registrar: FlutterPluginRegistrar) {
+                self.messenger = messenger
+                super.init()
+            }
+
+            func create(
+                withFrame frame: CGRect,
+                viewIdentifier viewId: Int64,
+                arguments args: Any?
+            ) -> FlutterPlatformView {
+                return DeepARSimulatorCameraView(
+                    frame: frame,
+                    viewIdentifier: viewId,
+                    binaryMessenger: messenger
+                )
+            }
+
+            public func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
+                return FlutterStandardMessageCodec.sharedInstance()
+            }
+        }
+
+        class DeepARSimulatorCameraView: NSObject, FlutterPlatformView {
+            private let preview: UIView
+            private let channel: FlutterMethodChannel
+
+            init(frame: CGRect, viewIdentifier viewId: Int64, binaryMessenger messenger: FlutterBinaryMessenger) {
+                preview = UIView(frame: frame)
+                preview.backgroundColor = UIColor(red: 0.07, green: 0.06, blue: 0.06, alpha: 1)
+                channel = FlutterMethodChannel(name: "deep_ar/view/" + String(viewId), binaryMessenger: messenger)
+                super.init()
+
+                let gradient = CAGradientLayer()
+                gradient.colors = [
+                    UIColor(red: 0.12, green: 0.10, blue: 0.11, alpha: 1).cgColor,
+                    UIColor(red: 0.47, green: 0.11, blue: 0.25, alpha: 1).cgColor,
+                    UIColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1).cgColor
+                ]
+                gradient.frame = preview.bounds
+                preview.layer.addSublayer(gradient)
+
+                let label = UILabel(frame: preview.bounds.insetBy(dx: 28, dy: 28))
+                label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                label.numberOfLines = 0
+                label.textAlignment = .center
+                label.textColor = .white
+                label.font = UIFont.systemFont(ofSize: 18, weight: .heavy)
+                label.text = "Gleame Simulator Preview\\nDeepAR runs on a real iPhone."
+                preview.addSubview(label)
+
+                channel.setMethodCallHandler { call, result in
+                    switch call.method {
+                    case "get_resolution":
+                        result("1280 720")
+                    case "take_screenshot":
+                        result("ENDED_WITH_ERROR")
+                    default:
+                        result(true)
+                    }
+                }
+            }
+
+            func view() -> UIView {
+                return preview
+            }
+        }
+        #else
+      SWIFT
+      File.write(deepar_camera, simulator_stub + source + "\n#endif\n")
+    end
+  end
+
+  if File.exist?(deepar_plugin)
+    plugin_source = File.read(deepar_plugin)
+    unless plugin_source.include?('GLEAME_SIMULATOR_PLUGIN_STUB')
+      plugin_stub = <<~SWIFT
+        #if targetEnvironment(simulator)
+        // GLEAME_SIMULATOR_PLUGIN_STUB
+        import Flutter
+        import UIKit
+
+        public class SwiftDeepArPlugin: NSObject, FlutterPlugin {
+            public static func register(with registrar: FlutterPluginRegistrar) {
+                let channel = FlutterMethodChannel(name: "deep_ar", binaryMessenger: registrar.messenger())
+                let instance = SwiftDeepArPlugin()
+                registrar.addMethodCallDelegate(instance, channel: channel)
+
+                let factory = DeepARCameraFactory(messenger: registrar.messenger(), registrar: registrar)
+                registrar.register(factory, withId: "deep_ar_view")
+            }
+
+            public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+                switch call.method {
+                case "initialize":
+                    result("1280 720")
+                default:
+                    result(true)
+                }
+            }
+        }
+        #else
+      SWIFT
+      File.write(deepar_plugin, plugin_stub + plugin_source + "\n#endif\n")
+    end
+  end
+
+  Dir.glob(File.join(__dir__, 'Pods', 'Target Support Files', 'deepar_flutter_plus', 'deepar_flutter_plus.*.xcconfig')).each do |xcconfig|
+    settings = File.read(xcconfig)
+    settings = settings.gsub(
+      'OTHER_LDFLAGS = $(inherited) -framework "DeepAR"',
+      'OTHER_LDFLAGS = $(inherited)'
+    )
+    device_flags = 'OTHER_LDFLAGS[sdk=iphoneos*] = $(inherited) -framework "DeepAR"'
+    simulator_flags = 'OTHER_LDFLAGS[sdk=iphonesimulator*] = $(inherited)'
+    settings += "\n#{device_flags}\n" unless settings.include?(device_flags)
+    settings += "#{simulator_flags}\n" unless settings.include?(simulator_flags)
+    File.write(xcconfig, settings)
+  end
+
+  Dir.glob(File.join(__dir__, 'Pods', 'Target Support Files', 'Pods-Runner', 'Pods-Runner.*.xcconfig')).each do |xcconfig|
+    settings = File.read(xcconfig)
+    original_flags = 'OTHER_LDFLAGS = $(inherited) -ObjC -framework "DeepAR"'
+    if settings.include?(original_flags)
+      settings = settings.gsub(original_flags, 'OTHER_LDFLAGS = $(inherited) -ObjC')
+      device_flags = 'OTHER_LDFLAGS[sdk=iphoneos*] = $(inherited) -framework "DeepAR"'
+      settings += "\n#{device_flags}\n" unless settings.include?(device_flags)
+      File.write(xcconfig, settings)
+    end
+  end
+
+  frameworks_script = File.join(__dir__, 'Pods', 'Target Support Files', 'Pods-Runner', 'Pods-Runner-frameworks.sh')
+  if File.exist?(frameworks_script)
+    script = File.read(frameworks_script)
+    deepar_install = '  install_framework "${PODS_ROOT}/../.symlinks/plugins/deepar_flutter_plus/ios/DeepAR.framework"'
+    guarded_install = "  if [[ \"${PLATFORM_NAME}\" != \"iphonesimulator\" ]]; then\n#{deepar_install}\n  fi"
+    unless script.include?('PLATFORM_NAME}" != "iphonesimulator"')
+      File.write(frameworks_script, script.gsub(deepar_install, guarded_install))
     end
   end
 
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
+      if target.name == 'deepar_flutter_plus'
+        config.build_settings['OTHER_LDFLAGS[sdk=iphonesimulator*]'] = '$(inherited)'
+      end
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
         'PERMISSION_CAMERA=1',
