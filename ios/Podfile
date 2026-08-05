@@ -37,6 +37,34 @@ target 'Runner' do
 end
 
 post_install do |installer|
+  deepar_camera = File.expand_path(
+    File.join(
+      __dir__,
+      '.symlinks',
+      'plugins',
+      'deepar_flutter_plus',
+      'ios',
+      'Classes',
+      'DeepArCamera.swift'
+    )
+  )
+
+  if File.exist?(deepar_camera)
+    source = File.read(deepar_camera)
+    reset_guard = <<~SWIFT
+            if path.isEmpty || path.lowercased() == "none" || path.lowercased() == "null" {
+                deepAR.switchEffect(withSlot: slot, path: nil)
+                result("switchEffectWithSlot reset success")
+                return
+            }
+
+    SWIFT
+    marker = "            // Check if it's a file path\n"
+    unless source.include?(reset_guard)
+      File.write(deepar_camera, source.sub(marker, reset_guard + marker))
+    end
+  end
+
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|

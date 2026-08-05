@@ -54,12 +54,14 @@ class _LookLabPageState extends State<LookLabPage> {
   LabTab _tab = LabTab.tryLooks;
   bool _arInitialized = false;
   bool _arViewCreated = false;
-  bool _applyingEffect = false;
   bool _savingCapture = false;
   bool _cameraDenied = false;
   bool _sheerSkin = false;
   bool _beforeAfter = false;
   double _brightness = 0.10;
+  Future<void> _effectQueue = Future<void>.value();
+  final Map<String, Timer> _slotDebounceTimers = {};
+  final Map<String, String> _activeSlotPaths = {};
   int _presetIndex = 0;
   int _eyeshadowIndex = 0;
   int _eyelinerIndex = 0;
@@ -188,6 +190,9 @@ class _LookLabPageState extends State<LookLabPage> {
 
   @override
   void dispose() {
+    for (final timer in _slotDebounceTimers.values) {
+      timer.cancel();
+    }
     unawaited(_deepArController.destroy());
     super.dispose();
   }
@@ -195,8 +200,12 @@ class _LookLabPageState extends State<LookLabPage> {
   Future<void> _applyPreset(int index) async {
     setState(() => _presetIndex = index);
     await _runEffect(() async {
+      await _clearSlots(
+        const ['eyeshadow', 'eyeliner', 'eyelashes', 'lips', 'sheerskin'],
+      );
       final assetPath = _presets[index].assetPath;
       await _deepArController.switchEffect(assetPath);
+      _activeSlotPaths['effect'] = assetPath;
       log('Applied preset ${_presets[index].name}: $assetPath');
     });
   }
@@ -264,27 +273,33 @@ class _LookLabPageState extends State<LookLabPage> {
   }
 
   Future<void> _applyBuildSlot(String slot, LookItem item) async {
-    if (item.assetPath.isEmpty) return;
     await _runEffect(() async {
       await _deepArController.switchEffectWithSlot(
         slot: slot,
         path: item.assetPath,
       );
+      if (item.assetPath.isEmpty) {
+        _activeSlotPaths.remove(slot);
+      } else {
+        _activeSlotPaths[slot] = item.assetPath;
+      }
       log('Applied slot $slot ${item.name}: ${item.assetPath}');
     });
   }
 
   Future<void> _runEffect(Future<void> Function() action) async {
-    if (!_arInitialized || !_arViewCreated || _applyingEffect) return;
-    _applyingEffect = true;
-    try {
-      await action();
-    } catch (e, st) {
-      log('DeepAR effect failed: $e', stackTrace: st);
-      if (mounted) _snack('This effect could not load.');
-    } finally {
-      _applyingEffect = false;
-    }
+    if (!_arInitialized || !_arViewCreated) return;
+    final next = _effectQueue.catchError((_) {}).then((_) async {
+      if (!_arInitialized || !_arViewCreated) return;
+      try {
+        await action();
+      } catch (e, st) {
+        log('DeepAR effect failed: $e', stackTrace: st);
+        if (mounted) _snack('This effect could not load.');
+      }
+    });
+    _effectQueue = next;
+    await next;
   }
 
   void _changeBuildIndex(String type, int delta) {
@@ -303,19 +318,123 @@ class _LookLabPageState extends State<LookLabPage> {
       }
     });
     if (type == 'shadow') {
-      unawaited(_applyBuildSlot('eyeshadow', _eyeshadows[_eyeshadowIndex]));
+      _debouncedBuildSlot('eyeshadow', _eyeshadows[_eyeshadowIndex]);
     }
     if (type == 'liner') {
-      unawaited(_applyBuildSlot('eyeliner', _eyeliners[_eyelinerIndex]));
+      _debouncedBuildSlot('eyeliner', _eyeliners[_eyelinerIndex]);
     }
     if (type == 'lash') {
-      unawaited(_applyBuildSlot('eyelashes', _lashes[_lashIndex]));
+      _debouncedBuildSlot('eyelashes', _lashes[_lashIndex]);
+    }
+  }
+
+  void _debouncedBuildSlot(String slot, LookItem item) {
+    _slotDebounceTimers[slot]?.cancel();
+    _slotDebounceTimers[slot] = Timer(
+      const Duration(milliseconds: 120),
+      () => unawaited(_applyBuildSlot(slot, item)),
+    );
+  }
+
+  Future<void> _openCleanBuildTab() async {
+    for (final timer in _slotDebounceTimers.values) {
+      timer.cancel();
+    }
+    _slotDebounceTimers.clear();
+    setState(() {
+      _tab = LabTab.build;
+      _beforeAfter = false;
+      _eyeshadowIndex = 0;
+      _eyelinerIndex = 0;
+      _lashIndex = 0;
+      _lipIndex = 0;
+      _sheerSkin = false;
+    });
+    await _runEffect(() async {
+      await _clearSlots(
+        const [
+          'effect',
+          'eyeshadow',
+          'eyeliner',
+          'eyelashes',
+          'lips',
+          'sheerskin',
+        ],
+      );
+      log('Opened Build with clean effect slots');
+    });
+  }
+
+  Future<void> _clearSlots(Iterable<String> slots) async {
+    for (final slot in slots) {
+      if (!_activeSlotPaths.containsKey(slot)) continue;
+      await _deepArController.switchEffectWithSlot(slot: slot, path: '');
+      _activeSlotPaths.remove(slot);
+    }
+  }
+
+  Future<void> _submitBuildChallenge() async {
+    _snack('Challenge submit ready');
+  }
+
+  Future<void> _showBeforeLook() async {
+    if (_beforeAfter) return;
+    setState(() => _beforeAfter = true);
+    await _runEffect(() async {
+      await _clearSlots(_activeSlotPaths.keys.toList());
+      log('Before preview enabled');
+    });
+  }
+
+  Future<void> _restoreCurrentLook() async {
+    if (!_beforeAfter) return;
+    setState(() => _beforeAfter = false);
+    await _runEffect(() async {
+      if (_tab == LabTab.tryLooks) {
+        final assetPath = _presets[_presetIndex].assetPath;
+        await _deepArController.switchEffect(assetPath);
+        _activeSlotPaths['effect'] = assetPath;
+        log('Before preview restored preset ${_presets[_presetIndex].name}');
+        return;
+      }
+
+      await _restoreBuildSlots();
+      log('Before preview restored build look');
+    });
+  }
+
+  Future<void> _restoreBuildSlots() async {
+    final buildSlots = <String, LookItem>{
+      'eyeshadow': _eyeshadows[_eyeshadowIndex],
+      'eyeliner': _eyeliners[_eyelinerIndex],
+      'eyelashes': _lashes[_lashIndex],
+      'lips': _lips[_lipIndex],
+      'sheerskin':
+          _sheerSkin
+              ? const LookItem(
+                'Sheer Skin',
+                'effects/filters/sheerskin.deepar',
+              )
+              : const LookItem('None', ''),
+    };
+
+    for (final entry in buildSlots.entries) {
+      if (entry.value.assetPath.isEmpty) continue;
+      await _deepArController.switchEffectWithSlot(
+        slot: entry.key,
+        path: entry.value.assetPath,
+      );
+      _activeSlotPaths[entry.key] = entry.value.assetPath;
     }
   }
 
   int _wrap(int value, int length) => (value % length + length) % length;
 
   Future<void> _switchTab(LabTab tab) async {
+    if (tab == LabTab.build) {
+      await _openCleanBuildTab();
+      return;
+    }
     setState(() => _tab = tab);
     if (tab == LabTab.tryLooks) unawaited(_applyPreset(_presetIndex));
   }
@@ -522,7 +641,7 @@ class _LookLabPageState extends State<LookLabPage> {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -581,9 +700,8 @@ class _LookLabPageState extends State<LookLabPage> {
 
   Widget _beforeAfterControl() {
     return GestureDetector(
-      onLongPressStart: (_) => setState(() => _beforeAfter = true),
-      onLongPressEnd: (_) => setState(() => _beforeAfter = false),
-      onTap: () => setState(() => _beforeAfter = !_beforeAfter),
+      onLongPressStart: (_) => unawaited(_showBeforeLook()),
+      onLongPressEnd: (_) => unawaited(_restoreCurrentLook()),
       child: Container(
         height: 40,
         padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -627,7 +745,7 @@ class _LookLabPageState extends State<LookLabPage> {
               _captureButton(size: 52),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           _buildPicker(
             'EYES',
             _eyeshadows[_eyeshadowIndex].name,
@@ -656,7 +774,7 @@ class _LookLabPageState extends State<LookLabPage> {
             () => _changeBuildIndex('lip', -1),
             () => _changeBuildIndex('lip', 1),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Row(
             children: [
               Expanded(
@@ -675,6 +793,13 @@ class _LookLabPageState extends State<LookLabPage> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 7),
+          _actionButton(
+            Icons.emoji_events_outlined,
+            'Submit to Challenge',
+            _submitBuildChallenge,
+            filled: true,
           ),
         ],
       ),
@@ -713,22 +838,25 @@ class _LookLabPageState extends State<LookLabPage> {
   }
 
   Widget _glass({required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(9),
-      decoration: BoxDecoration(
-        color: _panel,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.24),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 430),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: _panel,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: child,
       ),
-      child: child,
     );
   }
 
@@ -739,9 +867,8 @@ class _LookLabPageState extends State<LookLabPage> {
         Text(
           title,
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w900,
-            letterSpacing: -0.3,
           ),
         ),
         const SizedBox(height: 1),
@@ -767,12 +894,12 @@ class _LookLabPageState extends State<LookLabPage> {
     VoidCallback right,
   ) {
     return Container(
-      height: 42,
-      margin: const EdgeInsets.only(bottom: 5),
-      padding: const EdgeInsets.symmetric(horizontal: 6),
+      height: 38,
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 5),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.055),
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
@@ -781,12 +908,12 @@ class _LookLabPageState extends State<LookLabPage> {
             child: Row(
               children: [
                 SizedBox(
-                  width: 64,
+                  width: 58,
                   child: Text(
                     label,
                     style: const TextStyle(
-                      fontSize: 10,
-                      letterSpacing: 1.8,
+                      fontSize: 9,
+                      letterSpacing: 1.2,
                       fontWeight: FontWeight.w900,
                       color: Colors.white60,
                     ),
@@ -799,13 +926,13 @@ class _LookLabPageState extends State<LookLabPage> {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
                 SizedBox(
-                  width: 36,
+                  width: 34,
                   child: Text(
                     count,
                     textAlign: TextAlign.right,
@@ -904,11 +1031,11 @@ class _LookLabPageState extends State<LookLabPage> {
 
   Widget _lookLabTabs() {
     return Container(
-      height: 58,
+      height: 54,
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(21),
       ),
       child: Row(
         children: [
@@ -941,17 +1068,17 @@ class _LookLabPageState extends State<LookLabPage> {
                 selected
                     ? Colors.white.withValues(alpha: 0.08)
                     : Colors.transparent,
-            borderRadius: BorderRadius.circular(19),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 21, color: selected ? _pink : Colors.white60),
+              Icon(icon, size: 20, color: selected ? _pink : Colors.white60),
               const SizedBox(height: 2),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   color: selected ? _pink : Colors.white60,
                   fontWeight: FontWeight.w900,
                 ),
@@ -1007,13 +1134,13 @@ class _LookLabPageState extends State<LookLabPage> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 30,
-        width: 30,
+        height: 28,
+        width: 28,
         decoration: BoxDecoration(
-          color: _berry.withValues(alpha: 0.95),
+          color: _pink.withValues(alpha: 0.86),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, size: 23),
+        child: Icon(icon, size: 22),
       ),
     );
   }
@@ -1048,19 +1175,27 @@ class _LookLabPageState extends State<LookLabPage> {
     );
   }
 
-  Widget _actionButton(IconData icon, String label, VoidCallback onTap) {
+  Widget _actionButton(
+    IconData icon,
+    String label,
+    VoidCallback onTap, {
+    bool filled = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 36,
+        height: 34,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.09),
-          borderRadius: BorderRadius.circular(13),
+          color:
+              filled
+                  ? _pink.withValues(alpha: 0.92)
+                  : Colors.white.withValues(alpha: 0.09),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: _pink),
+            Icon(icon, size: 16, color: filled ? Colors.white : _pink),
             const SizedBox(width: 5),
             Text(
               label,
