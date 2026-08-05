@@ -1,0 +1,93 @@
+{
+  "entities": {
+    "BuiltLook": {
+      "title": "BuiltLook",
+      "description": "Pre-formulated beauty makeup look configuration.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "eyeshadowColor": { "type": "string" },
+        "eyeshadowOpacity": { "type": "number" },
+        "blushColor": { "type": "string" },
+        "blushOpacity": { "type": "number" },
+        "lipColor": { "type": "string" },
+        "lipOpacity": { "type": "number" },
+        "lipGloss": { "type": "boolean" },
+        "lashesStyle": { "type": "string" },
+        "glitterLevel": { "type": "number" },
+        "filter": { "type": "string" },
+        "votes": { "type": "number" },
+        "coverImage": { "type": "string" },
+        "isCustom": { "type": "boolean" }
+      },
+      "required": ["id", "name", "description", "eyeshadowColor", "eyeshadowOpacity", "blushColor", "blushOpacity", "lipColor", "lipOpacity", "lipGloss", "lashesStyle", "glitterLevel", "filter", "votes"]
+    },
+    "LookRequest": {
+      "title": "LookRequest",
+      "description": "A community-proposed look request to be built in the studio.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "colors": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "requestedBy": { "type": "string" },
+        "votes": { "type": "number" },
+        "votedUsers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["title", "description", "category", "colors", "requestedBy", "votes", "votedUsers", "createdAt"]
+    },
+    "ChallengeSubmission": {
+      "title": "ChallengeSubmission",
+      "description": "A user's submission for the monthly beauty challenge.",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string" },
+        "lookName": { "type": "string" },
+        "description": { "type": "string" },
+        "makeupConfig": {
+          "type": "object",
+          "properties": {
+            "eyeshadowColor": { "type": "string" },
+            "eyeshadowOpacity": { "type": "number" },
+            "blushColor": { "type": "string" },
+            "blushOpacity": { "type": "number" },
+            "lipColor": { "type": "string" },
+            "lipOpacity": { "type": "number" },
+            "lipGloss": { "type": "boolean" },
+            "lashesStyle": { "type": "string" },
+            "glitterLevel": { "type": "number" },
+            "selectedFilter": { "type": "string" }
+          },
+          "required": ["eyeshadowColor", "eyeshadowOpacity", "blushColor", "blushOpacity", "lipColor", "lipOpacity", "lipGloss", "lashesStyle", "glitterLevel", "selectedFilter"]
+        },
+        "votes": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["username", "lookName", "description", "makeupConfig", "votes", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/built_looks/{lookId}": {
+      "schema": "BuiltLook",
+      "description": "Store official packaged preset makeup looks."
+    },
+    "/requests/{requestId}": {
+      "schema": "LookRequest",
+      "description": "Store community requests and voting."
+    },
+    "/submissions/{submissionId}": {
+      "schema": "ChallengeSubmission",
+      "description": "Store monthly challenge submissions."
+    }
+  }
+}

@@ -51,17 +51,14 @@ post_install do |installer|
 
   if File.exist?(deepar_camera)
     source = File.read(deepar_camera)
-    reset_guard = <<~SWIFT
-            if path.isEmpty || path.lowercased() == "none" || path.lowercased() == "null" {
-                deepAR.switchEffect(withSlot: slot, path: nil)
-                result("switchEffectWithSlot reset success")
-                return
-            }
-
-    SWIFT
-    marker = "            // Check if it's a file path\n"
+    reset_guard = "            if path.isEmpty || path.lowercased() == \"none\" || path.lowercased() == \"null\" {\n" \
+                  "                deepAR.switchEffect(withSlot: slot, path: nil)\n" \
+                  "                result(\"switchEffectWithSlot reset success\")\n" \
+                  "                return\n" \
+                  "            }\n\n"
+    marker = "            let isGameTargetEmpty = String.isNilOrEmpty(string: targetGameObject)\n\n"
     unless source.include?(reset_guard)
-      File.write(deepar_camera, source.sub(marker, reset_guard + marker))
+      File.write(deepar_camera, source.sub(marker, marker + reset_guard))
     end
   end
 

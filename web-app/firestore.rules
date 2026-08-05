@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Helpers
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming(req) {
+      return req.resource.data;
+    }
+
+    function existing(res) {
+      return res.data;
+    }
+
+    // BuiltLook Validation
+    function isValidBuiltLook(data) {
+      return data.keys().hasAll(['id', 'name', 'description', 'eyeshadowColor', 'eyeshadowOpacity', 'blushColor', 'blushOpacity', 'lipColor', 'lipOpacity', 'lipGloss', 'lashesStyle', 'glitterLevel', 'filter', 'votes'])
+        && data.id is string && data.id.size() <= 100
+        && data.name is string && data.name.size() <= 100
+        && data.description is string && data.description.size() <= 500
+        && data.eyeshadowColor is string && data.eyeshadowColor.size() <= 20
+        && data.eyeshadowOpacity is number && data.eyeshadowOpacity >= 0 && data.eyeshadowOpacity <= 1
+        && data.blushColor is string && data.blushColor.size() <= 20
+        && data.blushOpacity is number && data.blushOpacity >= 0 && data.blushOpacity <= 1
+        && data.lipColor is string && data.lipColor.size() <= 20
+        && data.lipOpacity is number && data.lipOpacity >= 0 && data.lipOpacity <= 1
+        && data.lipGloss is bool
+        && data.lashesStyle is string && data.lashesStyle.size() <= 50
+        && data.glitterLevel is number && data.glitterLevel >= 0 && data.glitterLevel <= 100
+        && data.filter is string && data.filter.size() <= 50
+        && data.votes is number && data.votes >= 0
+        && (!data.keys().contains('coverImage') || (data.coverImage is string && data.coverImage.size() <= 500))
+        && (!data.keys().contains('isCustom') || data.isCustom is bool);
+    }
+
+    // LookRequest Validation
+    function isValidLookRequest(data) {
+      return data.keys().hasAll(['title', 'description', 'category', 'colors', 'requestedBy', 'votes', 'votedUsers', 'createdAt'])
+        && data.title is string && data.title.size() <= 100
+        && data.description is string && data.description.size() <= 500
+        && data.category is string && data.category.size() <= 100
+        && data.colors is list && data.colors.size() <= 10
+        && data.requestedBy is string && data.requestedBy.size() <= 100
+        && data.votes is number && data.votes >= 0
+        && data.votedUsers is list && data.votedUsers.size() <= 1000
+        && data.createdAt is number;
+    }
+
+    // ChallengeSubmission Validation
+    function isValidChallengeSubmission(data) {
+      return data.keys().hasAll(['username', 'lookName', 'description', 'makeupConfig', 'votes', 'createdAt'])
+        && data.username is string && data.username.size() <= 100
+        && data.lookName is string && data.lookName.size() <= 100
+        && data.description is string && data.description.size() <= 1000
+        && data.votes is number && data.votes >= 0
+        && data.createdAt is number
+        && data.makeupConfig is map
+        && data.makeupConfig.keys().hasAll(['eyeshadowColor', 'eyeshadowOpacity', 'blushColor', 'blushOpacity', 'lipColor', 'lipOpacity', 'lipGloss', 'lashesStyle', 'glitterLevel', 'selectedFilter'])
+        && data.makeupConfig.eyeshadowColor is string && data.makeupConfig.eyeshadowColor.size() <= 20
+        && data.makeupConfig.eyeshadowOpacity is number && data.makeupConfig.eyeshadowOpacity >= 0 && data.makeupConfig.eyeshadowOpacity <= 1
+        && data.makeupConfig.blushColor is string && data.makeupConfig.blushColor.size() <= 20
+        && data.makeupConfig.blushOpacity is number && data.makeupConfig.blushOpacity >= 0 && data.makeupConfig.blushOpacity <= 1
+        && data.makeupConfig.lipColor is string && data.makeupConfig.lipColor.size() <= 20
+        && data.makeupConfig.lipOpacity is number && data.makeupConfig.lipOpacity >= 0 && data.makeupConfig.lipOpacity <= 1
+        && data.makeupConfig.lipGloss is bool
+        && data.makeupConfig.lashesStyle is string && data.makeupConfig.lashesStyle.size() <= 50
+        && data.makeupConfig.glitterLevel is number && data.makeupConfig.glitterLevel >= 0 && data.makeupConfig.glitterLevel <= 100
+        && data.makeupConfig.selectedFilter is string && data.makeupConfig.selectedFilter.size() <= 50;
+    }
+
+    match /built_looks/{lookId} {
+      allow read: if true;
+      allow create: if isValidId(lookId) && isValidBuiltLook(incoming(request));
+      allow update: if isValidId(lookId) && (
+        // Allow voting (only incrementing votes)
+        (incoming(request).diff(existing(resource)).affectedKeys().hasOnly(['votes']) && incoming(request).votes == existing(resource).votes + 1)
+        // Or full update if it follows schema
+        || isValidBuiltLook(incoming(request))
+      );
+    }
+
+    match /requests/{requestId} {
+      allow read: if true;
+      allow create: if isValidId(requestId) && isValidLookRequest(incoming(request));
+      allow update: if isValidId(requestId) && (
+        // Allow voting (only incrementing votes)
+        (incoming(request).diff(existing(resource)).affectedKeys().hasOnly(['votes']) && incoming(request).votes == existing(resource).votes + 1)
+        || isValidLookRequest(incoming(request))
+      );
+    }
+
+    match /submissions/{submissionId} {
+      allow read: if true;
+      allow create: if request.auth != null && isValidId(submissionId) && isValidChallengeSubmission(incoming(request));
+      allow update: if isValidId(submissionId) && (
+        // Allow voting (only incrementing votes)
+        (incoming(request).diff(existing(resource)).affectedKeys().hasOnly(['votes']) && incoming(request).votes == existing(resource).votes + 1)
+        || (request.auth != null && isValidChallengeSubmission(incoming(request)))
+      );
+    }
+  }
+}

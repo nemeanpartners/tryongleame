@@ -1,0 +1,6 @@
+{
+  "name": "TryON Beauty Look LAB",
+  "description": "A makeup app for trying on looks, requesting and voting on new looks, entering monthly challenges, and building a makeup community.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
