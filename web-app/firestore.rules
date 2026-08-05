@@ -106,5 +106,15 @@ service cloud.firestore {
         || (request.auth != null && isValidChallengeSubmission(incoming(request)))
       );
     }
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/{collectionId}/{documentId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId
+        && (collectionId == 'built_looks' || collectionId == 'submissions')
+        && isValidId(documentId);
+    }
   }
 }

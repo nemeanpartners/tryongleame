@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:deepar_flutter_plus/deepar_flutter_plus.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +34,7 @@ class GleameApp extends StatelessWidget {
   }
 }
 
-enum LabTab { tryLooks, build, lab }
+enum LabTab { tryLooks, build, home, lab }
 
 class LookLabPage extends StatefulWidget {
   const LookLabPage({super.key});
@@ -47,8 +49,16 @@ class _LookLabPageState extends State<LookLabPage> {
   static const _panel = Color(0xd9111111);
   static const _iosDeepArKey =
       'cea1c575f20ba165fe73308381a71a6a7ed091a4c5c932f6630662002a33acb5bd7df298ee83b14a2';
+  static final Uri _webHomeUri = Uri.parse(
+    'https://tryon-beauty.ai.studio/home?embedded=ios',
+  );
+  static final Uri _webLookLabUri = Uri.parse(
+    'https://tryon-beauty.ai.studio/editor?embedded=ios',
+  );
 
   final DeepArControllerPlus _deepArController = DeepArControllerPlus();
+  final WebViewController _homeWebController = WebViewController();
+  final WebViewController _lookLabWebController = WebViewController();
   final Set<String> _favoritePresetNames = {};
 
   LabTab _tab = LabTab.tryLooks;
@@ -56,6 +66,8 @@ class _LookLabPageState extends State<LookLabPage> {
   bool _arViewCreated = false;
   bool _savingCapture = false;
   bool _cameraDenied = false;
+  bool _homeWebReady = false;
+  bool _lookLabWebReady = false;
   bool _sheerSkin = false;
   bool _beforeAfter = false;
   double _brightness = 0.10;
@@ -150,8 +162,61 @@ class _LookLabPageState extends State<LookLabPage> {
   @override
   void initState() {
     super.initState();
+    _configureWebControllers();
     unawaited(_loadSavedState());
     _initializeDeepAr();
+  }
+
+  void _configureWebControllers() {
+    _configureWebController(
+      controller: _homeWebController,
+      uri: _webHomeUri,
+      onLoaded: () {
+        if (!mounted) return;
+        setState(() => _homeWebReady = true);
+      },
+    );
+    _configureWebController(
+      controller: _lookLabWebController,
+      uri: _webLookLabUri,
+      onLoaded: () {
+        if (!mounted) return;
+        setState(() => _lookLabWebReady = true);
+      },
+    );
+  }
+
+  void _configureWebController({
+    required WebViewController controller,
+    required Uri uri,
+    required VoidCallback onLoaded,
+  }) {
+    controller
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..addJavaScriptChannel(
+        'GleameBridge',
+        onMessageReceived: (message) {
+          log('Gleame web bridge: ${message.message}');
+          try {
+            final decoded = jsonDecode(message.message) as Map<String, dynamic>;
+            final status = decoded['message'] as String?;
+            if (status != null && mounted) _snack(status);
+          } catch (_) {
+            if (mounted) _snack(message.message);
+          }
+        },
+      )
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) => onLoaded(),
+          onWebResourceError: (error) {
+            log(
+              'Gleame web page error ${error.errorCode}: ${error.description}',
+            );
+          },
+        ),
+      )
+      ..loadRequest(uri);
   }
 
   Future<void> _loadSavedState() async {
@@ -200,9 +265,13 @@ class _LookLabPageState extends State<LookLabPage> {
   Future<void> _applyPreset(int index) async {
     setState(() => _presetIndex = index);
     await _runEffect(() async {
-      await _clearSlots(
-        const ['eyeshadow', 'eyeliner', 'eyelashes', 'lips', 'sheerskin'],
-      );
+      await _clearSlots(const [
+        'eyeshadow',
+        'eyeliner',
+        'eyelashes',
+        'lips',
+        'sheerskin',
+      ]);
       final assetPath = _presets[index].assetPath;
       await _deepArController.switchEffect(assetPath);
       _activeSlotPaths['effect'] = assetPath;
@@ -230,16 +299,61 @@ class _LookLabPageState extends State<LookLabPage> {
 
   Future<void> _saveBuildLook() async {
     final prefs = await SharedPreferences.getInstance();
-    final look = [
-      _eyeshadows[_eyeshadowIndex].name,
-      _eyeliners[_eyelinerIndex].name,
-      _lashes[_lashIndex].name,
-      _lips[_lipIndex].name,
-    ].join(' + ');
+    final look = _buildLookName();
     final savedLooks = prefs.getStringList('saved_build_looks') ?? <String>[];
     savedLooks.add(look);
     await prefs.setStringList('saved_build_looks', savedLooks);
+    unawaited(_sendBuildLookToWeb('gleame:save-built-look'));
     _snack('Build look saved');
+  }
+
+  String _buildLookName() {
+    final selected =
+        [
+          _eyeshadows[_eyeshadowIndex].name,
+          _eyeliners[_eyelinerIndex].name,
+          _lashes[_lashIndex].name,
+          _lips[_lipIndex].name,
+        ].where((name) => name != 'None').toList();
+
+    return selected.isEmpty ? 'Clean Gleame Build' : selected.join(' + ');
+  }
+
+  Map<String, Object?> _buildLookPayload() {
+    return {
+      'lookName': _buildLookName(),
+      'description': 'Built in the Gleame iOS try-on app.',
+      'category': 'challenge',
+      'source': 'gleame-ios-wrapper',
+      'makeupConfig': {
+        'eyes': _eyeshadows[_eyeshadowIndex].name,
+        'liner': _eyeliners[_eyelinerIndex].name,
+        'lashes': _lashes[_lashIndex].name,
+        'lips': _lips[_lipIndex].name,
+        'sheerSkin': _sheerSkin,
+        'preset': _tab == LabTab.tryLooks ? _presets[_presetIndex].name : null,
+      },
+    };
+  }
+
+  Future<void> _sendBuildLookToWeb(String type) async {
+    final message = <String, Object?>{
+      'source': 'gleame-ios-wrapper',
+      'type': type,
+      'payload': _buildLookPayload(),
+    };
+    final script =
+        "window.dispatchEvent(new MessageEvent('message', { data: ${jsonEncode(message)} }));";
+
+    try {
+      await _lookLabWebController.runJavaScript(script);
+      if (_homeWebReady) {
+        await _homeWebController.runJavaScript(script);
+      }
+    } catch (e, st) {
+      log('Web bridge send failed: $e', stackTrace: st);
+      if (mounted) _snack('Open Look Lab to sync this look.');
+    }
   }
 
   Future<void> _saveCaptureToPhotos() async {
@@ -351,16 +465,14 @@ class _LookLabPageState extends State<LookLabPage> {
       _sheerSkin = false;
     });
     await _runEffect(() async {
-      await _clearSlots(
-        const [
-          'effect',
-          'eyeshadow',
-          'eyeliner',
-          'eyelashes',
-          'lips',
-          'sheerskin',
-        ],
-      );
+      await _clearSlots(const [
+        'effect',
+        'eyeshadow',
+        'eyeliner',
+        'eyelashes',
+        'lips',
+        'sheerskin',
+      ]);
       log('Opened Build with clean effect slots');
     });
   }
@@ -374,7 +486,7 @@ class _LookLabPageState extends State<LookLabPage> {
   }
 
   Future<void> _submitBuildChallenge() async {
-    _snack('Challenge submit ready');
+    await _sendBuildLookToWeb('gleame:submit-challenge');
   }
 
   Future<void> _showBeforeLook() async {
@@ -411,10 +523,7 @@ class _LookLabPageState extends State<LookLabPage> {
       'lips': _lips[_lipIndex],
       'sheerskin':
           _sheerSkin
-              ? const LookItem(
-                'Sheer Skin',
-                'effects/filters/sheerskin.deepar',
-              )
+              ? const LookItem('Sheer Skin', 'effects/filters/sheerskin.deepar')
               : const LookItem('None', ''),
     };
 
@@ -444,7 +553,9 @@ class _LookLabPageState extends State<LookLabPage> {
     return Scaffold(
       body: Stack(
         children: [
-          Positioned.fill(child: _deepArLayer()),
+          Positioned.fill(
+            child: _isWebTab ? _webWrapperLayer() : _deepArLayer(),
+          ),
           if (_beforeAfter)
             Positioned.fill(
               child: IgnorePointer(
@@ -460,8 +571,33 @@ class _LookLabPageState extends State<LookLabPage> {
               ),
             ),
           ),
-          SafeArea(child: _topBar()),
+          if (!_isWebTab) SafeArea(child: _topBar()),
           Align(alignment: Alignment.bottomCenter, child: _bottomWorkspace()),
+        ],
+      ),
+    );
+  }
+
+  bool get _isWebTab => _tab == LabTab.home || _tab == LabTab.lab;
+
+  Widget _webWrapperLayer() {
+    final loading = _tab == LabTab.home ? !_homeWebReady : !_lookLabWebReady;
+
+    return ColoredBox(
+      color: const Color(0xfffaf6f5),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: IndexedStack(
+              index: _tab == LabTab.home ? 0 : 1,
+              children: [
+                WebViewWidget(controller: _homeWebController),
+                WebViewWidget(controller: _lookLabWebController),
+              ],
+            ),
+          ),
+          if (loading)
+            const Center(child: CircularProgressIndicator(color: _pink)),
         ],
       ),
     );
@@ -866,10 +1002,7 @@ class _LookLabPageState extends State<LookLabPage> {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w900,
-          ),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 1),
         Text(
@@ -1031,25 +1164,26 @@ class _LookLabPageState extends State<LookLabPage> {
 
   Widget _lookLabTabs() {
     return Container(
-      height: 54,
-      padding: const EdgeInsets.all(5),
+      height: 58,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(21),
+        color: Colors.black.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.30),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          _tabButton(
-            LabTab.tryLooks,
-            Icons.face_retouching_natural,
-            'Try Looks',
-          ),
+          _tabButton(LabTab.tryLooks, Icons.face_retouching_natural, 'Try'),
           _tabButton(LabTab.build, Icons.palette_outlined, 'Build'),
-          _tabButton(
-            LabTab.lab,
-            Icons.auto_awesome_motion_outlined,
-            'Look Lab',
-          ),
+          _tabButton(LabTab.home, Icons.home_rounded, 'Home'),
+          _tabButton(LabTab.lab, Icons.auto_awesome_motion_outlined, 'Lab'),
         ],
       ),
     );
@@ -1062,18 +1196,25 @@ class _LookLabPageState extends State<LookLabPage> {
         behavior: HitTestBehavior.opaque,
         onTap: () => _switchTab(tab),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
             color:
                 selected
-                    ? Colors.white.withValues(alpha: 0.08)
+                    ? Colors.white.withValues(alpha: 0.13)
                     : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color:
+                  selected
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : Colors.transparent,
+            ),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 20, color: selected ? _pink : Colors.white60),
+              Icon(icon, size: 19, color: selected ? _pink : Colors.white60),
               const SizedBox(height: 2),
               Text(
                 label,

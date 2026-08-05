@@ -9,8 +9,9 @@ import { BuiltLooksPage } from './components/built-looks/BuiltLooksPage';
 import { VotesPage } from './components/votes/VotesPage';
 import { ProfilePage } from './components/profile/ProfilePage';
 import { PresetLook } from './types';
-import { auth } from './firebase';
+import { auth, db, doc, setDoc } from './firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { installGleameNativeBridge } from './lib/nativeBridge';
 
 export default function App() {
   // Path helper mapping
@@ -91,6 +92,14 @@ export default function App() {
           localStorage.setItem('kobella_username', name);
           setIsEditingUsername(false);
         }
+        void setDoc(doc(db, 'users', user.uid), {
+          uid: user.uid,
+          email: user.email || null,
+          displayName: user.displayName || name || null,
+          photoURL: user.photoURL || null,
+          providerIds: user.providerData.map((provider) => provider.providerId),
+          lastSeenAt: Date.now()
+        }, { merge: true });
       } else {
         // If logged out, revert to localStorage username if any
         const local = localStorage.getItem('kobella_username') || '';
@@ -109,6 +118,10 @@ export default function App() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    return installGleameNativeBridge(handleChallengeSubmitSuccess);
   }, []);
 
   const handleSaveUsername = () => {
