@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, RefreshCw, Sliders, Sparkles, User, Check, Trash2, ArrowRight, Eye, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Camera, RefreshCw, Sliders, Sparkles, User, Check, Trash2, ArrowRight, Eye, ShieldAlert, CheckCircle2, MessageSquare, Vote, Send } from 'lucide-react';
 import { PresetLook } from '../../types';
 import { auth, db, collection, addDoc, handleFirestoreError, OperationType } from '../../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -311,57 +311,55 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
   return (
     <div id="sandbox-container" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start text-stone-800">
       
-      {/* LEFT: Live Makeup AR View Container (Cols: 7) */}
-      <div className="lg:col-span-7 bg-white rounded-2xl p-6 border border-[#bc8381]/25 shadow-md flex flex-col justify-between">
+      {/* LEFT: Makeup formula preview */}
+      <div className="lg:col-span-7 bg-white/[0.78] backdrop-blur-xl rounded-2xl p-6 border border-white/70 shadow-[0_18px_45px_rgba(20,20,20,0.08)] flex flex-col justify-between">
         
         {/* Device Stage and Capture */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#732729] animate-pulse"></span>
-              <h3 className="text-sm font-serif font-black tracking-wide uppercase text-[#732729]">Filter Blueprint Canvas</h3>
+              <span className="w-2.5 h-2.5 rounded-full bg-[#ff3f87] shadow-[0_0_18px_rgba(255,63,135,0.65)]"></span>
+              <h3 className="text-sm font-black tracking-wide uppercase text-stone-900">Look Formula Preview</h3>
             </div>
-            <div className="text-[10px] font-black uppercase text-[#732729] bg-[#bc8381]/15 border border-[#bc8381]/25 px-2.5 py-1 rounded-md">
-              GL RENDER ACTIVE
+            <div className="text-[10px] font-black uppercase text-stone-500 bg-white/[0.70] border border-white/80 px-2.5 py-1 rounded-full">
+              Web preview
             </div>
           </div>
 
-          {/* AR Simulated Canvas Viewport with "deepar here" placeholder */}
-          <div className="relative w-full aspect-[4/3] bg-gradient-to-tr from-[#fce4ec] via-[#FAF6F5] to-[#f5eae7] rounded-xl overflow-hidden border border-[#bc8381]/20 flex flex-col items-center justify-center p-8 text-center space-y-4 shadow-inner">
-            {/* Elegant grid matrix back panel */}
-            <div className="absolute inset-0 opacity-20 bg-[linear-gradient(#bc8381_1px,transparent_1px),linear-gradient(90deg,#bc8381_1px,transparent_1px)] bg-[size:24px_24px]" />
+            {/* Connected cosmetic preview viewport */}
+            <div className="relative w-full aspect-[4/3] bg-[radial-gradient(circle_at_50%_20%,rgba(255,63,135,0.14),transparent_34%),linear-gradient(135deg,#f7f7f5,#e6e4df)] rounded-2xl overflow-hidden border border-white/70 flex flex-col items-center justify-center p-8 text-center space-y-4 shadow-inner">
+            <div className="absolute inset-0 opacity-35 bg-[linear-gradient(rgba(215,181,109,0.20)_1px,transparent_1px),linear-gradient(90deg,rgba(215,181,109,0.20)_1px,transparent_1px)] bg-[size:26px_26px]" />
             <div className="absolute top-4 right-4 text-[9px] font-mono text-stone-400 tracking-widest uppercase font-bold">
-              ENG_CORE: GL_RENDER_ACTIVE
+              Formula preview
             </div>
 
-            {/* Pulsing cosmetic ring around "deepar here" */}
             <div className="relative flex items-center justify-center">
-              <div className="absolute w-24 h-24 rounded-full border border-[#732729]/30 animate-ping duration-1000 opacity-20" />
-              <div className="absolute w-16 h-16 rounded-full border border-[#bc8381]/40 animate-pulse duration-700 opacity-30" />
-              <div className="relative bg-[#732729] p-4 rounded-full border border-white/10 shadow-lg">
-                <Sparkles className="w-8 h-8 text-[#FAF6F5]" />
+              <div className="absolute w-24 h-24 rounded-full border border-[#ff3f87]/25 animate-ping duration-1000 opacity-20" />
+              <div className="absolute w-16 h-16 rounded-full border border-[#d7b56d]/45 animate-pulse duration-700 opacity-40" />
+              <div className="relative bg-stone-950 p-4 rounded-full border border-white/10 shadow-[0_18px_38px_rgba(20,20,20,0.22)]">
+                <Sparkles className="w-8 h-8 text-[#ff3f87]" />
               </div>
             </div>
 
             <div className="space-y-2 relative z-10">
-              <h2 className="text-3xl font-serif font-black text-[#732729] tracking-widest uppercase filter drop-shadow-[0_2px_4px_rgba(115,39,41,0.15)]">
-                deepar here
+              <h2 className="text-3xl font-black text-stone-950 tracking-normal filter drop-shadow-[0_2px_4px_rgba(20,20,20,0.08)]">
+                Formula Preview
               </h2>
               <p className="text-xs text-stone-600 max-w-sm mx-auto leading-relaxed font-bold">
-                Live DeepAR WebGL Cosmetic Engine Integration Point
+                This web area is for saving and submitting look formulas.
               </p>
               <p className="text-[11px] text-stone-400 max-w-xs mx-auto">
-                Webcam live-tracking overlay placeholder. Tweak active shader recipes on the right to compile custom filter binaries.
+                Camera try-on and build mode live in the native Looks portal.
               </p>
             </div>
 
             {/* Active Color Chips represent currently formulated shader colors */}
-            <div className="flex gap-2.5 pt-4 bg-white/90 border border-[#bc8381]/25 px-4 py-2.5 rounded-full backdrop-blur-md relative z-10 shadow-sm">
+            <div className="flex gap-2.5 pt-4 bg-white/[0.08]6 border border-white/80 px-4 py-2.5 rounded-full backdrop-blur-md relative z-10 shadow-sm">
               <div className="flex items-center gap-1.5 text-[10px] font-bold text-stone-600">
                 <span className="text-[9px] uppercase tracking-wider font-extrabold text-stone-400">Active Formula:</span>
-                <div style={{ backgroundColor: eyeshadowColor }} className="w-3.5 h-3.5 rounded-full border border-[#bc8381]/30" title="Eyeshadow color" />
-                <div style={{ backgroundColor: blushColor }} className="w-3.5 h-3.5 rounded-full border border-[#bc8381]/30 -ml-1" title="Blush color" />
-                <div style={{ backgroundColor: lipColor }} className="w-3.5 h-3.5 rounded-full border border-[#bc8381]/30 -ml-1" title="Lip color" />
+                <div style={{ backgroundColor: eyeshadowColor }} className="w-3.5 h-3.5 rounded-full border border-white/80" title="Eyeshadow color" />
+                <div style={{ backgroundColor: blushColor }} className="w-3.5 h-3.5 rounded-full border border-white/80 -ml-1" title="Blush color" />
+                <div style={{ backgroundColor: lipColor }} className="w-3.5 h-3.5 rounded-full border border-white/80 -ml-1" title="Lip color" />
               </div>
             </div>
           </div>
@@ -396,6 +394,42 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                 </div>
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="mt-6 pt-5 border-t border-[#bc8381]/25">
+          <h4 className="text-xs font-bold text-[#732729] uppercase tracking-wider mb-3 font-serif">Look Lab Actions</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <button
+              onClick={() => onNavigate?.('trending')}
+              className="group text-left p-3 rounded-xl border border-[#bc8381]/25 bg-[#faf6f5] hover:bg-white hover:border-[#732729]/45 transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-2 text-[#732729] font-black text-xs">
+                <MessageSquare className="w-4 h-4" /> Request a Look
+              </div>
+              <p className="text-[10px] text-stone-500 mt-1 leading-relaxed">Ask the community for a formula to build next.</p>
+            </button>
+            <button
+              onClick={() => onNavigate?.('votes')}
+              className="group text-left p-3 rounded-xl border border-[#bc8381]/25 bg-[#faf6f5] hover:bg-white hover:border-[#732729]/45 transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-2 text-[#732729] font-black text-xs">
+                <Vote className="w-4 h-4" /> Vote Next Look
+              </div>
+              <p className="text-[10px] text-stone-500 mt-1 leading-relaxed">Vote for winning looks and requested filters.</p>
+            </button>
+            <button
+              onClick={() => {
+                setSubmissionType('category');
+                setShowSubmitModal(true);
+              }}
+              className="group text-left p-3 rounded-xl border border-[#bc8381]/25 bg-[#faf6f5] hover:bg-white hover:border-[#732729]/45 transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-2 text-[#732729] font-black text-xs">
+                <Send className="w-4 h-4" /> Send to My MUA
+              </div>
+              <p className="text-[10px] text-stone-500 mt-1 leading-relaxed">Package this formula as a shareable brief.</p>
+            </button>
           </div>
         </div>
 
@@ -582,7 +616,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                 </div>
               </div>
 
-              {/* Glitter and DeepAR filters */}
+              {/* Glitter and render filters */}
               <div className="grid grid-cols-2 gap-4 border-t border-[#bc8381]/15 pt-3">
                 {/* Glitter */}
                 <div>
@@ -602,7 +636,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
 
                 {/* Filters */}
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wide mb-1">DeepAR Filter</label>
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wide mb-1">Render Filter</label>
                   <select
                     value={activeFilter}
                     onChange={(e: any) => setActiveFilter(e.target.value)}

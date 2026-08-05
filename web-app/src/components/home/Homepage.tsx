@@ -1,207 +1,140 @@
 import React from 'react';
-import { Sparkles, Trophy, Flame, TrendingUp, Sliders, ArrowRight, Grid } from 'lucide-react';
+import { ArrowRight, Crown, GalleryHorizontal, Heart, MessageSquare, Sparkles, Trophy } from 'lucide-react';
 
 interface HomepageProps {
-  onNavigate: (tab: 'sandbox' | 'gallery' | 'hall-of-fame' | 'trending' | 'built-looks' | 'votes') => void;
+  onNavigate: (tab: 'gallery' | 'hall-of-fame' | 'trending' | 'built-looks' | 'votes') => void;
 }
+
+const exploreCards = [
+  {
+    tab: 'gallery' as const,
+    title: 'Challenge Gallery',
+    eyebrow: 'Live entries',
+    copy: 'Browse submitted looks, save favorites, and open community formulas.',
+    icon: GalleryHorizontal,
+  },
+  {
+    tab: 'votes' as const,
+    title: 'Vote Board',
+    eyebrow: 'Decide what ships',
+    copy: 'Upvote active looks and help choose the next Gleame challenge winner.',
+    icon: Heart,
+  },
+  {
+    tab: 'trending' as const,
+    title: 'Requests',
+    eyebrow: 'Community asks',
+    copy: 'See requested makeup styles and submit ideas for new presets.',
+    icon: MessageSquare,
+  },
+  {
+    tab: 'hall-of-fame' as const,
+    title: 'Legends',
+    eyebrow: 'Winning archive',
+    copy: 'Review crowned looks and use them as inspiration for the next build.',
+    icon: Trophy,
+  },
+];
 
 export const Homepage: React.FC<HomepageProps> = ({ onNavigate }) => {
   return (
-    <div id="homepage" className="space-y-12 animate-in fade-in duration-300">
-      
-      {/* LUXURIOUS EDITORIAL HERO */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#bc8381]/30 bg-gradient-to-tr from-[#5c1d1f] via-[#732729] to-[#883639] p-8 md:p-12 shadow-xl text-white">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#bc8381]/15 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full blur-[100px] pointer-events-none" />
-        
-        <div className="relative max-w-2xl space-y-6 text-left">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 border border-white/20 rounded-full text-xs font-semibold text-[#f5eae7]">
-            <Sparkles className="w-3.5 h-3.5 text-[#bc8381]" /> Premium Filter Engineering Suite
-          </div>
-          
-          <h1 className="text-4xl md:text-5xl font-serif font-black tracking-wide leading-tight uppercase">
-            TryON Beauty <span className="font-light text-[#f5eae7]/85 italic block">Look LAB</span>
-          </h1>
-          
-          <p className="text-sm md:text-base text-[#f5eae7]/80 leading-relaxed max-w-lg">
-            Welcome to the ultimate digital beauty filter blueprint registry. Formulate exquisite cosmetic shade recipes, configure luxury interactive shaders, and vote on community masterpieces.
-          </p>
+    <div id="homepage" className="space-y-8 animate-in fade-in duration-300">
+      <section className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/[0.72] p-6 md:p-8 shadow-[0_24px_70px_rgba(20,20,20,0.10)] backdrop-blur-2xl">
+        <div className="absolute inset-x-8 -top-20 h-44 bg-[#ff3f87]/18 blur-3xl pointer-events-none" />
+        <div className="absolute right-8 top-8 h-24 w-24 rounded-full border border-[#d7b56d]/30 bg-[#d7b56d]/10 blur-sm pointer-events-none" />
 
-          <div className="flex flex-wrap gap-4 pt-4">
-            <button
-              onClick={() => onNavigate('sandbox')}
-              className="px-6 py-3.5 bg-white text-[#732729] font-extrabold text-xs uppercase tracking-widest rounded-xl hover:bg-[#bc8381] hover:text-white transition-all shadow-lg flex items-center gap-2 cursor-pointer"
-            >
-              <Sliders className="w-4 h-4" /> Open Blueprint Studio <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => onNavigate('gallery')}
-              className="px-6 py-3.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 cursor-pointer"
-            >
-              Explore Gallery
-            </button>
+        <div className="relative grid gap-7 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
+          <div className="space-y-5 text-left">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/[0.70] px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-stone-500 shadow-sm">
+              <Sparkles className="h-3.5 w-3.5 text-[#ff3f87]" />
+              Explore Gleame
+            </div>
+            <div className="space-y-3">
+              <h1 className="max-w-xl text-4xl font-black leading-[0.95] tracking-normal text-stone-950 md:text-5xl">
+                Discover looks worth trying.
+              </h1>
+              <p className="max-w-lg text-sm font-semibold leading-relaxed text-stone-500">
+                Explore live challenges, vote on community favorites, and find winning makeup ideas. Use the native Looks portal below for camera try-on and build mode.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => onNavigate('gallery')}
+                className="inline-flex items-center gap-2 rounded-2xl bg-stone-950 px-5 py-3 text-xs font-black uppercase tracking-wider text-white shadow-[0_14px_30px_rgba(20,20,20,0.20)] transition-all hover:bg-stone-800"
+              >
+                Open Gallery <ArrowRight className="h-3.5 w-3.5 text-[#d7b56d]" />
+              </button>
+              <button
+                onClick={() => onNavigate('votes')}
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/80 bg-white/[0.76] px-5 py-3 text-xs font-black uppercase tracking-wider text-stone-700 shadow-sm transition-all hover:text-[#ff3f87]"
+              >
+                Vote Now
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-[24px] border border-white/70 bg-stone-950 p-5 text-white shadow-[0_18px_50px_rgba(20,20,20,0.24)]">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-[#d7b56d]">Active Challenge</div>
+                <h2 className="mt-1 text-xl font-black">Holographic Heatwave</h2>
+              </div>
+              <Crown className="h-6 w-6 text-[#d7b56d]" />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                ['Entries', '24'],
+                ['Voting', 'Open'],
+                ['Prize', 'Feature'],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.08] p-3">
+                  <div className="text-[10px] font-bold uppercase text-white/45">{label}</div>
+                  <div className="mt-1 text-sm font-black">{value}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CORE MENU SECTIONS GRID - Premium warm cream cards */}
-      <section className="space-y-6">
-        <div className="border-b border-[#bc8381]/30 pb-4 text-left">
-          <h2 className="text-xl font-serif font-bold uppercase tracking-wider text-[#732729]">Explore Cosmetic Blueprints</h2>
-          <p className="text-xs text-stone-500">Discover trending velvet shade recipes, legendary halls of fame, and interactive designer proposals.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
-          {/* Menu Card 1: Sandbox Studio */}
-          <div 
-            onClick={() => onNavigate('sandbox')}
-            className="group relative h-80 rounded-2xl border border-[#bc8381]/25 overflow-hidden bg-[#FAF6F5] flex flex-col justify-end p-6 cursor-pointer hover:border-[#732729]/50 hover:shadow-[0_12px_30px_rgba(115,39,41,0.08)] transition-all"
-          >
-            <div 
-              className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&q=80&w=600')] bg-cover bg-center opacity-65 group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#4d191b] via-[#4d191b]/45 to-transparent" />
-            <div className="relative space-y-2 text-left z-10">
-              <span className="text-[10px] uppercase font-black tracking-widest text-[#bc8381]">Formula Studio</span>
-              <h3 className="text-lg font-serif font-bold text-white uppercase flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-[#bc8381]" /> Sandbox Lab
-              </h3>
-              <p className="text-xs text-white/80 line-clamp-2">Configure custom blush shades, lash styles, and glitter intensities in real-time.</p>
-              <div className="pt-2 text-[10px] font-bold text-[#f5eae7] flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                Configure Formulas <ArrowRight className="w-3 h-3" />
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {exploreCards.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.tab}
+              onClick={() => onNavigate(item.tab)}
+              className="group rounded-[24px] border border-white/70 bg-white/[0.68] p-5 text-left shadow-[0_18px_45px_rgba(20,20,20,0.07)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-[#ff3f87]/35 hover:bg-white"
+            >
+              <div className="mb-6 flex items-center justify-between">
+                <div className="rounded-2xl border border-white/70 bg-stone-100 p-3 text-stone-800 transition-colors group-hover:text-[#ff3f87]">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <ArrowRight className="h-4 w-4 text-stone-300 transition-colors group-hover:text-[#ff3f87]" />
               </div>
-            </div>
-          </div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#d7b56d]">{item.eyebrow}</div>
+              <h3 className="mt-1 text-lg font-black text-stone-950">{item.title}</h3>
+              <p className="mt-2 text-xs font-semibold leading-relaxed text-stone-500">{item.copy}</p>
+            </button>
+          );
+        })}
+      </section>
 
-          {/* Menu Card 2: Community Gallery */}
-          <div 
-            onClick={() => onNavigate('gallery')}
-            className="group relative h-80 rounded-2xl border border-[#bc8381]/25 overflow-hidden bg-[#FAF6F5] flex flex-col justify-end p-6 cursor-pointer hover:border-[#732729]/50 hover:shadow-[0_12px_30px_rgba(115,39,41,0.08)] transition-all"
-          >
-            <div 
-              className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=600')] bg-cover bg-center opacity-65 group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#4d191b] via-[#4d191b]/45 to-transparent" />
-            <div className="relative space-y-2 text-left z-10">
-              <span className="text-[10px] uppercase font-black tracking-widest text-[#bc8381]">Submissions Hub</span>
-              <h3 className="text-lg font-serif font-bold text-white uppercase flex items-center gap-2">
-                <Grid className="w-4 h-4 text-[#bc8381]" /> Community Gallery
-              </h3>
-              <p className="text-xs text-white/80 line-clamp-2">Try on and vote for custom cosmetic profiles formulated by creators around the world.</p>
-              <div className="pt-2 text-[10px] font-bold text-[#f5eae7] flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                Enter Gallery <ArrowRight className="w-3 h-3" />
-              </div>
-            </div>
+      <section className="rounded-[24px] border border-white/70 bg-white/[0.62] p-5 shadow-[0_18px_45px_rgba(20,20,20,0.07)] backdrop-blur-xl">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-left">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#d7b56d]">Studio Library</div>
+            <h3 className="mt-1 text-lg font-black text-stone-950">Preset looks are now kept separate from the try-on camera.</h3>
+            <p className="mt-1 text-xs font-semibold text-stone-500">Use Explore for discovery, Looks for native try-on/build, and Lab for challenges.</p>
           </div>
-
-          {/* Menu Card 3: Legends / Hall of Fame */}
-          <div 
-            onClick={() => onNavigate('hall-of-fame')}
-            className="group relative h-80 rounded-2xl border border-[#bc8381]/25 overflow-hidden bg-[#FAF6F5] flex flex-col justify-end p-6 cursor-pointer hover:border-[#732729]/50 hover:shadow-[0_12px_30px_rgba(115,39,41,0.08)] transition-all"
-          >
-            <div 
-              className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=600')] bg-cover bg-center opacity-65 group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#4d191b] via-[#4d191b]/45 to-transparent" />
-            <div className="relative space-y-2 text-left z-10">
-              <span className="text-[10px] uppercase font-black tracking-widest text-[#bc8381]">Legends</span>
-              <h3 className="text-lg font-serif font-bold text-white uppercase flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-[#bc8381]" /> Hall of Fame
-              </h3>
-              <p className="text-xs text-white/80 line-clamp-2">Exquisite beauty designs crowned as historic contest-winning masterpieces.</p>
-              <div className="pt-2 text-[10px] font-bold text-[#f5eae7] flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                View Winners <ArrowRight className="w-3 h-3" />
-              </div>
-            </div>
-          </div>
-
-          {/* Menu Card 4: Trending Proposals */}
-          <div 
-            onClick={() => onNavigate('trending')}
-            className="group relative h-80 rounded-2xl border border-[#bc8381]/25 overflow-hidden bg-[#FAF6F5] flex flex-col justify-end p-6 cursor-pointer hover:border-[#732729]/50 hover:shadow-[0_12px_30px_rgba(115,39,41,0.08)] transition-all"
-          >
-            <div 
-              className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600')] bg-cover bg-center opacity-65 group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#4d191b] via-[#4d191b]/45 to-transparent" />
-            <div className="relative space-y-2 text-left z-10">
-              <span className="text-[10px] uppercase font-black tracking-widest text-[#bc8381]">Active Proposals</span>
-              <h3 className="text-lg font-serif font-bold text-white uppercase flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#bc8381]" /> Demand Board
-              </h3>
-              <p className="text-xs text-white/80 line-clamp-2">See what beauty features and shader parameters the community is actively requesting.</p>
-              <div className="pt-2 text-[10px] font-bold text-[#f5eae7] flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                View Proposals <ArrowRight className="w-3 h-3" />
-              </div>
-            </div>
-          </div>
-
-          {/* Menu Card 5: Vote the Look */}
-          <div 
-            onClick={() => onNavigate('votes')}
-            className="group relative h-80 rounded-2xl border border-[#bc8381]/25 overflow-hidden bg-[#FAF6F5] flex flex-col justify-end p-6 cursor-pointer hover:border-[#732729]/50 hover:shadow-[0_12px_30px_rgba(115,39,41,0.08)] transition-all"
-          >
-            <div 
-              className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1515688594390-b649af70d282?auto=format&fit=crop&q=80&w=600')] bg-cover bg-center opacity-65 group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#4d191b] via-[#4d191b]/45 to-transparent" />
-            <div className="relative space-y-2 text-left z-10">
-              <span className="text-[10px] uppercase font-black tracking-widest text-[#bc8381]">Interactive Pipeline</span>
-              <h3 className="text-lg font-serif font-bold text-white uppercase flex items-center gap-2">
-                <Flame className="w-4 h-4 text-[#bc8381]" /> Vote the Look
-              </h3>
-              <p className="text-xs text-white/80 line-clamp-2">Directly upvote preset candidates to fast-track them into the studio registry.</p>
-              <div className="pt-2 text-[10px] font-bold text-[#f5eae7] flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                Vote & Build <ArrowRight className="w-3 h-3" />
-              </div>
-            </div>
-          </div>
-
-          {/* Menu Card 6: Packaged Presets */}
-          <div 
+          <button
             onClick={() => onNavigate('built-looks')}
-            className="group relative h-80 rounded-2xl border border-[#bc8381]/25 overflow-hidden bg-[#FAF6F5] flex flex-col justify-end p-6 cursor-pointer hover:border-[#732729]/50 hover:shadow-[0_12px_30px_rgba(115,39,41,0.08)] transition-all"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#ff3f87] px-5 py-3 text-xs font-black uppercase tracking-wider text-white shadow-[0_14px_30px_rgba(255,63,135,0.24)]"
           >
-            <div 
-              className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?auto=format&fit=crop&q=80&w=600')] bg-cover bg-center opacity-65 group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#4d191b] via-[#4d191b]/45 to-transparent" />
-            <div className="relative space-y-2 text-left z-10">
-              <span className="text-[10px] uppercase font-black tracking-widest text-[#bc8381]">Professional Presets</span>
-              <h3 className="text-lg font-serif font-bold text-white uppercase flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#bc8381]" /> Studio Catalog
-              </h3>
-              <p className="text-xs text-white/80 line-clamp-2">Explore the pre-formulated professional recipes optimized for digital deployment.</p>
-              <div className="pt-2 text-[10px] font-bold text-[#f5eae7] flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                View Presets <ArrowRight className="w-3 h-3" />
-              </div>
-            </div>
-          </div>
-
+            View Presets
+          </button>
         </div>
-      </section>
-
-      {/* HIGHLIGHT PROMOTION BANNER */}
-      <section className="p-8 rounded-2xl border border-[#bc8381]/30 bg-white shadow-md flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="space-y-2 text-left">
-          <div className="flex items-center gap-1.5">
-            <Flame className="w-4 h-4 text-[#732729] animate-pulse shrink-0" />
-            <span className="text-[10px] font-black uppercase text-[#732729] tracking-widest">Active Challenge</span>
-          </div>
-          <h3 className="text-lg font-serif font-bold text-[#732729]">Active Prismatic Heatwave Design Challenge</h3>
-          <p className="text-xs text-stone-500 leading-relaxed max-w-xl">
-            Tweak and perfect formula specifications inside our interactive blueprint engine. Save recipes and submit your blueprint to join the active monthly contest.
-          </p>
-        </div>
-        <button
-          onClick={() => onNavigate('sandbox')}
-          className="px-5 py-3 bg-[#732729] hover:bg-[#5c1d1f] text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl transition-all cursor-pointer whitespace-nowrap"
-        >
-          Open Editor
-        </button>
       </section>
     </div>
   );
 };
-

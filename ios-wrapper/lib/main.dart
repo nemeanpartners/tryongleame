@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:ui' as ui;
 
 import 'package:deepar_flutter_plus/deepar_flutter_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -47,27 +50,34 @@ class _LookLabPageState extends State<LookLabPage> {
   static const _pink = Color(0xffff3f87);
   static const _berry = Color(0xff8f2a50);
   static const _panel = Color(0xd9111111);
+  static const _sfSymbolsChannel = MethodChannel('gleame/sf_symbols');
   static const _iosDeepArKey =
       'cea1c575f20ba165fe73308381a71a6a7ed091a4c5c932f6630662002a33acb5bd7df298ee83b14a2';
-  static final Uri _webHomeUri = Uri.parse(
-    'https://tryon-beauty.ai.studio/home?embedded=ios',
+  static const _liveWebBaseUrl = 'https://tryon-beauty.ai.studio';
+  static const _debugWebBaseUrl = 'http://127.0.0.1:3000';
+  static const _webBaseUrl = String.fromEnvironment(
+    'GLEAME_WEB_BASE_URL',
+    defaultValue: kReleaseMode ? _liveWebBaseUrl : _debugWebBaseUrl,
   );
-  static final Uri _webLookLabUri = Uri.parse(
-    'https://tryon-beauty.ai.studio/editor?embedded=ios',
-  );
+  static Uri _embeddedWebUri(String path) =>
+      Uri.parse('$_webBaseUrl$path?embedded=ios');
+  static final Uri _webHomeUri = _embeddedWebUri('/home');
+  static final Uri _webLookLabUri = _embeddedWebUri('/gallery');
 
   final DeepArControllerPlus _deepArController = DeepArControllerPlus();
   final WebViewController _homeWebController = WebViewController();
   final WebViewController _lookLabWebController = WebViewController();
   final Set<String> _favoritePresetNames = {};
+  final Map<String, Uint8List> _sfSymbolPngs = {};
 
-  LabTab _tab = LabTab.tryLooks;
+  LabTab _tab = LabTab.home;
   bool _arInitialized = false;
   bool _arViewCreated = false;
   bool _savingCapture = false;
   bool _cameraDenied = false;
   bool _homeWebReady = false;
   bool _lookLabWebReady = false;
+  bool _looksPortalOpen = false;
   bool _sheerSkin = false;
   bool _beforeAfter = false;
   double _brightness = 0.10;
@@ -163,8 +173,36 @@ class _LookLabPageState extends State<LookLabPage> {
   void initState() {
     super.initState();
     _configureWebControllers();
+    unawaited(_loadSfSymbols());
     unawaited(_loadSavedState());
     _initializeDeepAr();
+  }
+
+  Future<void> _loadSfSymbols() async {
+    const symbols = [
+      'safari',
+      'door.french.closed',
+      'door.french.open',
+      'square.stack.3d.up',
+      'camera.filters',
+      'paintpalette',
+    ];
+    final loaded = <String, Uint8List>{};
+
+    for (final name in symbols) {
+      try {
+        final bytes = await _sfSymbolsChannel.invokeMethod<Uint8List>(
+          'render',
+          {'name': name, 'pointSize': 34.0, 'weight': 'semibold'},
+        );
+        if (bytes != null && bytes.isNotEmpty) loaded[name] = bytes;
+      } catch (e, st) {
+        log('SF Symbol load failed for $name: $e', stackTrace: st);
+      }
+    }
+
+    if (!mounted || loaded.isEmpty) return;
+    setState(() => _sfSymbolPngs.addAll(loaded));
   }
 
   void _configureWebControllers() {
@@ -199,6 +237,12 @@ class _LookLabPageState extends State<LookLabPage> {
           log('Gleame web bridge: ${message.message}');
           try {
             final decoded = jsonDecode(message.message) as Map<String, dynamic>;
+            final type = decoded['type'] as String?;
+            final target = decoded['target'] as String?;
+            if (type == 'gleame:navigate-native') {
+              unawaited(_handleWebNavigation(target));
+              return;
+            }
             final status = decoded['message'] as String?;
             if (status != null && mounted) _snack(status);
           } catch (_) {
@@ -217,6 +261,79 @@ class _LookLabPageState extends State<LookLabPage> {
         ),
       )
       ..loadRequest(uri);
+  }
+
+  Future<void> _handleWebNavigation(String? target) async {
+    if (target == 'try') {
+      await _switchTab(LabTab.tryLooks);
+      return;
+    }
+
+    if (target == 'build') {
+      await _switchTab(LabTab.build);
+      return;
+    }
+
+    if (target == 'home') {
+      if (!mounted) return;
+      setState(() {
+        _tab = LabTab.home;
+        _looksPortalOpen = false;
+      });
+      return;
+    }
+
+    if (target == 'lab') {
+      if (!mounted) return;
+      setState(() {
+        _tab = LabTab.lab;
+        _looksPortalOpen = false;
+      });
+      return;
+    }
+
+    final path = switch (target) {
+      'sandbox' => '/editor',
+      'gallery' => '/gallery',
+      'hall-of-fame' => '/legends',
+      'trending' => '/trending',
+      'built-looks' => '/presets',
+      'votes' => '/votes',
+      'profile' => '/profile',
+      _ => null,
+    };
+
+    if (path == null) return;
+    await _openLookLabPath(path);
+  }
+
+  Future<void> _openLookLabPath(String path) async {
+    if (!mounted) return;
+    setState(() {
+      _tab = LabTab.lab;
+      _looksPortalOpen = false;
+    });
+
+    final pathWithQuery = '$path?embedded=ios';
+    final script = '''
+(() => {
+  window.history.pushState(null, '', ${jsonEncode(pathWithQuery)});
+  window.dispatchEvent(new PopStateEvent('popstate'));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+})();
+''';
+
+    if (_lookLabWebReady) {
+      try {
+        await _lookLabWebController.runJavaScript(script);
+        return;
+      } catch (e, st) {
+        log('Look Lab JS navigation failed: $e', stackTrace: st);
+      }
+    }
+
+    if (mounted) setState(() => _lookLabWebReady = false);
+    await _lookLabWebController.loadRequest(_embeddedWebUri(path));
   }
 
   Future<void> _loadSavedState() async {
@@ -457,6 +574,7 @@ class _LookLabPageState extends State<LookLabPage> {
     _slotDebounceTimers.clear();
     setState(() {
       _tab = LabTab.build;
+      _looksPortalOpen = false;
       _beforeAfter = false;
       _eyeshadowIndex = 0;
       _eyelinerIndex = 0;
@@ -544,8 +662,32 @@ class _LookLabPageState extends State<LookLabPage> {
       await _openCleanBuildTab();
       return;
     }
-    setState(() => _tab = tab);
+    setState(() {
+      _tab = tab;
+      _looksPortalOpen = false;
+    });
     if (tab == LabTab.tryLooks) unawaited(_applyPreset(_presetIndex));
+  }
+
+  Future<void> _openExploreTab() async {
+    if (!mounted) return;
+    setState(() {
+      _tab = LabTab.home;
+      _looksPortalOpen = false;
+    });
+  }
+
+  Future<void> _openChallengeLab() async {
+    if (!mounted) return;
+    setState(() {
+      _tab = LabTab.lab;
+      _looksPortalOpen = false;
+    });
+    await _openLookLabPath('/gallery');
+  }
+
+  void _toggleLooksPortal() {
+    setState(() => _looksPortalOpen = !_looksPortalOpen);
   }
 
   @override
@@ -573,6 +715,8 @@ class _LookLabPageState extends State<LookLabPage> {
           ),
           if (!_isWebTab) SafeArea(child: _topBar()),
           Align(alignment: Alignment.bottomCenter, child: _bottomWorkspace()),
+          Positioned(left: 0, right: 0, bottom: 104, child: _looksPortal()),
+          Align(alignment: Alignment.bottomCenter, child: _nativeBottomNav()),
         ],
       ),
     );
@@ -580,25 +724,350 @@ class _LookLabPageState extends State<LookLabPage> {
 
   bool get _isWebTab => _tab == LabTab.home || _tab == LabTab.lab;
 
+  bool get _isLooksTab => _tab == LabTab.tryLooks || _tab == LabTab.build;
+
+  Widget _sfIcon(
+    String symbolName, {
+    Key? key,
+    required IconData fallback,
+    required Color color,
+    required double size,
+  }) {
+    final bytes = _sfSymbolPngs[symbolName];
+    if (bytes == null) {
+      return Icon(fallback, key: key, color: color, size: size);
+    }
+    return Image.memory(
+      bytes,
+      key: key,
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      color: color,
+      colorBlendMode: BlendMode.srcIn,
+      gaplessPlayback: true,
+    );
+  }
+
+  Widget _looksPortal() {
+    return IgnorePointer(
+      ignoring: !_looksPortalOpen,
+      child: SafeArea(
+        top: false,
+        bottom: false,
+        child: AnimatedSlide(
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+          offset: _looksPortalOpen ? Offset.zero : const Offset(0, 0.16),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 180),
+            opacity: _looksPortalOpen ? 1 : 0,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(26),
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 360),
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: const Color(0xff6d6265).withValues(alpha: 0.58),
+                        borderRadius: BorderRadius.circular(26),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.30),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.18),
+                            blurRadius: 26,
+                            offset: const Offset(0, 10),
+                          ),
+                          BoxShadow(
+                            color: _pink.withValues(alpha: 0.12),
+                            blurRadius: 30,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _portalButton(
+                              symbolName: 'camera.filters',
+                              fallbackIcon:
+                                  Icons.face_retouching_natural_outlined,
+                              label: 'Try Looks',
+                              selected: _tab == LabTab.tryLooks,
+                              onTap:
+                                  () => unawaited(_switchTab(LabTab.tryLooks)),
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          Expanded(
+                            child: _portalButton(
+                              symbolName: 'paintpalette',
+                              fallbackIcon: Icons.palette_outlined,
+                              label: 'Build',
+                              selected: _tab == LabTab.build,
+                              onTap: () => unawaited(_switchTab(LabTab.build)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _portalButton({
+    required String symbolName,
+    required IconData fallbackIcon,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        height: 46,
+        decoration: BoxDecoration(
+          color:
+              selected
+                  ? Colors.white.withValues(alpha: 0.22)
+                  : Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color:
+                selected
+                    ? Colors.white.withValues(alpha: 0.48)
+                    : Colors.white.withValues(alpha: 0.18),
+          ),
+          boxShadow:
+              selected
+                  ? [
+                    BoxShadow(
+                      color: _pink.withValues(alpha: 0.20),
+                      blurRadius: 20,
+                    ),
+                  ]
+                  : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _sfIcon(
+              symbolName,
+              fallback: fallbackIcon,
+              color: selected ? _pink : Colors.white.withValues(alpha: 0.82),
+              size: 18,
+            ),
+            const SizedBox(width: 7),
+            Text(
+              label,
+              style: TextStyle(
+                color:
+                    selected
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.82),
+                fontSize: 12.5,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _nativeBottomNav() {
+    final looksActive = _isLooksTab || _looksPortalOpen;
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(26, 0, 26, 12),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(34),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+            child: Container(
+              height: 66,
+              constraints: const BoxConstraints(maxWidth: 390),
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xff6a6264).withValues(alpha: 0.56),
+                borderRadius: BorderRadius.circular(34),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.20),
+                    blurRadius: 26,
+                    offset: const Offset(0, 13),
+                  ),
+                  BoxShadow(
+                    color: _pink.withValues(alpha: 0.10),
+                    blurRadius: 34,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  _nativeNavItem(
+                    label: 'Explore',
+                    selected: _tab == LabTab.home && !_looksPortalOpen,
+                    icon: _sfIcon(
+                      'safari',
+                      fallback: Icons.explore_outlined,
+                      color:
+                          _tab == LabTab.home && !_looksPortalOpen
+                              ? _pink
+                              : Colors.white.withValues(alpha: 0.68),
+                      size: 21,
+                    ),
+                    onTap: () => unawaited(_openExploreTab()),
+                  ),
+                  _nativeNavItem(
+                    label: 'Looks',
+                    selected: looksActive,
+                    icon: _sfIcon(
+                      looksActive ? 'door.french.open' : 'door.french.closed',
+                      key: ValueKey(
+                        looksActive ? 'door.french.open' : 'door.french.closed',
+                      ),
+                      fallback: Icons.door_front_door_outlined,
+                      color:
+                          looksActive
+                              ? _pink
+                              : Colors.white.withValues(alpha: 0.68),
+                      size: 23,
+                    ),
+                    onTap: _toggleLooksPortal,
+                  ),
+                  _nativeNavItem(
+                    label: 'Lab',
+                    selected: _tab == LabTab.lab && !_looksPortalOpen,
+                    icon: _sfIcon(
+                      'square.stack.3d.up',
+                      fallback: Icons.auto_awesome_motion_outlined,
+                      color:
+                          _tab == LabTab.lab && !_looksPortalOpen
+                              ? _pink
+                              : Colors.white.withValues(alpha: 0.68),
+                      size: 21,
+                    ),
+                    onTap: () => unawaited(_openChallengeLab()),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _nativeNavItem({
+    required String label,
+    required bool selected,
+    required Widget icon,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            color:
+                selected
+                    ? Colors.white.withValues(alpha: 0.22)
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(27),
+            border:
+                selected
+                    ? Border.all(color: Colors.white.withValues(alpha: 0.46))
+                    : null,
+            boxShadow:
+                selected
+                    ? [
+                      BoxShadow(
+                        color: _pink.withValues(alpha: 0.24),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ]
+                    : null,
+          ),
+          child: IconTheme(
+            data: IconThemeData(
+              size: 22,
+              color: selected ? _pink : Colors.white.withValues(alpha: 0.68),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 260),
+                  transitionBuilder:
+                      (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: ScaleTransition(scale: animation, child: child),
+                      ),
+                  child: icon,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color:
+                        selected ? _pink : Colors.white.withValues(alpha: 0.70),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _webWrapperLayer() {
     final loading = _tab == LabTab.home ? !_homeWebReady : !_lookLabWebReady;
 
     return ColoredBox(
-      color: const Color(0xfffaf6f5),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: IndexedStack(
-              index: _tab == LabTab.home ? 0 : 1,
-              children: [
-                WebViewWidget(controller: _homeWebController),
-                WebViewWidget(controller: _lookLabWebController),
-              ],
-            ),
+      color: const Color(0xfff3f2ef),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child:
+                    _tab == LabTab.home
+                        ? WebViewWidget(controller: _homeWebController)
+                        : WebViewWidget(controller: _lookLabWebController),
+              ),
+              if (loading)
+                const Center(child: CircularProgressIndicator(color: _pink)),
+            ],
           ),
-          if (loading)
-            const Center(child: CircularProgressIndicator(color: _pink)),
-        ],
+        ),
       ),
     );
   }
@@ -774,18 +1243,18 @@ class _LookLabPageState extends State<LookLabPage> {
   }
 
   Widget _bottomWorkspace() {
+    if (_isWebTab) return const SizedBox.shrink();
+
     return SafeArea(
       top: false,
+      bottom: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        padding: EdgeInsets.fromLTRB(12, 0, 12, _looksPortalOpen ? 182 : 112),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (_tab == LabTab.tryLooks) _tryLooksPanel(),
             if (_tab == LabTab.build) _buildPanel(),
-            if (_tab == LabTab.lab) _labPanel(),
-            const SizedBox(height: 8),
-            _lookLabTabs(),
           ],
         ),
       ),
@@ -942,37 +1411,6 @@ class _LookLabPageState extends State<LookLabPage> {
     );
   }
 
-  Widget _labPanel() {
-    return _glass(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionHeader(
-            'Small Look Lab',
-            'Create, vote and challenge friends',
-          ),
-          const SizedBox(height: 8),
-          _labTile(
-            Icons.auto_awesome,
-            'Request a Look',
-            'Ask for a style to build',
-          ),
-          _labTile(
-            Icons.how_to_vote_outlined,
-            'Vote next look',
-            'Winner credited',
-          ),
-          _labTile(
-            Icons.brush_outlined,
-            'Send to My MUA',
-            'Creates a shareable image',
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _glass({required Widget child}) {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 430),
@@ -1086,53 +1524,6 @@ class _LookLabPageState extends State<LookLabPage> {
     );
   }
 
-  Widget _labTile(IconData icon, String title, String subtitle) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.all(9),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: const BoxDecoration(
-              color: _pink,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 17),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 10, color: Colors.white60),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: Colors.white54, size: 20),
-        ],
-      ),
-    );
-  }
-
   Widget _choiceChip(
     String label, {
     required bool selected,
@@ -1157,75 +1548,6 @@ class _LookLabPageState extends State<LookLabPage> {
         child: Text(
           label,
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
-        ),
-      ),
-    );
-  }
-
-  Widget _lookLabTabs() {
-    return Container(
-      height: 58,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.30),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          _tabButton(LabTab.tryLooks, Icons.face_retouching_natural, 'Try'),
-          _tabButton(LabTab.build, Icons.palette_outlined, 'Build'),
-          _tabButton(LabTab.home, Icons.home_rounded, 'Home'),
-          _tabButton(LabTab.lab, Icons.auto_awesome_motion_outlined, 'Lab'),
-        ],
-      ),
-    );
-  }
-
-  Widget _tabButton(LabTab tab, IconData icon, String label) {
-    final selected = _tab == tab;
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => _switchTab(tab),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            color:
-                selected
-                    ? Colors.white.withValues(alpha: 0.13)
-                    : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color:
-                  selected
-                      ? Colors.white.withValues(alpha: 0.12)
-                      : Colors.transparent,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 19, color: selected ? _pink : Colors.white60),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: selected ? _pink : Colors.white60,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

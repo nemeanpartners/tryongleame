@@ -1,1 +1,53 @@
 @import "tailwindcss";
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+body.gleame-nav-surface,
+body.gleame-nav-surface #root {
+  background: transparent;
+}
+
+[class*="text-[#732729]"] {
+  color: #232220 !important;
+}
+
+[class*="text-[#bc8381]"] {
+  color: #d7b56d !important;
+}
+
+[class*="bg-[#732729]"] {
+  background-color: #191919 !important;
+}
+
+[class*="bg-[#5c1d1f]"],
+[class*="bg-[#4d191b]"] {
+  background-color: #111111 !important;
+}
+
+[class*="bg-[#bc8381]"] {
+  background-color: #d7b56d !important;
+}
+
+[class*="border-[#bc8381]"] {
+  border-color: rgb(215 181 109 / 0.28) !important;
+}
+
+[class*="hover:text-[#732729]"]:hover {
+  color: #ff3f87 !important;
+}
+
+[class*="hover:border-[#732729]"]:hover {
+  border-color: rgb(255 63 135 / 0.42) !important;
+}
+
+input[type="range"] {
+  accent-color: #ff3f87;
+}

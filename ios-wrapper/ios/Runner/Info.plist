@@ -34,6 +34,11 @@
 	<string>Allow access to save photos to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Allow access to save photos to your library.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
