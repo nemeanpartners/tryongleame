@@ -1,0 +1,12 @@
+{
+  "CFBundleDevelopmentRegion" => "en"
+  "CFBundleExecutable" => "App"
+  "CFBundleIdentifier" => "io.flutter.flutter.app"
+  "CFBundleInfoDictionaryVersion" => "6.0"
+  "CFBundleName" => "App"
+  "CFBundlePackageType" => "FMWK"
+  "CFBundleShortVersionString" => "1.0"
+  "CFBundleSignature" => "????"
+  "CFBundleVersion" => "1.0"
+  "MinimumOSVersion" => "12.0"
+}

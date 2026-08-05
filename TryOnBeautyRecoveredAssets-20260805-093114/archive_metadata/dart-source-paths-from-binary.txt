@@ -1,0 +1,10 @@
+package:makeup_guide_deepar/data/saved_looks_repository.dart
+package:makeup_guide_deepar/main.dart
+package:makeup_guide_deepar/model/eyelash_look.dart
+package:makeup_guide_deepar/model/eyeliner_look.dart
+package:makeup_guide_deepar/model/eyeshadow_look.dart
+package:makeup_guide_deepar/model/makeup_preset.dart
+package:makeup_guide_deepar/ui/makeup_home_page.dart
+package:makeup_guide_deepar/widgets/build_look_selector.dart
+package:makeup_guide_deepar/widgets/makeup_overlay_view.dart
+package:makeup_guide_deepar/widgets/makeup_preset_selector.dart
