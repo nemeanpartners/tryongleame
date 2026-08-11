@@ -210,11 +210,11 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
         filter: compilingFilter,
       };
 
-      await createBuiltLookFromRequestInDb(compilingRequest.id, formulaPreset);
+      await createBuiltLookFromRequestInDb(compilingRequest.id, formulaPreset, compilingRequest.requestedBy);
       setReleaseSuccess(true);
       
-      // Update local state by removing the compiled request
-      setRequests(prev => prev.filter(r => r.id !== compilingRequest.id));
+      // Update local state by updating status to released rather than deleting
+      setRequests(prev => prev.map(r => r.id === compilingRequest.id ? { ...r, status: 'released' } : r));
       
       setTimeout(() => {
         setCompilingRequest(null);
@@ -224,6 +224,21 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
       console.error('Error compiling request:', error);
     } finally {
       setIsReleasing(false);
+    }
+  };
+
+  // Update status in database
+  const handleUpdateStatus = async (reqId: string, newStatus: 'requested' | 'selected' | 'being built' | 'released') => {
+    try {
+      const docRef = doc(db, 'requests', reqId);
+      await updateDoc(docRef, { status: newStatus }).catch(error => {
+        handleFirestoreError(error, OperationType.UPDATE, `requests/${reqId}`);
+      });
+      setRequests(prev =>
+        prev.map(req => req.id === reqId ? { ...req, status: newStatus } : req)
+      );
+    } catch (err) {
+      console.error('Error updating request status:', err);
     }
   };
 
@@ -260,6 +275,12 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
 
   // Filtering look requests
   const filteredRequests = requests.filter(req => {
+    const currentUser = localStorage.getItem('tryon_beauty_username') || localStorage.getItem('kobella_username') || '';
+    const matchesPrivacy = req.isPublic !== false || 
+      (currentUser && req.requestedBy.toLowerCase() === currentUser.toLowerCase());
+
+    if (!matchesPrivacy) return false;
+
     return (
       req.title.toLowerCase().includes(requestSearch.toLowerCase()) ||
       req.description.toLowerCase().includes(requestSearch.toLowerCase()) ||
@@ -272,98 +293,84 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
   const leadingRequest = requests.length > 0 ? requests[0] : null;
 
   return (
-    <div id="votes-tab-container" className="space-y-8 animate-in fade-in duration-300 text-stone-800">
+    <div id="votes-tab-container" className="space-y-5 animate-in fade-in duration-300 text-stone-800">
       
       {/* HEADER HERO BANNER */}
-      <div className="border-b border-[#bc8381]/30 pb-5 text-left flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-serif font-black uppercase tracking-wider flex items-center gap-2 text-[#732729]">
-            <Trophy className="w-6 h-6 text-[#bc8381]" /> TryON Labs Vote Board
-          </h2>
-          <p className="text-xs text-stone-500 font-medium max-w-2xl">
-            Choose between voting on beauty challenge looks designed by community residents or supporting requests and proposed makeup concept demands in the creative pipeline.
-          </p>
-        </div>
-        <button
-          onClick={loadData}
-          className="flex items-center gap-1.5 self-start md:self-auto bg-white hover:bg-[#FAF6F5] border border-[#bc8381]/30 text-stone-600 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
-        >
-          <RefreshCw className="w-3.5 h-3.5 text-[#bc8381]" /> Refresh Live Votes
-        </button>
-      </div>
-
-      {/* PILL SWITCH CONTROLLER */}
-      <div id="vote-pill-switch" className="flex justify-center my-6">
-        <div className="bg-[#FAF6F5] border border-[#bc8381]/30 p-1 rounded-full inline-flex">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200/50">
+        <h2 className="text-xl md:text-2xl font-serif font-light uppercase tracking-widest text-stone-950">
+          THE <span className="font-semibold tracking-wider text-stone-900">VOTE BOARD</span>
+        </h2>
+        
+        {/* PILL SWITCH CONTROLLER (Oval & Glassmorphic) */}
+        <div id="vote-pill-switch" className="bg-white/60 backdrop-blur-md border border-stone-200 p-0.5 rounded-full inline-flex self-start sm:self-auto shadow-xs">
           <button
             onClick={() => setActiveTab('submissions')}
-            className={`px-5 py-2.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 flex items-center gap-1.5 cursor-pointer ${
+            className={`px-4 py-1.5 rounded-full text-[11px] font-bold tracking-wide transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'submissions'
-                ? 'bg-[#732729] text-white shadow-md'
-                : 'text-stone-600 hover:text-[#732729]'
+                ? 'bg-stone-950 text-white shadow-xs'
+                : 'text-stone-500 hover:text-stone-900'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" /> Challenge & Category Looks
+            <Sparkles className="w-3.5 h-3.5" /> Challenge Looks
           </button>
           <button
             onClick={() => setActiveTab('requests')}
-            className={`px-5 py-2.5 rounded-full text-xs font-bold tracking-wider transition-all duration-300 flex items-center gap-1.5 cursor-pointer ${
+            className={`px-4 py-1.5 rounded-full text-[11px] font-bold tracking-wide transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'requests'
-                ? 'bg-[#732729] text-white shadow-md'
-                : 'text-stone-600 hover:text-[#732729]'
+                ? 'bg-stone-950 text-white shadow-xs'
+                : 'text-stone-500 hover:text-stone-900'
             }`}
           >
-            <Trophy className="w-3.5 h-3.5" /> Look Requests & Ideas
+            <Trophy className="w-3.5 h-3.5" /> Look Requests
           </button>
         </div>
       </div>
 
       {loading ? (
         <div className="py-24 text-center flex flex-col items-center justify-center gap-3">
-          <RefreshCw className="w-8 h-8 animate-spin text-[#732729]" />
-          <span className="text-xs font-extrabold text-[#732729] uppercase tracking-wider">Syncing TryON Vote Registries...</span>
+          <RefreshCw className="w-8 h-8 animate-spin text-stone-400" />
+          <span className="text-xs font-bold text-stone-500 uppercase tracking-widest">Loading Live Vote Registries...</span>
         </div>
       ) : (
         <div>
           {/* TAB 1: CHALLENGE & CATEGORY SUBMISSIONS */}
           {activeTab === 'submissions' && (
-            <div className="space-y-6 text-left">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#bc8381]/15 pb-4">
-                <div>
-                  <h3 className="text-lg font-serif font-bold text-[#732729] uppercase tracking-wide flex items-center gap-1.5">
-                    <Sparkles className="w-4.5 h-4.5 text-[#bc8381]" /> Resident Challenge submissions
-                  </h3>
-                  <p className="text-xs text-stone-500">Explore formulas created by creators, try them on instantly, and vote for your favorites!</p>
+            <div className="space-y-5 text-left">
+              {/* FILTERS & SEARCH (along 1/4 way down) */}
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 py-2 border-b border-stone-100">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    onClick={loadData}
+                    title="Refresh Live Votes"
+                    className="p-1.5 bg-white/60 hover:bg-stone-50 border border-stone-200 rounded-full text-stone-500 hover:text-stone-900 transition-all cursor-pointer flex items-center justify-center shadow-xs"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  </button>
+
+                  {['all', 'holographic', 'cool-cyber', 'warm-glow', 'vintage'].map((filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => setSubmissionFilter(filter)}
+                      className={`px-3.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                        submissionFilter === filter
+                          ? 'bg-stone-950 text-white shadow-xs'
+                          : 'bg-white/60 backdrop-blur-md border border-stone-200 text-stone-500 hover:text-stone-900'
+                      }`}
+                    >
+                      {filter === 'all' ? 'All' : filter.replace('-', ' ')}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Filters */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3.5 top-1/2 transform -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Search submissions..."
-                      value={submissionSearch}
-                      onChange={(e) => setSubmissionSearch(e.target.value)}
-                      className="pl-9 pr-4 py-1.5 bg-white border border-[#bc8381]/30 rounded-full text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-[#732729] w-48 transition-colors"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-1 bg-stone-50 border border-stone-200 rounded-lg p-0.5">
-                    {['all', 'holographic', 'cool-cyber', 'warm-glow', 'vintage'].map((filter) => (
-                      <button
-                        key={filter}
-                        onClick={() => setSubmissionFilter(filter)}
-                        className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer ${
-                          submissionFilter === filter
-                            ? 'bg-[#732729] text-white'
-                            : 'text-stone-500 hover:text-[#732729]'
-                        }`}
-                      >
-                        {filter === 'all' ? 'All' : filter.replace('-', ' ')}
-                      </button>
-                    ))}
-                  </div>
+                <div className="relative w-full md:w-60">
+                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search look designs..."
+                    value={submissionSearch}
+                    onChange={(e) => setSubmissionSearch(e.target.value)}
+                    className="w-full pl-8.5 pr-4 py-1.5 bg-stone-50 hover:bg-stone-100/50 focus:bg-white border border-stone-200/60 rounded-xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-950 transition-all"
+                  />
                 </div>
               </div>
 
@@ -503,35 +510,35 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                 </div>
               )}
 
-              {/* Proposed Ideas Section with Search (Mockup Layout) */}
-              <div className="space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#bc8381]/15 pb-4">
-                  <div>
-                    <h3 className="text-xl font-serif font-bold text-[#732729] uppercase tracking-wide">
-                      Proposed Ideas & Vote Rankings
-                    </h3>
-                    <p className="text-xs text-stone-500">These concepts are actively designed based on community support. Upvote your favorites!</p>
-                  </div>
+              {/* SEARCH & PROPOSALS ROW (along 1/4 way down) */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-2 border-b border-stone-100">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={loadData}
+                    title="Refresh Live Votes"
+                    className="p-1.5 bg-white/60 hover:bg-stone-50 border border-stone-200 rounded-full text-stone-500 hover:text-stone-900 transition-all cursor-pointer flex items-center justify-center shadow-xs"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  </button>
 
-                  <div className="flex items-center gap-3">
-                    {/* Search bar */}
-                    <div className="relative">
-                      <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3.5 top-1/2 transform -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="Search ideas or creators..."
-                        value={requestSearch}
-                        onChange={(e) => setRequestSearch(e.target.value)}
-                        className="pl-9 pr-4 py-1.5 bg-white border border-[#bc8381]/30 rounded-full text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-[#732729] w-60 transition-colors"
-                      />
-                    </div>
-
-                    {/* Badge Proposals */}
-                    <span className="bg-[#FAF6F5] border border-[#bc8381]/35 text-[#732729] font-extrabold text-[10px] px-3.5 py-1.5 rounded-full uppercase tracking-wider">
-                      {filteredRequests.length} Proposals
-                    </span>
-                  </div>
+                  <span className="bg-white/60 border border-stone-200 text-stone-700 font-bold text-[10px] px-3.5 py-1.5 rounded-full uppercase tracking-wider shadow-xs">
+                    {filteredRequests.length} Concept Proposals
+                  </span>
                 </div>
+
+                <div className="relative w-full sm:w-60">
+                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search proposals or creators..."
+                    value={requestSearch}
+                    onChange={(e) => setRequestSearch(e.target.value)}
+                    className="w-full pl-8.5 pr-4 py-1.5 bg-stone-50 hover:bg-stone-100/50 focus:bg-white border border-stone-200/60 rounded-xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-950 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-6">
 
                 {filteredRequests.length === 0 ? (
                   <div className="py-16 text-center border border-dashed border-[#bc8381]/25 rounded-2xl bg-[#faf6f5]/40">
@@ -563,6 +570,25 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                               {req.category || 'FACE'}
                             </div>
 
+                            {/* Status Overlay Badge */}
+                            <div className={`absolute top-3 right-3 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md shadow-xs ${
+                              req.status === 'released'
+                                ? 'bg-emerald-600 text-white'
+                                : req.status === 'being built'
+                                ? 'bg-amber-500 text-stone-950'
+                                : req.status === 'selected'
+                                ? 'bg-rose-600 text-white'
+                                : 'bg-stone-500/80 text-white'
+                            }`}>
+                              {req.status || 'requested'}
+                            </div>
+
+                            {req.isPublic === false && (
+                              <div className="absolute top-11 right-3 bg-amber-600 border border-amber-500/30 px-2 py-1 rounded text-[8px] font-black uppercase tracking-wider text-white shadow-xs">
+                                🔒 Private
+                              </div>
+                            )}
+
                             {/* Proposed by Overlay */}
                             <div className="absolute bottom-3 left-3 text-white text-[10px] font-bold">
                               Proposed by <span className="font-extrabold text-[#f5eae7]">@{req.requestedBy || 'studio_resident'}</span>
@@ -571,12 +597,18 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
 
                           {/* Body Content */}
                           <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               <h4 className="font-serif font-black text-[#732729] text-base leading-tight">{req.title}</h4>
                               <p className="text-[11px] text-stone-500 leading-relaxed font-semibold">{req.description}</p>
                               
+                              {req.isPublic === false && (
+                                <div className="text-[10px] text-amber-700 bg-amber-500/10 border border-amber-500/20 p-2 rounded-lg font-bold">
+                                  🔒 Private: This request is only visible to you and lab specialists.
+                                </div>
+                              )}
+                              
                               {/* Concept Palette */}
-                              <div className="space-y-1.5 pt-2">
+                              <div className="space-y-1.5 pt-1">
                                 <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 block">Concept Palette</span>
                                 <div className="flex gap-1.5">
                                   {req.colors?.map((col, cIdx) => (
@@ -589,6 +621,40 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                                   ))}
                                 </div>
                               </div>
+
+                              {/* Interactive Request Status Pipeline Stepper */}
+                              <div className="space-y-1.5 pt-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 block">Request Pipeline Status</span>
+                                  <span className="text-[8px] bg-stone-100 text-stone-600 font-extrabold uppercase px-1 rounded">Interactive</span>
+                                </div>
+                                <div className="grid grid-cols-4 gap-1 bg-[#faf6f5] border border-[#bc8381]/15 rounded-lg p-1 text-[8px] font-bold text-center">
+                                  {(['requested', 'selected', 'being built', 'released'] as const).map((st) => {
+                                    const isActive = (req.status || 'requested') === st;
+                                    const labelMap = {
+                                      'requested': 'Req',
+                                      'selected': 'Sel',
+                                      'being built': 'Build',
+                                      'released': 'Live'
+                                    };
+                                    return (
+                                      <button
+                                        key={st}
+                                        type="button"
+                                        onClick={() => handleUpdateStatus(req.id, st)}
+                                        className={`py-1.5 rounded transition-all cursor-pointer ${
+                                          isActive
+                                            ? 'bg-[#732729] text-white shadow-xs font-black'
+                                            : 'text-stone-400 hover:text-stone-700 hover:bg-stone-100'
+                                        }`}
+                                        title={`Move request to ${st}`}
+                                      >
+                                        {labelMap[st]}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             </div>
 
                             {/* Footer Actions Row */}
@@ -598,17 +664,49 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                                 <span>{req.votes} votes</span>
                               </div>
 
-                              <button
-                                onClick={() => handleVoteRequest(req.id)}
-                                disabled={isVoted}
-                                className={`px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-colors cursor-pointer ${
-                                  isVoted
-                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                    : 'bg-[#732729] hover:bg-[#5c1d1f] text-white border border-[#732729]'
-                                }`}
-                              >
-                                {isVoted ? 'Supported' : 'UPVOTE'}
-                              </button>
+                              <div className="flex gap-1.5">
+                                {req.status === 'released' ? (
+                                  <button
+                                    onClick={() => handleTryOnLook({
+                                      id: req.id,
+                                      name: req.title,
+                                      description: req.description,
+                                      eyeshadowColor: req.colors?.[0] || '#be123c',
+                                      blushColor: req.colors?.[1] || '#fb7185',
+                                      lipColor: req.colors?.[2] || '#db2777',
+                                      lipGloss: true,
+                                      lashesStyle: 'natural',
+                                      glitterLevel: 50,
+                                      filter: 'warm-glow'
+                                    })}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-xl font-bold text-[9px] uppercase tracking-wider transition-colors cursor-pointer"
+                                  >
+                                    Try On
+                                  </button>
+                                ) : (
+                                  <>
+                                    {/* Admin Compiler trigger if user wants to build and release */}
+                                    <button
+                                      onClick={() => handleOpenCompileForm(req)}
+                                      className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-2.5 py-1.5 rounded-xl font-bold text-[9px] uppercase tracking-wider transition-colors cursor-pointer border border-stone-200"
+                                      title="Open Compiler Modal to release look"
+                                    >
+                                      Compile
+                                    </button>
+                                    <button
+                                      onClick={() => handleVoteRequest(req.id)}
+                                      disabled={isVoted}
+                                      className={`px-3.5 py-1.5 rounded-xl font-bold text-[9px] uppercase tracking-wider transition-colors cursor-pointer ${
+                                        isVoted
+                                          ? 'bg-[#bc8381]/10 text-[#732729]/60 border border-[#bc8381]/20'
+                                          : 'bg-[#732729] hover:bg-[#5c1d1f] text-white border border-[#732729]'
+                                      }`}
+                                    >
+                                      {isVoted ? 'Voted' : 'Vote'}
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>

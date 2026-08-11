@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Play, Flame, Sliders, RefreshCw } from 'lucide-react';
+import { Sparkles, Play, Flame, Sliders, RefreshCw, Heart } from 'lucide-react';
 import { PresetLook } from '../../types';
 import { seedBuiltLooksIfEmpty, ExtendedBuiltLook } from '../../lib/looksService';
 
@@ -17,6 +17,25 @@ interface BuiltLooksPageProps {
 export const BuiltLooksPage: React.FC<BuiltLooksPageProps> = ({ onLoadPreset }) => {
   const [looks, setLooks] = useState<ExtendedBuiltLook[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('tryon_favourites');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleFavorite = (lookId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavorites(prev => {
+      const updated = prev.includes(lookId)
+        ? prev.filter(id => id !== lookId)
+        : [...prev, lookId];
+      localStorage.setItem('tryon_favourites', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const fetchLooks = async () => {
     setLoading(true);
@@ -41,16 +60,18 @@ export const BuiltLooksPage: React.FC<BuiltLooksPageProps> = ({ onLoadPreset }) 
       <div className="border-b border-[#bc8381]/30 pb-4 text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-serif font-bold uppercase tracking-wider flex items-center gap-2 text-[#732729]">
-            <Sparkles className="w-5 h-5 text-[#bc8381]" /> Packaged Shaders & Presets
+            <Sparkles className="w-5 h-5 text-[#bc8381]" /> Try On Looks
           </h2>
           <p className="text-xs text-stone-500">These pre-formulated professional recipes are ready for immediate deployment to active DeepAR filter profiles.</p>
         </div>
-        <button
-          onClick={fetchLooks}
-          className="flex items-center gap-1 bg-white hover:bg-[#FAF6F5] border border-[#bc8381]/35 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
-        >
-          <RefreshCw className="w-3.5 h-3.5 text-[#bc8381]" /> Reload
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={fetchLooks}
+            className="flex items-center gap-1 bg-white hover:bg-[#FAF6F5] border border-[#bc8381]/35 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-[#bc8381]" /> Reload
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -63,6 +84,7 @@ export const BuiltLooksPage: React.FC<BuiltLooksPageProps> = ({ onLoadPreset }) 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {looks.map((preset) => {
             const coverImg = preset.coverImage || LOOK_COVERS[preset.id] || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600';
+            const isFav = favorites.includes(preset.id);
             
             return (
               <div
@@ -92,6 +114,21 @@ export const BuiltLooksPage: React.FC<BuiltLooksPageProps> = ({ onLoadPreset }) 
                     </div>
                   )}
 
+                  {preset.requestedBy && (
+                    <div className="absolute top-3 left-3 bg-stone-900/80 backdrop-blur-md text-[#FAF6F5] border border-[#bc8381]/30 px-2.5 py-1 rounded text-[8px] font-black tracking-wider uppercase">
+                      MUA: @{preset.requestedBy}
+                    </div>
+                  )}
+
+                  {/* Favorite Heart Button Overlay */}
+                  <button
+                    onClick={(e) => toggleFavorite(preset.id, e)}
+                    className="absolute bottom-3 right-3 p-2 rounded-full bg-white/95 backdrop-blur-md border border-[#bc8381]/25 hover:bg-rose-50 hover:border-rose-300 transition-all cursor-pointer shadow-sm text-stone-600 hover:text-rose-600 z-10"
+                    title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Heart className={`w-3.5 h-3.5 transition-colors ${isFav ? 'fill-rose-500 text-rose-500' : 'text-stone-500'}`} />
+                  </button>
+
                   {/* Swatches Overlay */}
                   <div className="absolute bottom-3 left-3 flex gap-1.5 bg-white/95 backdrop-blur-md px-2 py-1 rounded-lg border border-[#bc8381]/25 shadow-sm">
                     <div style={{ backgroundColor: preset.eyeshadowColor }} className="w-3.5 h-3.5 rounded-full border border-stone-200" title="Eyeshadow color" />
@@ -103,9 +140,12 @@ export const BuiltLooksPage: React.FC<BuiltLooksPageProps> = ({ onLoadPreset }) 
                 {/* Specs & Info */}
                 <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                   <div className="space-y-1.5">
-                    <h3 className="font-serif font-black text-[#732729] text-base group-hover:text-[#bc8381] transition-colors">
-                      {preset.name}
-                    </h3>
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="font-serif font-black text-[#732729] text-base group-hover:text-[#bc8381] transition-colors">
+                        {preset.name}
+                      </h3>
+                      {isFav && <span className="text-rose-500 text-xs">♥</span>}
+                    </div>
                     <p className="text-xs text-stone-500 leading-relaxed font-semibold line-clamp-3">
                       {preset.description}
                     </p>

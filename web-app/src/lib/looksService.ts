@@ -14,6 +14,9 @@ const INITIAL_BUILT_LOOKS: ExtendedBuiltLook[] = [
     description: 'A warm, romantic sunset glow with satin copper tones and golden hour reflections.',
     eyeshadowColor: '#d97706',
     eyeshadowOpacity: 0.6,
+    eyelinerColor: '#000000',
+    eyelinerOpacity: 0.0,
+    eyelinerStyle: 'none',
     blushColor: '#f43f5e',
     blushOpacity: 0.4,
     lipColor: '#be123c',
@@ -31,6 +34,9 @@ const INITIAL_BUILT_LOOKS: ExtendedBuiltLook[] = [
     description: 'Electric neon violet shadows with high-contrast cybernetic digital filters and bold wisps.',
     eyeshadowColor: '#8b5cf6',
     eyeshadowOpacity: 0.7,
+    eyelinerColor: '#000000',
+    eyelinerOpacity: 0.8,
+    eyelinerStyle: 'classic',
     blushColor: '#ec4899',
     blushOpacity: 0.5,
     lipColor: '#a21caf',
@@ -48,6 +54,9 @@ const INITIAL_BUILT_LOOKS: ExtendedBuiltLook[] = [
     description: 'Soft pastel aquamarines, sheer lip gloss, and delicate face glimmers reflecting oceanic light.',
     eyeshadowColor: '#06b6d4',
     eyeshadowOpacity: 0.5,
+    eyelinerColor: '#06b6d4',
+    eyelinerOpacity: 0.4,
+    eyelinerStyle: 'winged',
     blushColor: '#fb7185',
     blushOpacity: 0.3,
     lipColor: '#f472b6',
@@ -65,6 +74,9 @@ const INITIAL_BUILT_LOOKS: ExtendedBuiltLook[] = [
     description: 'The active challenge base! Prismatic orchid eye overlays, bold pink lips, and intense sparkle levels.',
     eyeshadowColor: '#d946ef',
     eyeshadowOpacity: 0.8,
+    eyelinerColor: '#ff3f87',
+    eyelinerOpacity: 0.9,
+    eyelinerStyle: 'cat-eye',
     blushColor: '#f43f5e',
     blushOpacity: 0.4,
     lipColor: '#db2777',
@@ -81,33 +93,36 @@ const INITIAL_BUILT_LOOKS: ExtendedBuiltLook[] = [
 const SEED_REQUESTS: Omit<LookRequest, 'id'>[] = [
   {
     title: 'Blue Glam Look',
-    description: 'A brilliant sapphire blue and teal glitter eyeshadow combination, paired with shimmering neutral peach gloss lips and dramatic sky-high eyelashes.',
+    description: 'A brilliant sapphire blue and teal glitter eyeshadow combination, paired with shimmering neutral peach gloss lips and dramatic sky-high eyeliner and eyelashes.',
     category: 'Full Face',
     colors: ['#1d4ed8', '#06b6d4', '#ffedd5'],
     requestedBy: 'azure_dreamer',
     votes: 52,
     votedUsers: [],
-    createdAt: Date.now() - 3600000 * 24
+    createdAt: Date.now() - 3600000 * 24,
+    status: 'released'
   },
   {
     title: 'Black Night Goth',
-    description: 'A striking matte charcoal black eyeshadow smudge, contoured blush, dramatic heavy-set lashes, and a velvety deep plum-black lips look.',
+    description: 'A striking matte charcoal black eyeshadow smudge, thick winged eyeliner, contoured blush, dramatic heavy-set lashes, and a velvety deep plum-black lips look.',
     category: 'Full Face',
     colors: ['#111827', '#374151', '#4c0519'],
     requestedBy: 'midnight_rebel',
     votes: 47,
     votedUsers: [],
-    createdAt: Date.now() - 3600000 * 18
+    createdAt: Date.now() - 3600000 * 18,
+    status: 'being built'
   },
   {
     title: 'Liquid Rose Gold Pearl',
-    description: 'Metallic warm pink eye overlays, subtle desert sand blush, and clear high-gloss cherry gold lips.',
+    description: 'Metallic warm pink eye overlays, classic eyeliner, subtle desert sand blush, and clear high-gloss cherry gold lips.',
     category: 'Full Face',
     colors: ['#fb7185', '#cb997e', '#db2777'],
     requestedBy: 'pearl_princess',
     votes: 21,
     votedUsers: [],
-    createdAt: Date.now() - 3600000 * 6
+    createdAt: Date.now() - 3600000 * 6,
+    status: 'selected'
   }
 ];
 
@@ -138,6 +153,9 @@ export async function seedBuiltLooksIfEmpty(): Promise<ExtendedBuiltLook[]> {
           description: data.description,
           eyeshadowColor: data.eyeshadowColor,
           eyeshadowOpacity: data.eyeshadowOpacity ?? 0.6,
+          eyelinerColor: data.eyelinerColor ?? '#000000',
+          eyelinerOpacity: data.eyelinerOpacity ?? 0.0,
+          eyelinerStyle: data.eyelinerStyle ?? 'none',
           blushColor: data.blushColor,
           blushOpacity: data.blushOpacity ?? 0.4,
           lipColor: data.lipColor,
@@ -149,6 +167,7 @@ export async function seedBuiltLooksIfEmpty(): Promise<ExtendedBuiltLook[]> {
           votes: data.votes ?? 0,
           coverImage: data.coverImage,
           isCustom: data.isCustom ?? false,
+          requestedBy: data.requestedBy || undefined
         });
       });
       return items;
@@ -190,7 +209,8 @@ export async function seedRequestsIfEmpty(): Promise<LookRequest[]> {
           requestedBy: data.requestedBy || 'Anonymous',
           votes: data.votes ?? 0,
           votedUsers: data.votedUsers || [],
-          createdAt: data.createdAt || Date.now()
+          createdAt: data.createdAt || Date.now(),
+          status: data.status || 'requested'
         });
       });
       return items;
@@ -240,17 +260,21 @@ export async function voteForRequestInDb(reqId: string): Promise<void> {
 
 // Create built look out of a request (marking the request as completed/won)
 export async function createBuiltLookFromRequestInDb(
-  requestTitle: string, 
+  requestId: string, 
   presetData: Omit<PresetLook, 'id'>,
+  requestedByUsername?: string,
   coverImage: string = 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&q=80&w=600'
 ): Promise<ExtendedBuiltLook> {
   const customId = `released_${Date.now()}`;
   const newLook: ExtendedBuiltLook = {
     id: customId,
-    name: presetData.name || requestTitle,
-    description: presetData.description || `Community request "${requestTitle}" built and added to the official TryON library.`,
+    name: presetData.name,
+    description: presetData.description || `Community request built and added to the official TryON library.`,
     eyeshadowColor: presetData.eyeshadowColor,
     eyeshadowOpacity: presetData.eyeshadowOpacity,
+    eyelinerColor: presetData.eyelinerColor || '#000000',
+    eyelinerOpacity: presetData.eyelinerOpacity || 0.0,
+    eyelinerStyle: presetData.eyelinerStyle || 'none',
     blushColor: presetData.blushColor,
     blushOpacity: presetData.blushOpacity,
     lipColor: presetData.lipColor,
@@ -261,12 +285,22 @@ export async function createBuiltLookFromRequestInDb(
     filter: presetData.filter,
     votes: 1, // Start with 1 vote
     coverImage,
-    isCustom: true
+    isCustom: true,
+    requestedBy: requestedByUsername
   };
 
   const docRef = doc(db, 'built_looks', customId);
   await setDoc(docRef, newLook).catch(error => {
     handleFirestoreError(error, OperationType.CREATE, `built_looks/${customId}`);
   });
+
+  // Also update request status in db to 'released'
+  try {
+    const reqDocRef = doc(db, 'requests', requestId);
+    await updateDoc(reqDocRef, { status: 'released' });
+  } catch (err) {
+    console.error("Error updating request status to released in db:", err);
+  }
+
   return newLook;
 }

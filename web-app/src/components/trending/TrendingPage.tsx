@@ -1,5 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Heart, Plus, TrendingUp, Tag, User, MessageSquare, Check, AlertCircle, RefreshCw, BarChart2, Search, X } from 'lucide-react';
+import { motion } from 'motion/react';
+import { 
+  Sparkles, 
+  Heart, 
+  Plus, 
+  TrendingUp, 
+  Tag, 
+  User, 
+  MessageSquare, 
+  Check, 
+  AlertCircle, 
+  RefreshCw, 
+  BarChart2, 
+  Search, 
+  X, 
+  Lock, 
+  Unlock, 
+  Mail 
+} from 'lucide-react';
 import { db, collection, getDocs, addDoc, updateDoc, doc, increment } from '../../firebase';
 import { LookRequest } from '../../types';
 
@@ -22,6 +40,7 @@ const PRESET_REQUESTS: LookRequest[] = [
     requestedBy: 'beauty_by_kat',
     votes: 48,
     votedUsers: [],
+    isPublic: true,
     createdAt: Date.now() - 3600000 * 48
   },
   {
@@ -33,6 +52,7 @@ const PRESET_REQUESTS: LookRequest[] = [
     requestedBy: 'glow_expert',
     votes: 35,
     votedUsers: [],
+    isPublic: true,
     createdAt: Date.now() - 3600000 * 35
   },
   {
@@ -44,6 +64,7 @@ const PRESET_REQUESTS: LookRequest[] = [
     requestedBy: 'vamp_glam',
     votes: 29,
     votedUsers: [],
+    isPublic: true,
     createdAt: Date.now() - 3600000 * 29
   },
   {
@@ -55,6 +76,7 @@ const PRESET_REQUESTS: LookRequest[] = [
     requestedBy: 'moonchild_99',
     votes: 24,
     votedUsers: [],
+    isPublic: true,
     createdAt: Date.now() - 3600000 * 24
   }
 ];
@@ -72,8 +94,12 @@ export const TrendingPage: React.FC = () => {
   const [color1, setColor1] = useState<string>('#db2777');
   const [color2, setColor2] = useState<string>('#9333ea');
   const [color3, setColor3] = useState<string>('#f59e0b');
+  const [isPublic, setIsPublic] = useState<boolean>(true);
 
+  // Animation and Success State
+  const [isAnimatingSubmit, setIsAnimatingSubmit] = useState<boolean>(false);
   const [formSuccess, setFormSuccess] = useState<boolean>(false);
+  
   const [votedIds, setVotedIds] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('tryon_beauty_voted_requests') || '[]');
@@ -84,15 +110,17 @@ export const TrendingPage: React.FC = () => {
 
   const categories = ['Eyes', 'Lips', 'Blush', 'Highlight', 'Full Face', 'Other'];
 
+  const currentUser = requestedBy.trim() || localStorage.getItem('tryon_beauty_username') || localStorage.getItem('kobella_username') || '';
+
   const fetchRequests = async () => {
     setLoading(true);
     try {
       const querySnapshot = await getDocs(collection(db, 'requests'));
       const dbRequests: LookRequest[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
         dbRequests.push({
-          id: doc.id,
+          id: docSnap.id,
           title: data.title,
           description: data.description,
           category: data.category,
@@ -100,6 +128,8 @@ export const TrendingPage: React.FC = () => {
           requestedBy: data.requestedBy || 'Anonymous',
           votes: data.votes || 0,
           votedUsers: data.votedUsers || [],
+          isPublic: data.isPublic !== false, // default to true
+          status: (data.status || 'requested') as 'requested' | 'selected' | 'being built' | 'released',
           createdAt: data.createdAt || Date.now()
         });
       });
@@ -114,10 +144,10 @@ export const TrendingPage: React.FC = () => {
         }
         const newSnapshot = await getDocs(collection(db, 'requests'));
         const seededRequests: LookRequest[] = [];
-        newSnapshot.forEach((doc) => {
-          const data = doc.data();
+        newSnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
           seededRequests.push({
-            id: doc.id,
+            id: docSnap.id,
             title: data.title,
             description: data.description,
             category: data.category,
@@ -125,6 +155,8 @@ export const TrendingPage: React.FC = () => {
             requestedBy: data.requestedBy || 'Anonymous',
             votes: data.votes || 0,
             votedUsers: data.votedUsers || [],
+            isPublic: data.isPublic !== false,
+            status: (data.status || 'requested') as 'requested' | 'selected' | 'being built' | 'released',
             createdAt: data.createdAt || Date.now()
           });
         });
@@ -161,10 +193,16 @@ export const TrendingPage: React.FC = () => {
       requestedBy: finalUsername,
       votes: 1,
       votedUsers: [],
+      isPublic,
+      status: 'requested' as 'requested' | 'selected' | 'being built' | 'released',
       createdAt: Date.now()
     };
 
     try {
+      // 1. Open the mailbox letter drop animation overlay!
+      setIsAnimatingSubmit(true);
+
+      // Save to Firebase (await)
       const docRef = await addDoc(collection(db, 'requests'), newRequestData);
       
       const addedRequest: LookRequest = {
@@ -172,18 +210,25 @@ export const TrendingPage: React.FC = () => {
         ...newRequestData
       };
 
-      setRequests(prev => [addedRequest, ...prev].sort((a, b) => b.votes - a.votes));
-      
+      // Mark this proposal as voted by the user immediately
       const newVoted = [...votedIds, docRef.id];
       setVotedIds(newVoted);
       localStorage.setItem('tryon_beauty_voted_requests', JSON.stringify(newVoted));
 
-      setTitle('');
-      setDescription('');
-      setFormSuccess(true);
-      setTimeout(() => setFormSuccess(false), 4000);
+      // 2. Wait for the animation to play beautifully (e.g. 2300ms) then refresh the page!
+      setTimeout(() => {
+        setIsAnimatingSubmit(false);
+        setFormSuccess(true);
+        setTitle('');
+        setDescription('');
+        
+        // Reload page to show saved state at the top of ranking
+        window.location.reload();
+      }, 2350);
+
     } catch (err) {
       console.error("Error submitting custom request: ", err);
+      setIsAnimatingSubmit(false);
     }
   };
 
@@ -232,7 +277,15 @@ export const TrendingPage: React.FC = () => {
 
   const trendingStats = calculateTrendingStats();
 
-  const filteredRequests = requests.filter(req => {
+  // Filter requests based on privacy rules:
+  // - Show public requests (isPublic !== false)
+  // - Show private requests belonging to the CURRENT user only!
+  const visibleRequests = requests.filter(req => {
+    const isOwner = currentUser && req.requestedBy.toLowerCase() === currentUser.toLowerCase();
+    return req.isPublic !== false || isOwner;
+  });
+
+  const filteredRequests = visibleRequests.filter(req => {
     const matchesSearch = searchQuery.trim() === '' || 
       req.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       req.requestedBy.toLowerCase().includes(searchQuery.toLowerCase());
@@ -240,8 +293,80 @@ export const TrendingPage: React.FC = () => {
   });
 
   return (
-    <div id="trending-page" className="grid grid-cols-1 xl:grid-cols-12 gap-8 text-stone-800 animate-in fade-in duration-300">
+    <div id="trending-page" className="grid grid-cols-1 xl:grid-cols-12 gap-8 text-stone-800 animate-in fade-in duration-300 relative">
       
+      {/* MAILBOX LETTER ANIMATION OVERLAY */}
+      {isAnimatingSubmit && (
+        <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-[24px] border border-[#bc8381]/25 p-8 text-center space-y-6 relative overflow-hidden shadow-2xl">
+            <div className="absolute inset-x-8 -top-20 h-44 bg-[#732729]/10 blur-3xl pointer-events-none" />
+            
+            {/* Mailbox Container with Slot and sliding letter */}
+            <div className="relative h-48 flex flex-col items-center justify-center">
+              
+              {/* Box Slot */}
+              <div className="absolute bottom-4 w-40 h-16 bg-[#732729] rounded-b-xl border-t border-[#bc8381]/50 flex items-center justify-center shadow-lg">
+                <div className="absolute top-0 w-32 h-2.5 bg-stone-950 rounded-full mt-1.5 shadow-inner overflow-hidden flex justify-center">
+                  {/* Flap flip rotation */}
+                  <motion.div 
+                    animate={{ rotateX: [0, -90, -90, 0] }}
+                    transition={{ delay: 0.6, duration: 0.8, times: [0, 0.3, 0.7, 1] }}
+                    className="w-full h-full bg-stone-800 origin-top"
+                  />
+                </div>
+                <span className="text-[8px] font-black uppercase text-[#bc8381] tracking-widest mt-5">Gleame Lab Box</span>
+              </div>
+
+              {/* Envelope / Letter Card */}
+              <motion.div
+                initial={{ y: -120, scale: 0.9, opacity: 1, rotate: -5 }}
+                animate={{ 
+                  y: [null, -100, -90, 8], 
+                  scale: [1, 1, 0.7, 0.25], 
+                  opacity: [1, 1, 1, 0],
+                  rotate: [null, -5, 5, 0]
+                }}
+                transition={{ 
+                  duration: 1.8, 
+                  times: [0, 0.2, 0.5, 1],
+                  ease: "easeInOut" 
+                }}
+                className="w-56 bg-[#faf6f5] border border-[#bc8381]/30 p-4 rounded-xl shadow-md space-y-2 text-left z-10"
+              >
+                <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-[#bc8381]/20 border border-[#bc8381]/45 flex items-center justify-center font-serif text-[10px] font-black text-[#732729]">
+                  G
+                </div>
+                <div className="text-[8px] font-black text-[#bc8381] uppercase tracking-wider">New Look Proposal</div>
+                <h4 className="text-xs font-bold text-stone-800 line-clamp-1">{title || 'Custom Shader'}</h4>
+                <p className="text-[9px] text-stone-500 font-medium line-clamp-1">{category}</p>
+                <div className="flex gap-1.5 pt-1">
+                  <div style={{ backgroundColor: color1 }} className="w-3.5 h-3.5 rounded-full border border-stone-200" />
+                  <div style={{ backgroundColor: color2 }} className="w-3.5 h-3.5 rounded-full border border-stone-200" />
+                  <div style={{ backgroundColor: color3 }} className="w-3.5 h-3.5 rounded-full border border-stone-200" />
+                </div>
+              </motion.div>
+
+              {/* Star sparkles emanating on receipt */}
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: [0, 0, 1.3, 1], opacity: [0, 0, 1, 1] }}
+                transition={{ delay: 1.2, duration: 0.6 }}
+                className="absolute bottom-16 flex items-center justify-center text-[#ff3f87] font-black text-xs"
+              >
+                ✨ Received!
+              </motion.div>
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="font-serif font-black text-stone-900 text-lg uppercase tracking-wider">Depositing Proposal...</h3>
+              <p className="text-xs text-stone-500 max-w-xs mx-auto font-semibold">
+                Your creative recipe card is sliding straight into our developer queue. Saving & refreshing board...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* LEFT COLUMN: Controls & Distribution Form (Cols: 4) */}
       <div className="xl:col-span-4 space-y-6">
         
@@ -388,9 +513,35 @@ export const TrendingPage: React.FC = () => {
                 placeholder="Describe texture specifications (e.g., high density chromatic glitter glaze, matte clay)..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={3.5}
+                rows={3}
                 className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800 bg-[#faf6f5]"
               />
+            </div>
+
+            {/* PUBLICITY PRIVACY TOGGLE SETTING */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide">Visibility Option</label>
+              <div className="bg-[#faf6f5] p-3 rounded-xl border border-[#bc8381]/25 space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input 
+                    type="checkbox"
+                    checked={isPublic}
+                    onChange={(e) => setIsPublic(e.target.checked)}
+                    className="w-4 h-4 text-[#732729] border-[#bc8381]/35 rounded focus:ring-[#732729]/50"
+                  />
+                  <span className="text-xs font-bold text-stone-800">Publish to Community Board</span>
+                </label>
+
+                {isPublic ? (
+                  <p className="text-[10px] text-stone-500 font-semibold leading-relaxed">
+                    🌟 This look request will be displayed publicly on the community board so other users can view, share, and vote to increase its development priority.
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-amber-700/80 font-bold leading-relaxed bg-amber-500/10 border border-amber-500/15 p-2 rounded-lg">
+                    🔒 Private Submission: This request is set to private. Lab specialists will review your submission confidentially, but it will not appear on the public board for voting.
+                  </p>
+                )}
+              </div>
             </div>
 
             <button
@@ -452,6 +603,7 @@ export const TrendingPage: React.FC = () => {
             {filteredRequests.map((req) => {
               const hasVoted = votedIds.includes(req.id);
               const cardCover = CATEGORY_COVERS[req.category] || CATEGORY_COVERS['Other'];
+              const isPrivate = req.isPublic === false;
 
               return (
                 <div
@@ -473,6 +625,12 @@ export const TrendingPage: React.FC = () => {
                       {req.category}
                     </div>
 
+                    {isPrivate && (
+                      <div className="absolute top-3 right-3 bg-amber-600 border border-amber-500/30 px-2.5 py-1 rounded text-[8px] font-black uppercase tracking-wider text-white flex items-center gap-1 shadow-xs">
+                        <Lock className="w-2.5 h-2.5" /> Private
+                      </div>
+                    )}
+
                     <div className="absolute bottom-3 left-3 text-[10px] text-white/90 font-bold">
                       Proposed by @{req.requestedBy}
                     </div>
@@ -481,12 +639,18 @@ export const TrendingPage: React.FC = () => {
                   {/* Body Details */}
                   <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                     <div className="space-y-1">
-                      <h4 className="font-serif font-black text-[#732729] text-sm group-hover:text-[#bc8381] transition-colors">
+                      <h4 className="font-serif font-black text-[#732729] text-sm group-hover:text-[#bc8381] transition-colors flex items-center gap-1.5">
                         {req.title}
                       </h4>
                       <p className="text-xs text-stone-500 leading-relaxed font-semibold line-clamp-3">
                         {req.description}
                       </p>
+
+                      {isPrivate && (
+                        <div className="mt-2 text-[10px] text-amber-700 bg-amber-500/10 border border-amber-500/20 p-2 rounded-lg font-bold">
+                          🔒 Only you can see this private proposal.
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-3 pt-2">

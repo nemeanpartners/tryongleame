@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, RefreshCw, Sliders, Sparkles, User, Check, Trash2, ArrowRight, Eye, ShieldAlert, CheckCircle2, MessageSquare, Vote, Send } from 'lucide-react';
+import { Camera, RefreshCw, Sliders, Sparkles, User, Check, Trash2, ArrowRight, Eye, ShieldAlert, CheckCircle2, MessageSquare, Vote, Send, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Heart, Share2, Mail, Save, Image, Star } from 'lucide-react';
 import { PresetLook } from '../../types';
 import { auth, db, collection, addDoc, handleFirestoreError, OperationType } from '../../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -75,6 +75,13 @@ const PRESET_LOOKS: PresetLook[] = [
 ];
 
 const PRESET_PALETTES = {
+  eyeliner: [
+    { name: 'Midnight Obsidian', color: '#000000' },
+    { name: 'Espresso Cocoa', color: '#3b2314' },
+    { name: 'Royal Indigo', color: '#1e3a8a' },
+    { name: 'Plum Velvet', color: '#581c87' },
+    { name: 'Neon Orchid', color: '#ff3f87' }
+  ],
   eyeshadow: [
     { name: 'Bronze Silk', color: '#b45309' },
     { name: 'Sunset Peach', color: '#f97316' },
@@ -99,6 +106,12 @@ const PRESET_PALETTES = {
     { name: 'Mocha Gloss', color: '#7c2d12' }
   ]
 };
+
+const FACE_MODELS = [
+  { id: 'model_1', name: 'Amara (Default)', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600' },
+  { id: 'model_2', name: 'Elena (Cool tone)', url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=600' },
+  { id: 'model_3', name: 'Chloe (Warm glow)', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=600' }
+];
 
 export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, onNavigate }: SandboxPageProps) {
   const [presetLooks, setPresetLooks] = useState<PresetLook[]>(PRESET_LOOKS);
@@ -129,6 +142,12 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
   // Active custom makeup settings
   const [eyeshadowColor, setEyeshadowColor] = useState<string>('#d97706');
   const [eyeshadowOpacity, setEyeshadowOpacity] = useState<number>(0.6);
+
+  // Eyeliner State
+  const [eyelinerColor, setEyelinerColor] = useState<string>('#000000');
+  const [eyelinerOpacity, setEyelinerOpacity] = useState<number>(0.0);
+  const [eyelinerStyle, setEyelinerStyle] = useState<'none' | 'classic' | 'cat-eye' | 'winged'>('none');
+
   const [blushColor, setBlushColor] = useState<string>('#f43f5e');
   const [blushOpacity, setBlushOpacity] = useState<number>(0.4);
   const [lipColor, setLipColor] = useState<string>('#be123c');
@@ -137,6 +156,80 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
   const [lashesStyle, setLashesStyle] = useState<'none' | 'natural' | 'glam' | 'wispy'>('natural');
   const [glitterLevel, setGlitterLevel] = useState<number>(20);
   const [activeFilter, setActiveFilter] = useState<'none' | 'vintage' | 'warm-glow' | 'cool-cyber' | 'holographic'>('none');
+
+  // Shared / Additional UI States
+  const [showBeforeAfter, setShowBeforeAfter] = useState<boolean>(false);
+  const [showMUAModal, setShowMUAModal] = useState<boolean>(false);
+  const [muaEmail, setMuaEmail] = useState<string>('');
+  const [muaSentSuccess, setMuaSentSuccess] = useState<boolean>(false);
+  const [copiedRecipe, setCopiedRecipe] = useState<boolean>(false);
+  const [selectedModel, setSelectedModel] = useState<{ id: string, name: string, url: string }>(FACE_MODELS[0]);
+  
+  const [savedLooks, setSavedLooks] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('tryon_saved_looks');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [localLookName, setLocalLookName] = useState<string>('');
+  const [showSaveSuccess, setShowSaveSuccess] = useState<boolean>(false);
+
+  const handleSaveLookLocally = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!localLookName.trim()) return;
+
+    const newLook = {
+      id: `local_${Date.now()}`,
+      name: localLookName.trim(),
+      eyeshadowColor,
+      eyeshadowOpacity,
+      eyelinerColor,
+      eyelinerOpacity,
+      eyelinerStyle,
+      blushColor,
+      blushOpacity,
+      lipColor,
+      lipOpacity,
+      lipGloss,
+      lashesStyle,
+      glitterLevel,
+      filter: activeFilter,
+      createdAt: Date.now()
+    };
+
+    const updated = [newLook, ...savedLooks];
+    setSavedLooks(updated);
+    localStorage.setItem('tryon_saved_looks', JSON.stringify(updated));
+    setLocalLookName('');
+    setShowSaveSuccess(true);
+    setTimeout(() => setShowSaveSuccess(false), 2000);
+  };
+
+  const handleLoadLocalLook = (look: any) => {
+    setEyeshadowColor(look.eyeshadowColor);
+    setEyeshadowOpacity(look.eyeshadowOpacity);
+    setEyelinerColor(look.eyelinerColor || '#000000');
+    setEyelinerOpacity(look.eyelinerOpacity !== undefined ? look.eyelinerOpacity : 0.0);
+    setEyelinerStyle(look.eyelinerStyle || 'none');
+    setBlushColor(look.blushColor);
+    setBlushOpacity(look.blushOpacity);
+    setLipColor(look.lipColor);
+    setLipOpacity(look.lipOpacity);
+    setLipGloss(look.lipGloss);
+    setLashesStyle(look.lashesStyle);
+    setGlitterLevel(look.glitterLevel);
+    setActiveFilter(look.filter || 'none');
+  };
+
+  const handleDeleteLocalLook = (lookId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = savedLooks.filter(l => l.id !== lookId);
+    setSavedLooks(updated);
+    localStorage.setItem('tryon_saved_looks', JSON.stringify(updated));
+  };
 
   // Overlay calibration state (user can nudge makeup position on camera)
   const [offsetY, setOffsetY] = useState<number>(0);
@@ -176,6 +269,9 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
   const applyPreset = (look: PresetLook) => {
     setEyeshadowColor(look.eyeshadowColor);
     setEyeshadowOpacity(look.eyeshadowOpacity);
+    setEyelinerColor(look.eyelinerColor || '#000000');
+    setEyelinerOpacity(look.eyelinerOpacity !== undefined ? look.eyelinerOpacity : 0.0);
+    setEyelinerStyle(look.eyelinerStyle || 'none');
     setBlushColor(look.blushColor);
     setBlushOpacity(look.blushOpacity);
     setLipColor(look.lipColor);
@@ -312,55 +408,416 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
     <div id="sandbox-container" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start text-stone-800">
       
       {/* LEFT: Makeup formula preview */}
-      <div className="lg:col-span-7 bg-white/[0.78] backdrop-blur-xl rounded-2xl p-6 border border-white/70 shadow-[0_18px_45px_rgba(20,20,20,0.08)] flex flex-col justify-between">
+      <div className="lg:col-span-7 bg-white rounded-2xl p-6 border border-[#bc8381]/25 shadow-md flex flex-col justify-between">
         
         {/* Device Stage and Capture */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#ff3f87] shadow-[0_0_18px_rgba(255,63,135,0.65)]"></span>
-              <h3 className="text-sm font-black tracking-wide uppercase text-stone-900">Look Formula Preview</h3>
+              <span className="w-2.5 h-2.5 rounded-full bg-[#732729] animate-pulse"></span>
+              <h3 className="text-sm font-black tracking-wide uppercase text-[#732729] font-serif">Live Try-On Canvas</h3>
             </div>
-            <div className="text-[10px] font-black uppercase text-stone-500 bg-white/[0.70] border border-white/80 px-2.5 py-1 rounded-full">
-              Web preview
+            
+            <div className="flex gap-2">
+              {/* Before/After Toggle */}
+              <button
+                type="button"
+                onClick={() => setShowBeforeAfter(!showBeforeAfter)}
+                className={`text-[10px] font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
+                  showBeforeAfter 
+                    ? 'bg-[#732729] border-[#732729] text-white' 
+                    : 'bg-[#faf6f5] hover:bg-white border-[#bc8381]/35 text-stone-600'
+                }`}
+              >
+                <Eye className="w-3 h-3" /> {showBeforeAfter ? 'Hide Split' : 'Compare Before/After'}
+              </button>
+
+              {/* Camera Activation Toggle */}
+              <button
+                type="button"
+                onClick={useCamera ? stopCamera : startCamera}
+                className={`text-[10px] font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
+                  useCamera 
+                    ? 'bg-rose-600 border-rose-600 text-white' 
+                    : 'bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700'
+                }`}
+                disabled={loadingCamera}
+              >
+                <Camera className="w-3 h-3" />
+                {loadingCamera ? 'Initializing...' : useCamera ? 'Turn Camera Off' : 'Use Live Camera'}
+              </button>
             </div>
           </div>
 
-            {/* Connected cosmetic preview viewport */}
-            <div className="relative w-full aspect-[4/3] bg-[radial-gradient(circle_at_50%_20%,rgba(255,63,135,0.14),transparent_34%),linear-gradient(135deg,#f7f7f5,#e6e4df)] rounded-2xl overflow-hidden border border-white/70 flex flex-col items-center justify-center p-8 text-center space-y-4 shadow-inner">
-            <div className="absolute inset-0 opacity-35 bg-[linear-gradient(rgba(215,181,109,0.20)_1px,transparent_1px),linear-gradient(90deg,rgba(215,181,109,0.20)_1px,transparent_1px)] bg-[size:26px_26px]" />
-            <div className="absolute top-4 right-4 text-[9px] font-mono text-stone-400 tracking-widest uppercase font-bold">
-              Formula preview
-            </div>
-
-            <div className="relative flex items-center justify-center">
-              <div className="absolute w-24 h-24 rounded-full border border-[#ff3f87]/25 animate-ping duration-1000 opacity-20" />
-              <div className="absolute w-16 h-16 rounded-full border border-[#d7b56d]/45 animate-pulse duration-700 opacity-40" />
-              <div className="relative bg-stone-950 p-4 rounded-full border border-white/10 shadow-[0_18px_38px_rgba(20,20,20,0.22)]">
-                <Sparkles className="w-8 h-8 text-[#ff3f87]" />
+          {cameraError && (
+            <div className="mb-3 p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl flex items-start gap-2">
+              <ShieldAlert className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+              <div>
+                <span className="font-bold">Webcam Notice:</span> {cameraError}
               </div>
             </div>
+          )}
 
-            <div className="space-y-2 relative z-10">
-              <h2 className="text-3xl font-black text-stone-950 tracking-normal filter drop-shadow-[0_2px_4px_rgba(20,20,20,0.08)]">
-                Formula Preview
-              </h2>
-              <p className="text-xs text-stone-600 max-w-sm mx-auto leading-relaxed font-bold">
-                This web area is for saving and submitting look formulas.
-              </p>
-              <p className="text-[11px] text-stone-400 max-w-xs mx-auto">
-                Camera try-on and build mode live in the native Looks portal.
-              </p>
-            </div>
-
-            {/* Active Color Chips represent currently formulated shader colors */}
-            <div className="flex gap-2.5 pt-4 bg-white/[0.08]6 border border-white/80 px-4 py-2.5 rounded-full backdrop-blur-md relative z-10 shadow-sm">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold text-stone-600">
-                <span className="text-[9px] uppercase tracking-wider font-extrabold text-stone-400">Active Formula:</span>
-                <div style={{ backgroundColor: eyeshadowColor }} className="w-3.5 h-3.5 rounded-full border border-white/80" title="Eyeshadow color" />
-                <div style={{ backgroundColor: blushColor }} className="w-3.5 h-3.5 rounded-full border border-white/80 -ml-1" title="Blush color" />
-                <div style={{ backgroundColor: lipColor }} className="w-3.5 h-3.5 rounded-full border border-white/80 -ml-1" title="Lip color" />
+          {/* Interactive Try-on Viewports */}
+          {showBeforeAfter ? (
+            /* BEFORE & AFTER SPLIT SCREEN */
+            <div className="grid grid-cols-2 gap-3 aspect-[4/3] w-full bg-stone-950 rounded-2xl overflow-hidden relative border border-[#bc8381]/30">
+              
+              {/* LEFT: BEFORE PANEL */}
+              <div className="relative w-full h-full overflow-hidden bg-stone-900">
+                {useCamera ? (
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={selectedModel.url}
+                    alt={selectedModel.name}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                <div className="absolute inset-0 bg-black/10" />
+                <div className="absolute top-3 left-3 bg-stone-900/90 text-white border border-stone-700 text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
+                  Before (Original)
+                </div>
               </div>
+
+              {/* RIGHT: AFTER PANEL */}
+              <div className="relative w-full h-full overflow-hidden bg-stone-900">
+                {useCamera ? (
+                  <video
+                    autoPlay
+                    playsInline
+                    muted
+                    style={{ filter: getFilterStyle() }}
+                    className="w-full h-full object-cover"
+                    // Connect stream clone
+                    ref={(el) => {
+                      if (el && cameraStream) {
+                        el.srcObject = cameraStream;
+                      }
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={selectedModel.url}
+                    alt={selectedModel.name}
+                    style={{ filter: getFilterStyle() }}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                <div className="absolute inset-0 bg-black/10" />
+                
+                {/* Makeup SVG overlays on the AFTER panel */}
+                <svg
+                  viewBox="0 0 400 300"
+                  className="absolute inset-0 w-full h-full pointer-events-none z-20"
+                  style={{
+                    transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale})`,
+                    transformOrigin: 'center center'
+                  }}
+                >
+                  <defs>
+                    <filter id="blushBlur">
+                      <feGaussianBlur stdDeviation="16" />
+                    </filter>
+                    <filter id="shadowBlur">
+                      <feGaussianBlur stdDeviation="8" />
+                    </filter>
+                  </defs>
+
+                  {/* Eyeshadow */}
+                  {eyeshadowOpacity > 0 && (
+                    <g style={{ opacity: eyeshadowOpacity }}>
+                      <path d="M 125 110 Q 150 78 175 110" fill="none" stroke={eyeshadowColor} strokeWidth="14" strokeLinecap="round" filter="url(#shadowBlur)" />
+                      <path d="M 225 110 Q 250 78 275 110" fill="none" stroke={eyeshadowColor} strokeWidth="14" strokeLinecap="round" filter="url(#shadowBlur)" />
+                    </g>
+                  )}
+
+                  {/* Eyeliner */}
+                  {eyelinerStyle !== 'none' && eyelinerOpacity > 0 && (
+                    <g style={{ opacity: eyelinerOpacity }}>
+                      <path
+                        d={
+                          eyelinerStyle === 'classic'
+                            ? "M 130 110 Q 150 102 170 110"
+                            : eyelinerStyle === 'cat-eye'
+                            ? "M 130 110 Q 150 102 170 110 Q 174 104 176 100"
+                            : "M 130 110 Q 150 102 170 110 Q 178 98 175 92"
+                        }
+                        fill="none" stroke={eyelinerColor} strokeWidth="2.5" strokeLinecap="round"
+                      />
+                      <path
+                        d={
+                          eyelinerStyle === 'classic'
+                            ? "M 230 110 Q 250 102 270 110"
+                            : eyelinerStyle === 'cat-eye'
+                            ? "M 230 110 Q 250 102 270 110 Q 274 104 276 100"
+                            : "M 230 110 Q 250 102 270 110 Q 278 98 275 92"
+                        }
+                        fill="none" stroke={eyelinerColor} strokeWidth="2.5" strokeLinecap="round"
+                      />
+                    </g>
+                  )}
+
+                  {/* Lashes */}
+                  {lashesStyle !== 'none' && (
+                    <g style={{ opacity: 0.85 }}>
+                      <path
+                        d={
+                          lashesStyle === 'natural'
+                            ? "M 130 110 Q 140 102 150 104 Q 160 102 170 110"
+                            : lashesStyle === 'glam'
+                            ? "M 128 110 C 138 92 148 94 150 94 C 158 92 168 94 172 110 M 135 106 Q 132 94 130 96 M 145 102 Q 148 88 150 90 M 165 106 Q 168 94 170 96"
+                            : "M 130 110 Q 138 98 142 102 Q 150 95 156 102 Q 164 98 170 110"
+                        }
+                        fill="none" stroke="#111111" strokeWidth="2" strokeLinecap="round"
+                      />
+                      <path
+                        d={
+                          lashesStyle === 'natural'
+                            ? "M 230 110 Q 240 102 250 104 Q 260 102 270 110"
+                            : lashesStyle === 'glam'
+                            ? "M 228 110 C 238 92 248 94 250 94 C 258 92 268 94 272 110 M 235 106 Q 232 94 230 96 M 245 102 Q 248 88 250 90 M 265 106 Q 268 94 270 96"
+                            : "M 230 110 Q 238 98 242 102 Q 250 95 256 102 Q 264 98 270 110"
+                        }
+                        fill="none" stroke="#111111" strokeWidth="2" strokeLinecap="round"
+                      />
+                    </g>
+                  )}
+
+                  {/* Blush */}
+                  {blushOpacity > 0 && (
+                    <g style={{ opacity: blushOpacity }} filter="url(#blushBlur)">
+                      <circle cx="140" cy="160" r="28" fill={blushColor} />
+                      <circle cx="260" cy="160" r="28" fill={blushColor} />
+                    </g>
+                  )}
+
+                  {/* Lips */}
+                  {lipOpacity > 0 && (
+                    <g style={{ opacity: lipOpacity }}>
+                      <path
+                        d="M 175 205 Q 188 193 200 197 Q 212 193 225 205 Q 212 212 200 210 Q 188 212 175 205 Z M 175 205 Q 200 221 225 205 Q 200 213 175 205 Z"
+                        fill={lipColor}
+                      />
+                      {lipGloss && (
+                        <path d="M 185 207 Q 200 211 215 207" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" style={{ opacity: 0.65 }} />
+                      )}
+                    </g>
+                  )}
+
+                  {/* Glitter Glimmer */}
+                  {glitterLevel > 0 && (
+                    <g style={{ opacity: glitterLevel / 100 }}>
+                      <path d="M 130 135 L 132 138 L 135 138 L 133 140 L 134 143 L 131 141 L 128 143 L 129 140 L 127 138 L 130 138 Z" fill="#ffffff" />
+                      <path d="M 270 135 L 272 138 L 275 138 L 273 140 L 274 143 L 271 141 L 268 143 L 269 140 L 267 138 L 270 138 Z" fill="#ffffff" />
+                      <path d="M 155 170 L 157 172 L 160 172 L 158 174 L 159 177 L 156 175 L 153 177 L 154 174 L 152 172 L 155 172 Z" fill="#fff9db" />
+                      <path d="M 245 170 L 247 172 L 250 172 L 248 174 L 249 177 L 246 175 L 243 177 L 244 174 L 242 172 L 245 172 Z" fill="#fff9db" />
+                    </g>
+                  )}
+                </svg>
+
+                <div className="absolute top-3 right-3 bg-[#732729] text-white border border-[#bc8381]/40 text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
+                  After (Formulated)
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* STANDARD FULL CANVAS */
+            <div className="relative w-full aspect-[4/3] bg-stone-950 rounded-2xl overflow-hidden border border-[#bc8381]/30 flex flex-col items-center justify-center shadow-md">
+              
+              {/* Image or Video Feed */}
+              {useCamera ? (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  style={{ filter: getFilterStyle() }}
+                  className="absolute inset-0 w-full h-full object-cover rounded-2xl"
+                />
+              ) : (
+                <img
+                  src={selectedModel.url}
+                  alt={selectedModel.name}
+                  style={{ filter: getFilterStyle() }}
+                  className="absolute inset-0 w-full h-full object-cover rounded-2xl"
+                  referrerPolicy="no-referrer"
+                />
+              )}
+              
+              <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+
+              {/* Real-time Makeup SVG Overlay */}
+              <svg
+                viewBox="0 0 400 300"
+                className="absolute inset-0 w-full h-full pointer-events-none z-20"
+                style={{
+                  transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale})`,
+                  transformOrigin: 'center center'
+                }}
+              >
+                <defs>
+                  <filter id="blushBlur">
+                    <feGaussianBlur stdDeviation="16" />
+                  </filter>
+                  <filter id="shadowBlur">
+                    <feGaussianBlur stdDeviation="8" />
+                  </filter>
+                </defs>
+
+                {/* Eyeshadow */}
+                {eyeshadowOpacity > 0 && (
+                  <g style={{ opacity: eyeshadowOpacity }}>
+                    <path d="M 125 110 Q 150 78 175 110" fill="none" stroke={eyeshadowColor} strokeWidth="14" strokeLinecap="round" filter="url(#shadowBlur)" />
+                    <path d="M 225 110 Q 250 78 275 110" fill="none" stroke={eyeshadowColor} strokeWidth="14" strokeLinecap="round" filter="url(#shadowBlur)" />
+                  </g>
+                )}
+
+                {/* Eyeliner */}
+                {eyelinerStyle !== 'none' && eyelinerOpacity > 0 && (
+                  <g style={{ opacity: eyelinerOpacity }}>
+                    <path
+                      d={
+                        eyelinerStyle === 'classic'
+                          ? "M 130 110 Q 150 102 170 110"
+                          : eyelinerStyle === 'cat-eye'
+                          ? "M 130 110 Q 150 102 170 110 Q 174 104 176 100"
+                          : "M 130 110 Q 150 102 170 110 Q 178 98 175 92"
+                      }
+                      fill="none" stroke={eyelinerColor} strokeWidth="2.5" strokeLinecap="round"
+                    />
+                    <path
+                      d={
+                        eyelinerStyle === 'classic'
+                          ? "M 230 110 Q 250 102 270 110"
+                          : eyelinerStyle === 'cat-eye'
+                          ? "M 230 110 Q 250 102 270 110 Q 274 104 276 100"
+                          : "M 230 110 Q 250 102 270 110 Q 278 98 275 92"
+                      }
+                      fill="none" stroke={eyelinerColor} strokeWidth="2.5" strokeLinecap="round"
+                    />
+                  </g>
+                )}
+
+                {/* Lashes */}
+                {lashesStyle !== 'none' && (
+                  <g style={{ opacity: 0.85 }}>
+                    <path
+                      d={
+                        lashesStyle === 'natural'
+                          ? "M 130 110 Q 140 102 150 104 Q 160 102 170 110"
+                          : lashesStyle === 'glam'
+                          ? "M 128 110 C 138 92 148 94 150 94 C 158 92 168 94 172 110 M 135 106 Q 132 94 130 96 M 145 102 Q 148 88 150 90 M 165 106 Q 168 94 170 96"
+                          : "M 130 110 Q 138 98 142 102 Q 150 95 156 102 Q 164 98 170 110"
+                      }
+                      fill="none" stroke="#111111" strokeWidth="2" strokeLinecap="round"
+                    />
+                    <path
+                      d={
+                        lashesStyle === 'natural'
+                          ? "M 230 110 Q 240 102 250 104 Q 260 102 270 110"
+                          : lashesStyle === 'glam'
+                          ? "M 228 110 C 238 92 248 94 250 94 C 258 92 268 94 272 110 M 235 106 Q 232 94 230 96 M 245 102 Q 248 88 250 90 M 265 106 Q 268 94 270 96"
+                          : "M 230 110 Q 238 98 242 102 Q 250 95 256 102 Q 264 98 270 110"
+                      }
+                      fill="none" stroke="#111111" strokeWidth="2" strokeLinecap="round"
+                    />
+                  </g>
+                )}
+
+                {/* Blush */}
+                {blushOpacity > 0 && (
+                  <g style={{ opacity: blushOpacity }} filter="url(#blushBlur)">
+                    <circle cx="140" cy="160" r="28" fill={blushColor} />
+                    <circle cx="260" cy="160" r="28" fill={blushColor} />
+                  </g>
+                )}
+
+                {/* Lips */}
+                {lipOpacity > 0 && (
+                  <g style={{ opacity: lipOpacity }}>
+                    <path
+                      d="M 175 205 Q 188 193 200 197 Q 212 193 225 205 Q 212 212 200 210 Q 188 212 175 205 Z M 175 205 Q 200 221 225 205 Q 200 213 175 205 Z"
+                      fill={lipColor}
+                    />
+                    {lipGloss && (
+                      <path d="M 185 207 Q 200 211 215 207" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" style={{ opacity: 0.65 }} />
+                    )}
+                  </g>
+                )}
+
+                {/* Glitter Glimmer */}
+                {glitterLevel > 0 && (
+                  <g style={{ opacity: glitterLevel / 100 }}>
+                    <path d="M 130 135 L 132 138 L 135 138 L 133 140 L 134 143 L 131 141 L 128 143 L 129 140 L 127 138 L 130 138 Z" fill="#ffffff" />
+                    <path d="M 270 135 L 272 138 L 275 138 L 273 140 L 274 143 L 271 141 L 268 143 L 269 140 L 267 138 L 270 138 Z" fill="#ffffff" />
+                    <path d="M 155 170 L 157 172 L 160 172 L 158 174 L 159 177 L 156 175 L 153 177 L 154 174 L 152 172 L 155 172 Z" fill="#fff9db" />
+                    <path d="M 245 170 L 247 172 L 250 172 L 248 174 L 249 177 L 246 175 L 243 177 L 244 174 L 242 172 L 245 172 Z" fill="#fff9db" />
+                  </g>
+                )}
+              </svg>
+
+              {/* Nudge Calibration Control Bar overlay */}
+              <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex items-center gap-1.5 bg-stone-900/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white z-30 shadow-md">
+                <button type="button" onClick={() => setOffsetY(y => y - 3)} className="p-1 hover:text-[#bc8381] transition-colors cursor-pointer" title="Nudge Up"><ChevronUp className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => setOffsetY(y => y + 3)} className="p-1 hover:text-[#bc8381] transition-colors cursor-pointer" title="Nudge Down"><ChevronDown className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => setOffsetX(x => x - 3)} className="p-1 hover:text-[#bc8381] transition-colors cursor-pointer" title="Nudge Left"><ChevronLeft className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => setOffsetX(x => x + 3)} className="p-1 hover:text-[#bc8381] transition-colors cursor-pointer" title="Nudge Right"><ChevronRight className="w-3.5 h-3.5" /></button>
+                <div className="w-px h-3 bg-stone-700 mx-1" />
+                <button type="button" onClick={() => setScale(s => Math.min(1.4, s + 0.04))} className="p-1 hover:text-[#bc8381] transition-colors cursor-pointer" title="Zoom In"><ZoomIn className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => setScale(s => Math.max(0.7, s - 0.04))} className="p-1 hover:text-[#bc8381] transition-colors cursor-pointer" title="Zoom Out"><ZoomOut className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => { setOffsetX(0); setOffsetY(0); setScale(1.0); }} className="text-[9px] font-black uppercase text-stone-300 hover:text-white ml-1.5 px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 transition-all cursor-pointer">Reset</button>
+              </div>
+            </div>
+          )}
+
+          {/* Model portrait selector (only if camera is not active) */}
+          {!useCamera && (
+            <div className="mt-4 bg-[#faf6f5] p-3 rounded-xl border border-[#bc8381]/20">
+              <span className="text-[10px] font-black text-stone-500 uppercase tracking-wider block mb-2 text-left">
+                Select Model Portrait Face
+              </span>
+              <div className="flex gap-2.5">
+                {FACE_MODELS.map((model) => (
+                  <button
+                    key={model.id}
+                    type="button"
+                    onClick={() => setSelectedModel(model)}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                      selectedModel.id === model.id
+                        ? 'bg-[#732729] border-[#732729] text-white shadow-xs'
+                        : 'bg-white border-[#bc8381]/30 text-stone-600 hover:bg-stone-50'
+                    }`}
+                  >
+                    <div className="w-5 h-5 rounded-full overflow-hidden bg-stone-200">
+                      <img src={model.url} alt={model.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    </div>
+                    {model.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Active Color Chips represent currently formulated shader colors */}
+          <div className="flex gap-2.5 mt-4 items-center justify-between bg-[#FAF6F5] border border-[#bc8381]/25 px-4 py-2.5 rounded-xl">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-stone-600">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-stone-400">Color Swatch:</span>
+              <div style={{ backgroundColor: eyeshadowColor }} className="w-3.5 h-3.5 rounded-full border border-stone-200" title="Eyeshadow color" />
+              <div style={{ backgroundColor: eyelinerColor }} className="w-3.5 h-3.5 rounded-full border border-stone-200 -ml-1" title="Eyeliner color" />
+              <div style={{ backgroundColor: blushColor }} className="w-3.5 h-3.5 rounded-full border border-stone-200 -ml-1" title="Blush color" />
+              <div style={{ backgroundColor: lipColor }} className="w-3.5 h-3.5 rounded-full border border-stone-200 -ml-1" title="Lip color" />
+            </div>
+            <div className="text-[10px] text-[#732729] font-black tracking-wide uppercase">
+              Shaders formulated
             </div>
           </div>
         </div>
@@ -420,8 +877,8 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
             </button>
             <button
               onClick={() => {
-                setSubmissionType('category');
-                setShowSubmitModal(true);
+                setMuaSentSuccess(false);
+                setShowMUAModal(true);
               }}
               className="group text-left p-3 rounded-xl border border-[#bc8381]/25 bg-[#faf6f5] hover:bg-white hover:border-[#732729]/45 transition-all cursor-pointer"
             >
@@ -501,10 +958,74 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
               />
             </div>
 
-            {/* 2. LIPSTICK CONTROLS */}
+            {/* 2. EYELINER CONTROLS */}
             <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/20">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-stone-700 uppercase tracking-wide">2. Lip Tint</span>
+                <span className="text-xs font-bold text-stone-700 uppercase tracking-wide">2. Precision Eyeliner</span>
+                <span className="text-xs font-semibold text-stone-500">{Math.round(eyelinerOpacity * 100)}% opacity</span>
+              </div>
+
+              {/* Styles */}
+              <div className="grid grid-cols-4 gap-1.5 mb-2.5">
+                {(['none', 'classic', 'cat-eye', 'winged'] as const).map((style) => (
+                  <button
+                    key={style}
+                    type="button"
+                    onClick={() => {
+                      setEyelinerStyle(style);
+                      if (style !== 'none' && eyelinerOpacity === 0) {
+                        setEyelinerOpacity(0.8);
+                      }
+                    }}
+                    className={`py-1 px-1.5 rounded-lg text-[9px] font-black tracking-wider uppercase border text-center cursor-pointer transition-all ${
+                      eyelinerStyle === style 
+                        ? 'bg-[#732729] border-[#732729] text-white' 
+                        : 'bg-white border-[#bc8381]/30 text-stone-600 hover:bg-[#faf6f5] hover:text-stone-900'
+                    }`}
+                  >
+                    {style}
+                  </button>
+                ))}
+              </div>
+
+              {/* Preset Palette */}
+              <div className="flex gap-1.5 overflow-x-auto pb-2.5 scrollbar-thin scrollbar-thumb-[#bc8381]/20">
+                {PRESET_PALETTES.eyeliner.map((item) => (
+                  <button
+                    key={item.name}
+                    type="button"
+                    onClick={() => setEyelinerColor(item.color)}
+                    style={{ backgroundColor: item.color }}
+                    className={`w-6 h-6 rounded-full border-2 shrink-0 cursor-pointer transition-transform hover:scale-110 ${
+                      eyelinerColor === item.color ? 'border-stone-800 shadow-md scale-105' : 'border-transparent'
+                    }`}
+                    title={item.name}
+                  />
+                ))}
+                <input 
+                  type="color" 
+                  value={eyelinerColor} 
+                  onChange={(e) => setEyelinerColor(e.target.value)}
+                  className="w-6 h-6 rounded-full border border-[#bc8381]/30 overflow-hidden cursor-pointer bg-transparent"
+                />
+              </div>
+
+              {/* Intensity Slider */}
+              <input
+                type="range"
+                min="0"
+                max="1.0"
+                step="0.05"
+                value={eyelinerOpacity}
+                onChange={(e) => setEyelinerOpacity(Number(e.target.value))}
+                className="w-full h-1 bg-[#bc8381]/25 rounded-lg appearance-none cursor-pointer accent-[#732729] mt-2"
+              />
+            </div>
+
+            {/* 3. LIPSTICK CONTROLS */}
+            <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/20">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-stone-700 uppercase tracking-wide">3. Lip Tint</span>
                 <span className="text-xs font-semibold text-stone-500">{Math.round(lipOpacity * 100)}% opacity</span>
               </div>
 
@@ -554,10 +1075,10 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
               </div>
             </div>
 
-            {/* 3. BLUSH CONTROLS */}
+            {/* 4. BLUSH CONTROLS */}
             <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/20">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-stone-700 uppercase tracking-wide">3. Cheek Blush</span>
+                <span className="text-xs font-bold text-stone-700 uppercase tracking-wide">4. Cheek Blush</span>
                 <span className="text-xs font-semibold text-stone-500">{Math.round(blushOpacity * 100)}% intensity</span>
               </div>
 
@@ -598,7 +1119,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
             <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/20 grid grid-cols-1 gap-4">
               {/* Lashes Selection */}
               <div>
-                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wide mb-2">4. Lash Extension</label>
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wide mb-2">5. Lash Extension</label>
                 <div className="grid grid-cols-4 gap-1.5">
                   {(['none', 'natural', 'glam', 'wispy'] as const).map((style) => (
                     <button
@@ -621,7 +1142,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                 {/* Glitter */}
                 <div>
                   <label className="block text-xs font-bold text-stone-700 uppercase tracking-wide mb-1 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-[#732729]" /> Glitter Glimmer
+                    <Sparkles className="w-3 h-3 text-[#732729]" /> 6. Glitter Glimmer
                   </label>
                   <input
                     type="range"
@@ -636,7 +1157,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
 
                 {/* Filters */}
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wide mb-1">Render Filter</label>
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wide mb-1">7. Render Filter</label>
                   <select
                     value={activeFilter}
                     onChange={(e: any) => setActiveFilter(e.target.value)}
@@ -651,6 +1172,63 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                 </div>
               </div>
             </div>
+
+            {/* 8. SAVE FORMULATION PRESET */}
+            <form onSubmit={handleSaveLookLocally} className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/25 text-left space-y-2">
+              <span className="text-xs font-bold text-stone-700 uppercase tracking-wide block">8. Save Formulation Preset</span>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Name your custom look..."
+                  value={localLookName}
+                  onChange={(e) => setLocalLookName(e.target.value)}
+                  className="bg-white border border-[#bc8381]/30 rounded-lg px-2.5 py-1.5 text-xs w-full focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold"
+                />
+                <button
+                  type="submit"
+                  className="bg-[#732729] hover:bg-[#732729]/90 text-white font-extrabold px-3 py-1.5 rounded-lg text-xs transition-colors shrink-0 cursor-pointer flex items-center gap-1"
+                >
+                  <Save className="w-3.5 h-3.5" /> Save
+                </button>
+              </div>
+              {showSaveSuccess && (
+                <div className="text-[10px] text-emerald-600 font-bold mt-1.5 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Formulation saved to your client library!
+                </div>
+              )}
+            </form>
+
+            {/* 9. LOCAL SAVED LOOKS COLLECTION */}
+            {savedLooks.length > 0 && (
+              <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/20 text-left">
+                <span className="text-xs font-bold text-stone-700 uppercase tracking-wide block mb-2.5">9. Your Saved Formulations ({savedLooks.length})</span>
+                <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                  {savedLooks.map((look) => (
+                    <div
+                      key={look.id}
+                      onClick={() => handleLoadLocalLook(look)}
+                      className="flex items-center justify-between p-2 rounded-lg bg-white border border-[#bc8381]/15 hover:border-[#732729]/40 cursor-pointer transition-all"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-0.5">
+                          <div style={{ backgroundColor: look.eyeshadowColor }} className="w-2.5 h-2.5 rounded-full border border-stone-100" />
+                          <div style={{ backgroundColor: look.lipColor }} className="w-2.5 h-2.5 rounded-full border border-stone-100 -ml-1" />
+                        </div>
+                        <span className="text-xs font-bold text-stone-800">{look.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteLocalLook(look.id, e)}
+                        className="p-1 text-stone-400 hover:text-rose-600 rounded transition-colors cursor-pointer"
+                        title="Delete look"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
           </div>
         </div>
@@ -681,7 +1259,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                 <Sparkles className="w-5 h-5 text-[#732729]" />
               </div>
               <div>
-                <h4 className="font-serif font-bold text-[#732729] text-sm">Enter "Build the Look"</h4>
+                <h4 className="font-serif font-bold text-[#732729] text-sm">Enter "Mix & Match"</h4>
                 <p className="text-[10px] text-stone-500 font-bold tracking-wide uppercase">Monthly Design Challenge / Category Submit</p>
               </div>
             </div>
@@ -853,6 +1431,159 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                 )}
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Send to MUA (Makeup Artist) Modal */}
+      {showMUAModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl border border-[#bc8381]/35 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-gradient-to-r from-[#bc8381]/10 to-[#732729]/5 p-6 border-b border-[#bc8381]/25 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#bc8381]/15 border border-[#bc8381]/25 flex items-center justify-center text-[#732729]">
+                <Send className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-serif font-bold text-[#732729] text-sm">Send Formula to MUA</h4>
+                <p className="text-[10px] text-stone-500 font-bold tracking-wide uppercase">Transmit Technical Parameters to Your Artist</p>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {muaSentSuccess ? (
+                <div className="py-6 flex flex-col items-center justify-center text-center space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-600">
+                    <CheckCircle2 className="w-7 h-7" />
+                  </div>
+                  <h5 className="font-serif font-black text-stone-800 text-sm">Formula Dispatched!</h5>
+                  <p className="text-xs text-stone-500 font-semibold leading-relaxed">
+                    The exact formulation specifications have been delivered to <span className="text-[#732729] font-bold">{muaEmail}</span>. Your artist can now replicate this exact look in-studio!
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowMUAModal(false)}
+                    className="mt-3 bg-[#732729] hover:bg-[#5c1d1f] text-white text-xs font-extrabold tracking-wider uppercase px-6 py-2 rounded-lg cursor-pointer transition-all shadow-md"
+                  >
+                    Close Mailer
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-stone-500 font-semibold leading-relaxed">
+                    This exports your customized design specs (colors, intensities, styles) so your Makeup Artist can see the precise shaders and product references.
+                  </p>
+
+                  {/* Formula Spec Breakdown */}
+                  <div className="bg-[#faf6f5] rounded-xl p-3.5 border border-[#bc8381]/20 space-y-2 text-[11px] text-stone-600">
+                    <div className="flex items-center justify-between font-bold text-stone-800 border-b border-[#bc8381]/15 pb-1">
+                      <span>Cosmetic Component</span>
+                      <span>Formula Setting</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full border border-stone-200" style={{ backgroundColor: eyeshadowColor }} /> Eyeshadow</span>
+                      <span className="font-bold">{eyeshadowColor} ({Math.round(eyeshadowOpacity * 100)}% opac.)</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full border border-stone-200" style={{ backgroundColor: eyelinerColor }} /> Precision Eyeliner</span>
+                      <span className="font-bold uppercase">{eyelinerStyle} ({eyelinerColor})</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full border border-stone-200" style={{ backgroundColor: lipColor }} /> Lipstick Tint</span>
+                      <span className="font-bold">{lipColor} ({Math.round(lipOpacity * 100)}%, {lipGloss ? 'Glossy' : 'Matte'})</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full border border-stone-200" style={{ backgroundColor: blushColor }} /> Cheek Blush</span>
+                      <span className="font-bold">{blushColor} ({Math.round(blushOpacity * 100)}% intensity)</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Lash Extension style</span>
+                      <span className="font-bold uppercase">{lashesStyle}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Glitter Glimmer level</span>
+                      <span className="font-bold">{glitterLevel}% sparkle</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Active Camera filter</span>
+                      <span className="font-bold uppercase">{activeFilter}</span>
+                    </div>
+                  </div>
+
+                  {/* Action row to copy formula text */}
+                  <div className="flex justify-between items-center bg-stone-50 border border-stone-200 p-2.5 rounded-xl">
+                    <span className="text-[10px] text-stone-500 font-bold">Need a quick text copy?</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const recipeText = `GLEAME MAKEUP FORMULA SPECIFICATION
+====================================
+Eyeshadow Color: ${eyeshadowColor} (${Math.round(eyeshadowOpacity * 100)}% Opacity)
+Eyeliner Style: ${eyelinerStyle} (Color: ${eyelinerColor}, ${Math.round(eyelinerOpacity * 100)}% Opacity)
+Lip Tint Color: ${lipColor} (Opacity: ${Math.round(lipOpacity * 100)}%, Texture: ${lipGloss ? 'Holographic Lip Gloss' : 'Matte'})
+Cheek Blush: ${blushColor} (Intensity: ${Math.round(blushOpacity * 100)}%)
+Lash Extension: ${lashesStyle}
+Glitter Level: ${glitterLevel}% Sparkle Density
+Active Rendering Filter: ${activeFilter}
+------------------------------------
+Rendered via Gleame: Makeup Try-On App`;
+                        navigator.clipboard.writeText(recipeText);
+                        setCopiedRecipe(true);
+                        setTimeout(() => setCopiedRecipe(false), 2000);
+                      }}
+                      className="bg-white hover:bg-stone-50 border border-stone-300 px-2.5 py-1 rounded text-[10px] text-stone-700 font-extrabold flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      {copiedRecipe ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-600" /> Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-3 h-3 text-stone-500" /> Copy Recipe Code
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (muaEmail.trim()) {
+                        setMuaSentSuccess(true);
+                      }
+                    }}
+                    className="space-y-3 pt-2"
+                  >
+                    <div>
+                      <label className="block text-xs font-bold text-stone-600 uppercase tracking-wide mb-1.5">MUA Email Address</label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="artist@salon.com"
+                        value={muaEmail}
+                        onChange={(e) => setMuaEmail(e.target.value)}
+                        className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/30 bg-[#faf6f5] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800"
+                      />
+                    </div>
+
+                    <div className="flex gap-2 pt-3 border-t border-[#bc8381]/25">
+                      <button
+                        type="button"
+                        onClick={() => setShowMUAModal(false)}
+                        className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold uppercase tracking-wider text-[10px] py-3 rounded-lg cursor-pointer transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 bg-[#732729] hover:bg-[#5c1d1f] text-white font-bold uppercase tracking-wider text-[10px] py-3 rounded-lg cursor-pointer flex items-center justify-center gap-1 shadow-lg transition-all"
+                      >
+                        Dispatch Formula
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -42,6 +42,7 @@
           "type": "array",
           "items": { "type": "string" }
         },
+        "isPublic": { "type": "boolean" },
         "createdAt": { "type": "number" }
       },
       "required": ["title", "description", "category", "colors", "requestedBy", "votes", "votedUsers", "createdAt"]

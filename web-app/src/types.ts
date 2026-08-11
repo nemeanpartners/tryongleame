@@ -8,6 +8,8 @@ export interface LookRequest {
   votes: number;
   votedUsers: string[]; // List of user IPs/IDs to prevent double voting
   createdAt: number;
+  status?: 'requested' | 'selected' | 'being built' | 'released';
+  isPublic?: boolean;
 }
 
 export interface ChallengeSubmission {
@@ -18,6 +20,9 @@ export interface ChallengeSubmission {
   makeupConfig: {
     eyeshadowColor: string;
     eyeshadowOpacity: number;
+    eyelinerColor?: string;
+    eyelinerOpacity?: number;
+    eyelinerStyle?: 'none' | 'classic' | 'cat-eye' | 'winged';
     blushColor: string;
     blushOpacity: number;
     lipColor: string;
@@ -43,6 +48,8 @@ export interface Winner {
     blushColor: string;
     lipColor: string;
     lashesStyle: string;
+    eyelinerColor?: string;
+    eyelinerStyle?: string;
   };
 }
 
@@ -58,6 +65,9 @@ export interface PresetLook {
   description: string;
   eyeshadowColor: string;
   eyeshadowOpacity: number;
+  eyelinerColor?: string;
+  eyelinerOpacity?: number;
+  eyelinerStyle?: 'none' | 'classic' | 'cat-eye' | 'winged';
   blushColor: string;
   blushOpacity: number;
   lipColor: string;
@@ -66,4 +76,5 @@ export interface PresetLook {
   lashesStyle: 'none' | 'natural' | 'glam' | 'wispy';
   glitterLevel: number; // 0 to 100
   filter: 'none' | 'vintage' | 'warm-glow' | 'cool-cyber' | 'holographic';
+  requestedBy?: string; // Attach original winning username if community preset
 }
