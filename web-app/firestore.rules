@@ -37,6 +37,10 @@ service cloud.firestore {
         && data.glitterLevel is number && data.glitterLevel >= 0 && data.glitterLevel <= 100
         && data.filter is string && data.filter.size() <= 50
         && data.votes is number && data.votes >= 0
+        && (!data.keys().contains('eyelinerColor') || (data.eyelinerColor is string && data.eyelinerColor.size() <= 20))
+        && (!data.keys().contains('eyelinerOpacity') || (data.eyelinerOpacity is number && data.eyelinerOpacity >= 0 && data.eyelinerOpacity <= 1))
+        && (!data.keys().contains('eyelinerStyle') || (data.eyelinerStyle is string && data.eyelinerStyle.size() <= 50))
+        && (!data.keys().contains('requestedBy') || (data.requestedBy is string && data.requestedBy.size() <= 100))
         && (!data.keys().contains('coverImage') || (data.coverImage is string && data.coverImage.size() <= 500))
         && (!data.keys().contains('isCustom') || data.isCustom is bool);
     }
@@ -76,15 +80,144 @@ service cloud.firestore {
         && data.makeupConfig.selectedFilter is string && data.makeupConfig.selectedFilter.size() <= 50;
     }
 
+    // DailySeries Validation
+    function isValidDailySeries(data) {
+      return data.keys().hasAll(['seriesKey', 'dayName'])
+        && data.seriesKey is string && data.seriesKey.size() <= 50
+        && data.dayName is string && data.dayName.size() <= 50
+        && (!data.keys().contains('votesA') || (data.votesA is number && data.votesA >= 0))
+        && (!data.keys().contains('votesB') || (data.votesB is number && data.votesB >= 0))
+        && (!data.keys().contains('totalTryOns') || (data.totalTryOns is number && data.totalTryOns >= 0))
+        && (!data.keys().contains('totalCheckIns') || (data.totalCheckIns is number && data.totalCheckIns >= 0))
+        && (!data.keys().contains('viralVotes') || (data.viralVotes is number && data.viralVotes >= 0))
+        && (!data.keys().contains('skipVotes') || (data.skipVotes is number && data.skipVotes >= 0))
+        && (!data.keys().contains('wear_rating_absolutely') || (data.wear_rating_absolutely is number && data.wear_rating_absolutely >= 0))
+        && (!data.keys().contains('wear_rating_maybe') || (data.wear_rating_maybe is number && data.wear_rating_maybe >= 0))
+        && (!data.keys().contains('wear_rating_not_for_me') || (data.wear_rating_not_for_me is number && data.wear_rating_not_for_me >= 0))
+        && (!data.keys().contains('remixCount') || (data.remixCount is number && data.remixCount >= 0))
+        && (!data.keys().contains('lastUpdated') || data.lastUpdated is number);
+    }
+
+    // AnalyticsEvent Validation
+    function isValidAnalyticsEvent(data) {
+      return data.keys().hasAll(['id', 'type', 'category', 'targetName', 'timestamp'])
+        && data.id is string && data.id.size() <= 128
+        && data.type is string && data.type.size() <= 64
+        && data.category is string && data.category.size() <= 64
+        && data.targetName is string && data.targetName.size() <= 128
+        && data.timestamp is number
+        && (!data.keys().contains('userIdentifier') || (data.userIdentifier is string && data.userIdentifier.size() <= 128))
+        && (!data.keys().contains('metadata') || data.metadata is map);
+    }
+
+    // WantedLook Validation
+    function isValidWantedLook(data) {
+      return data.keys().hasAll(['id', 'name', 'numericVotes', 'category', 'swatchType', 'colors'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 128
+        && data.numericVotes is number && data.numericVotes >= 0
+        && data.category is string && data.category.size() <= 64
+        && data.swatchType is string && data.swatchType.size() <= 32
+        && data.colors is list && data.colors.size() <= 10
+        && (!data.keys().contains('countLabel') || (data.countLabel is string && data.countLabel.size() <= 64))
+        && (!data.keys().contains('description') || (data.description is string && data.description.size() <= 1000))
+        && (!data.keys().contains('requestedBy') || (data.requestedBy is string && data.requestedBy.size() <= 128))
+        && (!data.keys().contains('createdAt') || data.createdAt is number);
+    }
+
+    // SupportInquiry Validation
+    function isValidSupportInquiry(data) {
+      return data.keys().hasAll(['id', 'userName', 'userEmail', 'subject', 'category', 'description', 'status', 'createdAt', 'updatedAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.userName is string && data.userName.size() <= 128
+        && data.userEmail is string && data.userEmail.size() <= 128
+        && data.subject is string && data.subject.size() <= 200
+        && data.category is string && data.category.size() <= 64
+        && data.description is string && data.description.size() <= 4000
+        && data.status in ['open', 'in_progress', 'resolved', 'closed']
+        && data.createdAt is number
+        && data.updatedAt is number
+        && (!data.keys().contains('userId') || (data.userId is string && data.userId.size() <= 128))
+        && (!data.keys().contains('images') || (data.images is list && data.images.size() <= 10))
+        && (!data.keys().contains('replies') || (data.replies is list && data.replies.size() <= 100))
+        && (!data.keys().contains('resolvedAt') || data.resolvedAt is number);
+    }
+
+    // GalleryLook Validation
+    function isValidGalleryLook(data) {
+      return data.keys().hasAll(['id', 'name', 'creator', 'tagline', 'category', 'categoryLabel', 'likes', 'votesCount', 'image', 'swatches', 'config'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 128
+        && data.creator is string && data.creator.size() <= 128
+        && data.tagline is string && data.tagline.size() <= 500
+        && data.category is string && data.category.size() <= 64
+        && data.categoryLabel is string && data.categoryLabel.size() <= 64
+        && data.image is string && data.image.size() <= 1000
+        && data.swatches is list && data.swatches.size() <= 10
+        && data.config is map
+        && (!data.keys().contains('isLocked') || data.isLocked is bool)
+        && (!data.keys().contains('tier') || (data.tier is string && data.tier.size() <= 32))
+        && (!data.keys().contains('hasVideo') || data.hasVideo is bool);
+    }
+
+    // Inspiration Validation
+    function isValidInspiration(data) {
+      return data.keys().hasAll(['id', 'title', 'creator', 'avatarUrl', 'imageUrl', 'category', 'badge', 'description', 'likes', 'saves', 'tags', 'products', 'preset'])
+        && data.id is string && data.id.size() <= 128
+        && data.title is string && data.title.size() <= 128
+        && data.creator is string && data.creator.size() <= 128
+        && data.imageUrl is string && data.imageUrl.size() <= 1000
+        && data.category is string && data.category.size() <= 64
+        && data.badge is string && data.badge.size() <= 128
+        && data.description is string && data.description.size() <= 1000
+        && data.tags is list && data.tags.size() <= 20
+        && data.products is list && data.products.size() <= 20
+        && data.preset is map
+        && (!data.keys().contains('isLocked') || data.isLocked is bool)
+        && (!data.keys().contains('tier') || (data.tier is string && data.tier.size() <= 32));
+    }
+
+    function isAdmin() {
+      return request.auth != null && (
+        ('email' in request.auth.token && request.auth.token.email == 'christinalucas1216@gmail.com')
+        || ('email' in request.auth.token && request.auth.token.email.matches('^christinalucas.*'))
+      );
+    }
+
+    match /wanted_looks/{lookId} {
+      allow read: if true;
+      allow create: if (isValidId(lookId) && isValidWantedLook(incoming(request))) || isAdmin();
+      allow update: if isValidId(lookId) && (
+        isAdmin()
+        || (incoming(request).diff(existing(resource)).affectedKeys().hasOnly(['numericVotes', 'countLabel']))
+        || isValidWantedLook(incoming(request))
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /gallery_looks/{lookId} {
+      allow read: if true;
+      allow create, update: if (isValidId(lookId) && isValidGalleryLook(incoming(request))) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /inspirations/{inspId} {
+      allow read: if true;
+      allow create, update: if (isValidId(inspId) && isValidInspiration(incoming(request))) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
     match /built_looks/{lookId} {
       allow read: if true;
-      allow create: if isValidId(lookId) && isValidBuiltLook(incoming(request));
+      allow create: if (isValidId(lookId) && isValidBuiltLook(incoming(request))) || isAdmin();
       allow update: if isValidId(lookId) && (
+        isAdmin()
         // Allow voting (only incrementing votes)
-        (incoming(request).diff(existing(resource)).affectedKeys().hasOnly(['votes']) && incoming(request).votes == existing(resource).votes + 1)
+        || (incoming(request).diff(existing(resource)).affectedKeys().hasOnly(['votes']) && incoming(request).votes == existing(resource).votes + 1)
         // Or full update if it follows schema
         || isValidBuiltLook(incoming(request))
       );
+      allow delete: if isAdmin();
     }
 
     match /requests/{requestId} {
@@ -107,8 +240,35 @@ service cloud.firestore {
       );
     }
 
+    match /daily_series/{seriesKey} {
+      allow read: if true;
+      allow create: if isValidId(seriesKey) && isValidDailySeries(incoming(request));
+      allow update: if isValidId(seriesKey) && (
+        isValidDailySeries(incoming(request))
+      );
+    }
+
+    match /analytics_events/{eventId} {
+      allow read: if true;
+      allow create: if isValidId(eventId) && isValidAnalyticsEvent(incoming(request));
+      allow update: if isAdmin() || (isValidId(eventId) && isValidAnalyticsEvent(incoming(request)));
+      allow delete: if isAdmin();
+    }
+
+    match /support_inquiries/{inquiryId} {
+      allow read: if true;
+      allow create: if isValidId(inquiryId) && isValidSupportInquiry(incoming(request));
+      allow update: if isValidId(inquiryId) && (
+        isAdmin()
+        || (incoming(request).diff(existing(resource)).affectedKeys().hasOnly(['status', 'updatedAt', 'resolvedAt']))
+        || (incoming(request).diff(existing(resource)).affectedKeys().hasOnly(['replies', 'updatedAt', 'status']))
+        || isValidSupportInquiry(incoming(request))
+      );
+      allow delete: if isAdmin();
+    }
+
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if (request.auth != null && request.auth.uid == userId) || isAdmin();
     }
 
     match /users/{userId}/{collectionId}/{documentId} {

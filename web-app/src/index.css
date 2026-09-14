@@ -1,53 +1,574 @@
 @import "tailwindcss";
 
-html,
-body,
-#root {
-  min-height: 100%;
+@font-face {
+  font-family: 'Ultra Disney';
+  font-style: normal;
+  font-weight: 400 700;
+  src: local('Waltograph'), local('Waltograph 42'), url('https://fonts.cdnfonts.com/s/10244/waltograph42.woff') format('woff');
 }
 
-body {
-  margin: 0;
+@font-face {
+  font-family: 'Ultra Disney Pro';
+  font-style: normal;
+  font-weight: 400 700;
+  src: local('Waltograph'), local('Waltograph 42'), url('https://fonts.cdnfonts.com/s/10244/waltograph42.woff') format('woff');
 }
 
-body.gleame-nav-surface,
-body.gleame-nav-surface #root {
+@layer base {
+  :root {
+    --bg-cream: #F7F2EF;
+    --bg-porcelain: #FFF6F7;
+    --bg-sand: #EDE7E3;
+    --color-black: #000000;
+    --color-hot-pink: #E91E63;
+    --color-petal-pink: #F7C6D7;
+    --color-clay: #B8887A;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  .font-inter {
+    font-family: 'Inter', sans-serif !important;
+  }
+
+  .font-montserrat {
+    font-family: 'Montserrat', sans-serif !important;
+  }
+
+  .font-satoshi {
+    font-family: 'Satoshi', sans-serif !important;
+  }
+
+  .font-cormorant,
+  .font-editorial,
+  .font-serif {
+    font-family: 'Cormorant Garamond', 'Italiana', 'Playfair Display', Georgia, serif !important;
+  }
+
+  .font-ultra-disney-pro,
+  .font-ultra-disney,
+  .font-disney {
+    font-family: 'Ultra Disney', 'Ultra Disney Pro', 'Waltograph', 'Waltograph 42', 'Waltograph UI', cursive, sans-serif !important;
+  }
+
+  .font-ultra {
+    font-family: 'Ultra', serif !important;
+  }
+
+  body {
+    margin: 0;
+    background-color: #F7F2EF;
+    color: #000000;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Custom Scrollbar for sleek horizontal feeds */
+::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+::-webkit-scrollbar-track {
   background: transparent;
 }
-
-[class*="text-[#732729]"] {
-  color: #232220 !important;
+::-webkit-scrollbar-thumb {
+  background: #EDE7E3;
+  border-radius: 9999px;
 }
-
-[class*="text-[#bc8381]"] {
-  color: #d7b56d !important;
-}
-
-[class*="bg-[#732729]"] {
-  background-color: #191919 !important;
-}
-
-[class*="bg-[#5c1d1f]"],
-[class*="bg-[#4d191b]"] {
-  background-color: #111111 !important;
-}
-
-[class*="bg-[#bc8381]"] {
-  background-color: #d7b56d !important;
-}
-
-[class*="border-[#bc8381]"] {
-  border-color: rgb(215 181 109 / 0.28) !important;
-}
-
-[class*="hover:text-[#732729]"]:hover {
-  color: #ff3f87 !important;
-}
-
-[class*="hover:border-[#732729]"]:hover {
-  border-color: rgb(255 63 135 / 0.42) !important;
+::-webkit-scrollbar-thumb:hover {
+  background: #B8887A;
 }
 
 input[type="range"] {
-  accent-color: #ff3f87;
+  accent-color: #E91E63;
 }
+
+/* Glass Menu Section Styles */
+:root {
+  --bg-1: #f5eee8;
+  --bg-2: #e9ddd3;
+  --bg-3: #d8c5b8;
+
+  --glass: rgba(255, 252, 248, 0.30);
+  --glass-top: rgba(255, 255, 255, 0.56);
+
+  --border: rgba(255, 255, 255, 0.72);
+  --border-warm: rgba(153, 123, 104, 0.12);
+
+  --icon: #775b49;
+  --text: #241a15;
+
+  --shadow:
+    0 16px 35px rgba(79, 56, 43, 0.08),
+    0 3px 8px rgba(79, 56, 43, 0.045);
+
+  --radius: 22px;
+}
+
+/* MAIN PREVIEW AREA - SLEEK TRANSLUCENT CONTAINER */
+.preview {
+  width: min(940px, calc(100vw - 40px));
+  padding: 10px 14px;
+
+  border-radius: 20px;
+
+  background: rgba(255, 255, 255, 0.40);
+
+  border: 1px solid rgba(255, 255, 255, 0.65);
+
+  box-shadow:
+    0 8px 24px rgba(69, 49, 37, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  backdrop-filter: blur(20px) saturate(110%);
+  -webkit-backdrop-filter: blur(20px) saturate(110%);
+}
+
+/* 4 SUB-SECTION BUTTONS IN A SINGLE ROW ACROSS THE PAGE: LOOKS, INSPIRATION, WANTED, CHALLENGES */
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+/* GLASS TILE - SLEEK COMPACT HORIZONTAL RECTANGLE */
+.menu-card {
+  position: relative;
+
+  min-height: 56px;
+  padding: 8px 6px;
+
+  border-radius: 14px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 4px;
+
+  overflow: hidden;
+
+  cursor: pointer;
+
+  /* Slightly darker warm neutral unselected backdrop */
+  background: rgba(238, 226, 217, 0.68);
+
+  border: 1px solid rgba(255, 255, 255, 0.65);
+
+  box-shadow:
+    0 2px 8px rgba(95, 68, 52, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+  backdrop-filter: blur(16px) saturate(110%);
+  -webkit-backdrop-filter: blur(16px) saturate(110%);
+
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+/* SUBTLE SLEEK LIGHT REFLECTION (CLEAN FLAT SHEEN) */
+.menu-card::before {
+  content: "";
+  position: absolute;
+
+  top: -50%;
+  left: -30%;
+
+  width: 60%;
+  height: 180%;
+
+  transform: rotate(20deg);
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.28),
+      transparent
+    );
+
+  pointer-events: none;
+}
+
+.menu-card:hover {
+  transform: translateY(-2px);
+
+  background: rgba(244, 235, 228, 0.82);
+
+  border-color: rgba(255, 255, 255, 0.85);
+
+  box-shadow:
+    0 5px 16px rgba(77, 54, 42, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.menu-card:active {
+  transform: scale(0.98);
+}
+
+/* ICON */
+.menu-card .icon {
+  width: 20px;
+  height: 20px;
+
+  display: grid;
+  place-items: center;
+
+  color: #7b5d4b;
+  transition: transform 180ms ease, color 180ms ease;
+}
+
+.menu-card:hover .icon {
+  transform: scale(1.05);
+  color: #5c3f2e;
+}
+
+.menu-card .icon svg {
+  width: 100%;
+  height: 100%;
+
+  fill: none;
+  stroke: currentColor;
+
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* LABEL */
+.menu-card .label {
+  font-size: 9.5px;
+  line-height: 1.1;
+
+  font-weight: 700;
+
+  letter-spacing: .10em;
+
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  color: #4a3427;
+  transition: color 180ms ease;
+}
+
+.menu-card:hover .label {
+  color: #2e1d13;
+}
+
+/* SELECTED / CLICKED - RADIANT PEARLY WHITE ILLUMINATION */
+.menu-card.selected {
+  background:
+    linear-gradient(
+      140deg,
+      #ffffff 0%,
+      #fefdfb 40%,
+      #fff8f2 80%,
+      #ffffff 100%
+    );
+
+  border: 1.5px solid #ffffff;
+
+  box-shadow:
+    0 6px 18px rgba(150, 110, 90, 0.12),
+    0 0 16px rgba(255, 255, 255, 0.95),
+    inset 0 1.5px 0 #ffffff,
+    inset 0 -1px 2px rgba(255, 240, 230, 0.6);
+}
+
+.menu-card.selected .icon {
+  color: #24130a;
+}
+
+.menu-card.selected .label {
+  color: #1a0c06;
+  font-weight: 800;
+}
+
+/* MOBILE */
+@media (max-width: 700px) {
+  .preview {
+    width: calc(100vw - 20px);
+    padding: 8px 10px;
+
+    border-radius: 18px;
+  }
+
+  .menu-grid {
+    gap: 4px;
+  }
+
+  .menu-card {
+    min-height: 48px;
+    padding: 6px 3px;
+
+    border-radius: 12px;
+
+    gap: 3px;
+  }
+
+  .menu-card .icon {
+    width: 17px;
+    height: 17px;
+  }
+
+  .menu-card .label {
+    font-size: 7.5px;
+    letter-spacing: .04em;
+  }
+}
+
+/* ========================================================================= */
+/* 3D RAISED TACTILE TEXT (Extruded Tactile 3D Typography in Montserrat)     */
+/* ========================================================================= */
+.text-raised-3d {
+  font-family: 'Montserrat', sans-serif !important;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  -webkit-font-smoothing: antialiased;
+  display: inline-block;
+  transform: translateZ(0);
+}
+
+/* ========================================================================= */
+/* SOFT TACTILE NEUMORPHIC PILL BUTTON (Image 2 Aesthetic)                   */
+/* ========================================================================= */
+.tactile-pill-btn {
+  background: #ECE7E1;
+  border-radius: 9999px;
+  box-shadow: 
+    -4px -4px 9px rgba(255, 255, 255, 0.95),
+    4px 4px 10px rgba(55, 40, 35, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tactile-pill-btn:hover {
+  background: #E6E0D9;
+  box-shadow: 
+    -2px -2px 6px rgba(255, 255, 255, 0.95),
+    3px 3px 8px rgba(55, 40, 35, 0.16),
+    inset 0 1px 1px rgba(255, 255, 255, 0.85);
+  transform: translateY(-1px);
+}
+
+.tactile-pill-btn:active {
+  background: #E1DBD3;
+  box-shadow: 
+    inset 3px 3px 6px rgba(55, 40, 35, 0.18),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.9);
+  transform: translateY(1px);
+}
+
+/* ========================================================================= */
+/* SURPRISE ME ORBITAL STAGE & ORB PILLS (Exact UI Specification)            */
+/* ========================================================================= */
+:root {
+  --shadow-dark: rgba(82,65,55,.14);
+  --shadow-light: rgba(255,255,255,.95);
+  --cream: #efe9e4;
+  --cream-2: #e9e1db;
+  --rose: #ecd2cc;
+  --rose-2: #e6c3be;
+  --taupe: #cbbab1;
+  --stone: #ddd7d2;
+}
+
+.stage,
+.surprise-stage {
+  width: 100%;
+  max-width: 440px;
+  aspect-ratio: 1;
+  position: relative;
+  isolation: isolate;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+/* very faint halo only — no visible ring border */
+.stage::before,
+.surprise-stage::before {
+  content: "";
+  position: absolute;
+  inset: 16%;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(255,255,255,.6) 0%,
+    rgba(255,255,255,.25) 46%,
+    rgba(255,255,255,0) 72%);
+  filter: blur(10px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.orb,
+.surprise-orb {
+  position: absolute;
+  width: 20%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--cream);
+  box-shadow:
+    9px 12px 22px var(--shadow-dark),
+    -7px -7px 20px var(--shadow-light),
+    inset 1px 1px 0 rgba(255,255,255,.85),
+    inset -1px -2px 4px rgba(102,83,73,.05);
+  transition:
+    transform .22s cubic-bezier(.2,.8,.2,1),
+    box-shadow .22s ease,
+    filter .22s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  border: 0;
+  appearance: none;
+}
+
+.orb:hover,
+.surprise-orb:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    12px 15px 25px rgba(82,65,55,.15),
+    -8px -8px 22px rgba(255,255,255,.98),
+    inset 1px 1px 0 rgba(255,255,255,.9);
+}
+
+.orb:active,
+.surprise-orb:active {
+  transform: translateY(1px) scale(.985);
+  box-shadow:
+    5px 7px 14px rgba(82,65,55,.12),
+    -5px -5px 14px rgba(255,255,255,.9),
+    inset 3px 4px 9px rgba(82,65,55,.09),
+    inset -3px -3px 8px rgba(255,255,255,.75);
+}
+
+.orb svg,
+.surprise-orb svg {
+  width: 33%;
+  height: 33%;
+  stroke: #6b5048;
+  stroke-width: 1.75;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Mathematically centered on circle radius r = 33% from (50%, 50%), orb width = 20% (half = 10%) */
+/* Minimum 7% (30px+) margin from stage edges so NO orb, active glow, or shadow is ever clipped */
+.orb.o1, .surprise-orb.o1 { left: 40%;   top: 7%;    background: #f1e7df; }   /* sun */
+.orb.o2, .surprise-orb.o2 { left: 63.3%; top: 16.7%; background: #e8d7cf; }   /* coffee */
+.orb.o3, .surprise-orb.o3 { left: 73%;   top: 40%;   background: #ddd8d4; }   /* moon */
+.orb.o4, .surprise-orb.o4 { left: 63.3%; top: 63.3%; background: #e8ccc5; }   /* heart */
+.orb.o5, .surprise-orb.o5 { left: 40%;   top: 73%;   background: #eee3dc; }   /* sparkle */
+.orb.o6, .surprise-orb.o6 { left: 16.7%; top: 63.3%; background: #cbb9b0; }   /* lips */
+.orb.o7, .surprise-orb.o7 { left: 7%;    top: 40%;   background: #ebe2dc; }   /* cherries */
+.orb.o8, .surprise-orb.o8 { left: 16.7%; top: 16.7%; background: #ead4ce; }   /* butterfly */
+
+.center,
+.surprise-center {
+  left: 29.5%;
+  top: 29.5%;
+  width: 41%;
+  background: #f1e7e2;
+  text-align: center;
+  padding: 6%;
+  box-shadow:
+    14px 18px 30px rgba(82,65,55,.14),
+    -10px -10px 24px rgba(255,255,255,.98),
+    inset 1px 1px 0 rgba(255,255,255,.9),
+    inset -2px -2px 6px rgba(111,87,75,.045);
+}
+
+.center svg,
+.surprise-center svg {
+  width: 18%;
+  height: 18%;
+  margin-bottom: 7%;
+  stroke: #a45d55;
+  stroke-width: 1.65;
+}
+
+.center .label,
+.surprise-center .label {
+  display: block;
+  font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  font-size: clamp(18px, 3.8vw, 36px);
+  line-height: .95;
+  letter-spacing: -.035em;
+  white-space: nowrap;
+}
+
+.center .hint,
+.surprise-center .hint {
+  margin-top: 8%;
+  display: block;
+  font-size: clamp(8px, 1.2vw, 12px);
+  font-weight: 650;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #988a84;
+}
+
+.orb.active,
+.surprise-orb.active {
+  animation: orb-selected .65s cubic-bezier(.2,.8,.2,1);
+  box-shadow:
+    0 0 20px rgba(245, 158, 11, 0.65),
+    9px 12px 22px var(--shadow-dark),
+    -7px -7px 20px var(--shadow-light),
+    inset 1px 1px 0 rgba(255,255,255,.95);
+  border: 1.5px solid rgba(245, 158, 11, 0.85) !important;
+}
+
+@keyframes orb-selected {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.stage.spinning .orb:not(.center),
+.surprise-stage.spinning .surprise-orb:not(.surprise-center) {
+  animation: orb-pulse .72s ease-in-out infinite alternate;
+}
+
+.stage.spinning .o2, .surprise-stage.spinning .o2 { animation-delay: .08s; }
+.stage.spinning .o3, .surprise-stage.spinning .o3 { animation-delay: .16s; }
+.stage.spinning .o4, .surprise-stage.spinning .o4 { animation-delay: .24s; }
+.stage.spinning .o5, .surprise-stage.spinning .o5 { animation-delay: .32s; }
+.stage.spinning .o6, .surprise-stage.spinning .o6 { animation-delay: .40s; }
+.stage.spinning .o7, .surprise-stage.spinning .o7 { animation-delay: .48s; }
+.stage.spinning .o8, .surprise-stage.spinning .o8 { animation-delay: .56s; }
+
+@keyframes orb-pulse {
+  from { transform: scale(1); filter: brightness(1); }
+  to   { transform: scale(1.03); filter: brightness(1.025); }
+}
+
+@media (max-width: 560px) {
+  .stage,
+  .surprise-stage {
+    width: 100%;
+    max-width: 360px;
+  }
+  .orb,
+  .surprise-orb {
+    box-shadow:
+      6px 8px 15px rgba(82,65,55,.12),
+      -5px -5px 15px rgba(255,255,255,.95),
+      inset 1px 1px 0 rgba(255,255,255,.8);
+  }
+}
+
+

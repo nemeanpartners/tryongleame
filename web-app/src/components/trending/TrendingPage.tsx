@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, 
   Heart, 
@@ -16,10 +16,17 @@ import {
   X, 
   Lock, 
   Unlock, 
-  Mail 
+  Mail,
+  ArrowUpRight,
+  Filter,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { db, collection, getDocs, addDoc, updateDoc, doc, increment } from '../../firebase';
 import { LookRequest } from '../../types';
+import { GlitterConfetti } from '../common/GlitterConfetti';
+import { Spinning3DVotesBadge } from './Spinning3DVotesBadge';
+import { WantedQuickActionCard } from './WantedQuickActionCard';
 
 const CATEGORY_COVERS: Record<string, string> = {
   'Eyes': 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600',
@@ -81,12 +88,19 @@ const PRESET_REQUESTS: LookRequest[] = [
   }
 ];
 
-export const TrendingPage: React.FC = () => {
+interface TrendingPageProps {
+  externalSearchQuery?: string;
+  onSelectProposalForFeed?: (requestId: string) => void;
+  onNavigate?: (tab: any) => void;
+}
+
+export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery, onSelectProposalForFeed, onNavigate }) => {
   const [requests, setRequests] = useState<LookRequest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Form State
+  const [isFormExpanded, setIsFormExpanded] = useState<boolean>(false);
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [category, setCategory] = useState<string>('Eyes');
@@ -107,6 +121,18 @@ export const TrendingPage: React.FC = () => {
       return [];
     }
   });
+
+  // Interactive Tracker State
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string | null>(null);
+  const [activeTimeframe, setActiveTimeframe] = useState<'live' | 'today' | 'week'>('live');
+  const [isRefreshingPulse, setIsRefreshingPulse] = useState<boolean>(false);
+  const [pulseToast, setPulseToast] = useState<string | null>(null);
+
+  // 3D Badge & Glitter Confetti State
+  const [isGlitterConfettiActive, setIsGlitterConfettiActive] = useState<boolean>(false);
+  const [confettiKey, setConfettiKey] = useState<number>(0);
+  const [badgeBoostTrigger, setBadgeBoostTrigger] = useState<number>(0);
+  const [recentlyVotedLookId, setRecentlyVotedLookId] = useState<string | null>(null);
 
   const categories = ['Eyes', 'Lips', 'Blush', 'Highlight', 'Full Face', 'Other'];
 
@@ -235,6 +261,22 @@ export const TrendingPage: React.FC = () => {
   const handleUpvote = async (id: string) => {
     if (votedIds.includes(id)) return;
 
+    // 1. Immediately activate 3-second full-screen glitter confetti
+    setIsGlitterConfettiActive(true);
+    setConfettiKey(prev => prev + 1);
+
+    // 2. Accelerate 3D spinning votes badge
+    setBadgeBoostTrigger(prev => prev + 1);
+
+    // 3. Mark recently voted look for celebratory animation
+    setRecentlyVotedLookId(id);
+
+    // Auto-fade / reset confetti and highlight after 3000ms
+    setTimeout(() => {
+      setIsGlitterConfettiActive(false);
+      setRecentlyVotedLookId(null);
+    }, 3000);
+
     try {
       const docRef = doc(db, 'requests', id);
       await updateDoc(docRef, { votes: increment(1) });
@@ -276,6 +318,9 @@ export const TrendingPage: React.FC = () => {
   };
 
   const trendingStats = calculateTrendingStats();
+  const topRisingProposal = requests.length > 0
+    ? [...requests].sort((a, b) => b.votes - a.votes)[0]?.title || 'Velvet Plum'
+    : 'Velvet Plum';
 
   // Filter requests based on privacy rules:
   // - Show public requests (isPublic !== false)
@@ -285,16 +330,62 @@ export const TrendingPage: React.FC = () => {
     return req.isPublic !== false || isOwner;
   });
 
+  const effectiveSearch = (externalSearchQuery !== undefined ? externalSearchQuery : searchQuery).trim();
+
   const filteredRequests = visibleRequests.filter(req => {
-    const matchesSearch = searchQuery.trim() === '' || 
-      req.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      req.requestedBy.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+    const matchesCategory = !activeCategoryFilter || 
+      req.category.toLowerCase() === activeCategoryFilter.toLowerCase() ||
+      (activeCategoryFilter === 'Highlight' && req.category.toLowerCase().includes('high')) ||
+      (activeCategoryFilter === 'Full Face' && req.category.toLowerCase().includes('face'));
+
+    const matchesSearch = effectiveSearch === '' || 
+      req.title.toLowerCase().includes(effectiveSearch.toLowerCase()) ||
+      req.requestedBy.toLowerCase().includes(effectiveSearch.toLowerCase());
+
+    return matchesCategory && matchesSearch;
   });
+
+  const handleRefreshPulse = async () => {
+    setIsRefreshingPulse(true);
+    setPulseToast('Syncing live demand votes...');
+    await fetchRequests();
+    setTimeout(() => {
+      setIsRefreshingPulse(false);
+      setPulseToast('✓ Demand tracker is up to date');
+      setTimeout(() => setPulseToast(null), 2500);
+    }, 600);
+  };
+
+  const handleApplyHotFormula = () => {
+    setIsFormExpanded(true);
+    setTitle('Velvet Plum + Holographic Pearl');
+    setDescription('Ultra-pigmented velvet plum base with prismatic holographic shimmer pearl glaze.');
+    setColor1('#4c1d95');
+    setColor2('#c026d3');
+    setColor3('#f5d0fe');
+    setPulseToast('✨ Applied Hot Formula into proposal builder below!');
+    setTimeout(() => setPulseToast(null), 3000);
+    
+    // Smooth scroll to form
+    setTimeout(() => {
+      const formEl = document.getElementById('proposal-form');
+      if (formEl) {
+        formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  };
 
   return (
     <div id="trending-page" className="grid grid-cols-1 xl:grid-cols-12 gap-8 text-stone-800 animate-in fade-in duration-300 relative">
       
+      {/* 3-SECOND FULL-SCREEN GLITTER CONFETTI SHOWER ON VOTE */}
+      <GlitterConfetti 
+        key={confettiKey} 
+        active={isGlitterConfettiActive} 
+        durationMs={3000} 
+        onComplete={() => setIsGlitterConfettiActive(false)} 
+      />
+
       {/* MAILBOX LETTER ANIMATION OVERLAY */}
       {isAnimatingSubmit && (
         <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -314,7 +405,7 @@ export const TrendingPage: React.FC = () => {
                     className="w-full h-full bg-stone-800 origin-top"
                   />
                 </div>
-                <span className="text-[8px] font-black uppercase text-[#bc8381] tracking-widest mt-5">Gleame Lab Box</span>
+                <span className="text-[8px] font-black uppercase text-[#bc8381] tracking-widest mt-5">TryOnBeauty Lab Box</span>
               </div>
 
               {/* Envelope / Letter Card */}
@@ -334,7 +425,7 @@ export const TrendingPage: React.FC = () => {
                 className="w-56 bg-[#faf6f5] border border-[#bc8381]/30 p-4 rounded-xl shadow-md space-y-2 text-left z-10"
               >
                 <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-[#bc8381]/20 border border-[#bc8381]/45 flex items-center justify-center font-serif text-[10px] font-black text-[#732729]">
-                  G
+                  T
                 </div>
                 <div className="text-[8px] font-black text-[#bc8381] uppercase tracking-wider">New Look Proposal</div>
                 <h4 className="text-xs font-bold text-stone-800 line-clamp-1">{title || 'Custom Shader'}</h4>
@@ -370,198 +461,409 @@ export const TrendingPage: React.FC = () => {
       {/* LEFT COLUMN: Controls & Distribution Form (Cols: 4) */}
       <div className="xl:col-span-4 space-y-6">
         
-        {/* STATS PANEL */}
-        <div className="bg-white rounded-2xl p-5 border border-[#bc8381]/25 shadow-md text-left">
-          <h3 className="text-[10px] font-extrabold uppercase tracking-widest text-[#732729] mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#732729]" /> Trending Demand Metrics
-          </h3>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3.5 bg-[#bc8381]/10 rounded-xl border border-[#bc8381]/25 shadow-inner">
-              <span className="text-xs font-bold text-[#732729]">Total Tracked Votes</span>
-              <span className="text-sm font-black text-[#732729]">{trendingStats.totalVotes} Votes</span>
+        {/* STATS PANEL / DEMAND PULSE INTERACTIVE TRACKER */}
+        <div className="bg-white/95 backdrop-blur-md rounded-[28px] p-5 sm:p-6 border border-[#bc8381]/20 shadow-xs text-left relative overflow-hidden font-montserrat">
+          {/* Header */}
+          <div className="flex items-start justify-between">
+            <div>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-500 block">
+                Demand Pulse
+              </span>
+              <h3 className="text-2xl font-bold text-stone-900 tracking-tight mt-0.5">
+                What&apos;s wanted now
+              </h3>
             </div>
+            
+            {/* Interactive Live Sync Badge */}
+            <button
+              type="button"
+              onClick={handleRefreshPulse}
+              title="Click to sync live tracker data from community"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#bc8381]/15 hover:bg-[#bc8381]/25 text-stone-700 text-xs font-bold transition-all active:scale-95 cursor-pointer"
+            >
+              {isRefreshingPulse ? (
+                <RefreshCw className="w-2.5 h-2.5 animate-spin text-[#732729]" />
+              ) : (
+                <span className="w-2 h-2 rounded-full bg-[#bc8381] animate-pulse" />
+              )}
+              <span>LIVE</span>
+            </button>
+          </div>
 
-            <div className="space-y-3">
-              <span className="text-xs font-bold text-stone-600 block mb-2">Demand by Cosmetic Category</span>
-              <div className="space-y-2.5">
-                {trendingStats.categories.slice(0, 4).map((stat) => (
-                  <div key={stat.name} className="space-y-1">
-                    <div className="flex justify-between text-[10px] font-bold">
-                      <span className="text-stone-700 flex items-center gap-1.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          stat.name === 'Eyes' ? 'bg-[#732729]' :
-                          stat.name === 'Lips' ? 'bg-[#bc8381]' :
-                          stat.name === 'Blush' ? 'bg-amber-600' : 'bg-stone-400'
-                        }`} />
-                        {stat.name}
-                      </span>
-                      <span className="text-stone-400">{stat.percentage}% ({stat.value} votes)</span>
-                    </div>
-                    {/* Progress Bar */}
-                    <div className="w-full h-1.5 bg-stone-100 rounded-full overflow-hidden">
-                      <div 
-                        style={{ width: `${stat.percentage}%` }}
-                        className={`h-full rounded-full ${
-                          stat.name === 'Eyes' ? 'bg-[#732729]' :
-                          stat.name === 'Lips' ? 'bg-[#bc8381]' :
-                          stat.name === 'Blush' ? 'bg-amber-600' : 'bg-stone-300'
-                        }`}
-                      />
-                    </div>
-                  </div>
-                ))}
+          {/* Metric Boxes */}
+          <div className="grid grid-cols-2 gap-3.5 mt-5">
+            {/* 3D Spinning Votes Badge (Total Votes) */}
+            <Spinning3DVotesBadge 
+              totalVotes={trendingStats.totalVotes}
+              boostTrigger={badgeBoostTrigger}
+              todayCount={18}
+              onClick={() => {
+                setActiveCategoryFilter(null);
+                setPulseToast(`Tracking ${trendingStats.totalVotes} total community votes`);
+                setTimeout(() => setPulseToast(null), 2500);
+              }}
+            />
+
+            {/* Top Rising (Interactive click to inspect proposal) */}
+            <div 
+              onClick={() => {
+                setSearchQuery(topRisingProposal);
+                setPulseToast(`Filtered to Top Rising: ${topRisingProposal}`);
+                setTimeout(() => setPulseToast(null), 2500);
+              }}
+              title={`Click to filter board for '${topRisingProposal}'`}
+              className="group bg-[#faf6f5] hover:bg-[#f5eeea] rounded-2xl p-3.5 sm:p-4 border border-[#bc8381]/15 hover:border-[#bc8381]/35 flex flex-col justify-between min-w-0 cursor-pointer transition-all duration-200"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-stone-400 tracking-wider uppercase block">
+                  Top Rising
+                </span>
+                <ArrowUpRight className="w-3 h-3 text-stone-400 group-hover:text-[#732729] transition-colors" />
+              </div>
+              <div 
+                className="text-sm sm:text-base font-bold text-stone-900 tracking-tight leading-snug break-words mt-1.5 line-clamp-2 group-hover:text-[#732729] transition-colors"
+                title={topRisingProposal}
+              >
+                {topRisingProposal}
               </div>
             </div>
+          </div>
 
-            <div className="bg-[#faf6f5] rounded-xl p-3 border border-[#bc8381]/20 text-[10px] leading-relaxed text-stone-500 font-semibold">
-              💡 <span className="font-bold text-[#732729]">Lab Specialist Tip:</span> High-fidelity velvet plum shades and holographic pearl formulas are heavily requested. Ensure these elements are mixed in custom blueprints.
+          {/* Category Section with Title & Interactive Chips */}
+          <div className="mt-5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-400 block">
+                Cosmetic Category Popularity
+              </span>
+              {activeCategoryFilter && (
+                <button
+                  type="button"
+                  onClick={() => setActiveCategoryFilter(null)}
+                  className="text-[10px] font-bold text-[#732729] hover:underline cursor-pointer flex items-center gap-0.5"
+                >
+                  <span>Reset filter</span>
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Interactive Category Chips */}
+            <div className="flex flex-wrap gap-2">
+              {trendingStats.categories.slice(0, 4).map((stat) => {
+                const isSelected = activeCategoryFilter === stat.name;
+                return (
+                  <button
+                    key={stat.name}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        setActiveCategoryFilter(null);
+                        setPulseToast('Cleared category filter');
+                      } else {
+                        setActiveCategoryFilter(stat.name);
+                        setPulseToast(`Filtered demand board to: ${stat.name} (${stat.value} votes)`);
+                      }
+                      setTimeout(() => setPulseToast(null), 2500);
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
+                      isSelected
+                        ? 'bg-[#732729] text-white border border-[#732729] shadow-xs ring-2 ring-[#732729]/20'
+                        : 'bg-[#faf6f5] hover:bg-[#f3ebe8] border border-[#bc8381]/15 text-stone-700 shadow-2xs'
+                    }`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        isSelected
+                          ? 'bg-white'
+                          : stat.name === 'Eyes'
+                          ? 'bg-[#732729]'
+                          : stat.name === 'Blush'
+                          ? 'bg-amber-600'
+                          : stat.name === 'Lips'
+                          ? 'bg-[#bc8381]'
+                          : 'bg-stone-400'
+                      }`}
+                    />
+                    <span>
+                      {stat.name} {stat.percentage}%
+                    </span>
+                    {isSelected && (
+                      <X className="w-3 h-3 ml-0.5 text-white/80" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
+
+          {/* Interactive Hot Now / Tip Banner */}
+          <button
+            type="button"
+            onClick={handleApplyHotFormula}
+            title="Click to load this formula into the proposal builder below"
+            className="w-full mt-4 p-3 sm:p-3.5 bg-[#faf6f5] hover:bg-[#f5eeea] rounded-2xl border border-[#bc8381]/15 hover:border-[#bc8381]/35 text-xs text-stone-700 font-medium flex items-center justify-between gap-2 text-left transition-all active:scale-[0.99] cursor-pointer group"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-[#bc8381] shrink-0 text-sm group-hover:scale-110 transition-transform">✦</span>
+              <span className="leading-snug">
+                Hot now: velvet plum + holographic pearl
+              </span>
+            </div>
+            <span className="text-[10px] font-extrabold uppercase text-[#732729] tracking-wider opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline whitespace-nowrap">
+              Try Formula →
+            </span>
+          </button>
+
+          {/* Interactive Action Toast Notification */}
+          {pulseToast && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              className="mt-3 px-3 py-1.5 rounded-xl bg-[#732729]/10 border border-[#732729]/20 text-[11px] font-bold text-[#732729] flex items-center justify-center gap-1.5 animate-in fade-in"
+            >
+              <span>{pulseToast}</span>
+            </motion.div>
+          )}
         </div>
 
-        {/* SUBMISSION FORM */}
-        <div className="bg-white rounded-2xl p-6 border border-[#bc8381]/25 shadow-md text-left">
-          <div className="mb-4">
-            <h3 className="text-base font-serif font-bold text-[#732729]">Propose Next Shaders</h3>
-            <p className="text-[11px] text-stone-500 font-semibold">Request a specific makeup shade or finishing filter formula to be modeled next.</p>
-          </div>
+        {/* 2. WANTED QUICK ACTION CARD (MATCHING DESIGN WITH WANT BUTTONS, SWATCHES & SEE MORE) */}
+        <WantedQuickActionCard
+          onSeeMore={() => {
+            if (onNavigate) {
+              onNavigate('wanted-list');
+            }
+          }}
+          onNavigate={onNavigate}
+          onRequestClick={() => {
+            setIsFormExpanded(true);
+            setTimeout(() => {
+              const formEl = document.getElementById('proposal-form');
+              if (formEl) {
+                formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }, 100);
+          }}
+          onSelectLook={(item) => {
+            setSearchQuery(item.name);
+            setPulseToast(`Viewing community entries for "${item.name}"`);
+            setTimeout(() => setPulseToast(null), 2500);
+          }}
+        />
 
-          <form onSubmit={handleSubmitRequest} className="space-y-4">
-            {formSuccess && (
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-2 text-emerald-600 text-xs">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Proposed successfully! Initial vote credited.</span>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Look Name / Concept</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Chrome Prism Violet"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800 bg-[#faf6f5]"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full text-xs bg-[#faf6f5] border border-[#bc8381]/35 rounded-lg px-2.5 py-2.5 font-semibold text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#732729]/50"
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat} className="bg-white text-stone-800">{cat}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Your Name</label>
-                <input
-                  type="text"
-                  placeholder="designer_99"
-                  value={requestedBy}
-                  onChange={(e) => setRequestedBy(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800 bg-[#faf6f5]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Associated Palette Colors (Pick 3)</label>
-              <div className="flex items-center gap-3 bg-[#faf6f5] p-2.5 border border-[#bc8381]/25 rounded-xl justify-between shadow-xs">
-                <div className="flex items-center gap-1.5">
-                  <input 
-                    type="color" 
-                    value={color1} 
-                    onChange={(e) => setColor1(e.target.value)} 
-                    className="w-6 h-6 rounded-full border border-stone-200 overflow-hidden cursor-pointer shrink-0"
-                  />
-                  <span className="text-[10px] text-stone-400 font-mono font-bold">{color1.toUpperCase()}</span>
-                </div>
-                <div className="flex items-center gap-1.5 border-l border-[#bc8381]/15 pl-3">
-                  <input 
-                    type="color" 
-                    value={color2} 
-                    onChange={(e) => setColor2(e.target.value)} 
-                    className="w-6 h-6 rounded-full border border-stone-200 overflow-hidden cursor-pointer shrink-0"
-                  />
-                  <span className="text-[10px] text-stone-400 font-mono font-bold">{color2.toUpperCase()}</span>
-                </div>
-                <div className="flex items-center gap-1.5 border-l border-[#bc8381]/15 pl-3">
-                  <input 
-                    type="color" 
-                    value={color3} 
-                    onChange={(e) => setColor3(e.target.value)} 
-                    className="w-6 h-6 rounded-full border border-stone-200 overflow-hidden cursor-pointer shrink-0"
-                  />
-                  <span className="text-[10px] text-stone-400 font-mono font-bold">{color3.toUpperCase()}</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Describe your Finish Vision</label>
-              <textarea
-                required
-                placeholder="Describe texture specifications (e.g., high density chromatic glitter glaze, matte clay)..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800 bg-[#faf6f5]"
-              />
-            </div>
-
-            {/* PUBLICITY PRIVACY TOGGLE SETTING */}
-            <div className="space-y-1.5">
-              <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide">Visibility Option</label>
-              <div className="bg-[#faf6f5] p-3 rounded-xl border border-[#bc8381]/25 space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input 
-                    type="checkbox"
-                    checked={isPublic}
-                    onChange={(e) => setIsPublic(e.target.checked)}
-                    className="w-4 h-4 text-[#732729] border-[#bc8381]/35 rounded focus:ring-[#732729]/50"
-                  />
-                  <span className="text-xs font-bold text-stone-800">Publish to Community Board</span>
-                </label>
-
-                {isPublic ? (
-                  <p className="text-[10px] text-stone-500 font-semibold leading-relaxed">
-                    🌟 This look request will be displayed publicly on the community board so other users can view, share, and vote to increase its development priority.
-                  </p>
-                ) : (
-                  <p className="text-[10px] text-amber-700/80 font-bold leading-relaxed bg-amber-500/10 border border-amber-500/15 p-2 rounded-lg">
-                    🔒 Private Submission: This request is set to private. Lab specialists will review your submission confidentially, but it will not appear on the public board for voting.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-[#732729] hover:bg-[#5c1d1f] text-white font-extrabold text-xs tracking-widest uppercase py-3 px-4 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all"
+        {/* 3. PROPOSE NEXT SHADES SUBMISSION FORM (COMPACT COLLAPSIBLE WITH X BUTTON) */}
+        <div id="proposal-form" className="bg-white rounded-2xl border border-[#bc8381]/25 shadow-md text-left overflow-hidden transition-all duration-300">
+          {!isFormExpanded ? (
+            /* COMPACT COLLAPSED CARD */
+            <div 
+              onClick={() => setIsFormExpanded(true)}
+              className="p-5 sm:p-6 hover:bg-[#faf6f5]/60 cursor-pointer transition-colors group flex items-center justify-between gap-4"
             >
-              <Plus className="w-4 h-4" /> Submit Proposal
-            </button>
-          </form>
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-[#732729]/10 text-[#732729] flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-[#732729] group-hover:text-white transition-all shadow-xs">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm sm:text-base font-serif font-bold text-[#732729] group-hover:text-[#5c1d1f] transition-colors truncate">
+                    Propose Next Shades
+                  </h3>
+                  <p className="text-[11px] text-stone-500 font-medium line-clamp-1">
+                    Request a specific makeup shade or finishing formula to be modeled next.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsFormExpanded(true);
+                }}
+                className="px-3 py-1.5 bg-[#732729] hover:bg-[#5c1d1f] text-white text-xs font-bold rounded-xl flex items-center gap-1 shrink-0 shadow-xs cursor-pointer active:scale-95 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Propose</span>
+              </button>
+            </div>
+          ) : (
+            /* EXPANDED COMPLETE FORM WITH COLLAPSE X BUTTON */
+            <div className="p-5 sm:p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-[#bc8381]/15">
+                <div>
+                  <h3 className="text-base font-serif font-bold text-[#732729]">Propose Next Shades</h3>
+                  <p className="text-[11px] text-stone-500 font-semibold">Request a specific makeup shade or finishing filter formula to be modeled next.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFormExpanded(false)}
+                  title="Collapse proposal form"
+                  className="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitRequest} className="space-y-4">
+                {formSuccess && (
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-2 text-emerald-600 text-xs">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Proposed successfully! Initial vote credited.</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Look Name / Concept</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Chrome Prism Violet"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800 bg-[#faf6f5]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Category</label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full text-xs bg-[#faf6f5] border border-[#bc8381]/35 rounded-lg px-2.5 py-2.5 font-semibold text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#732729]/50"
+                    >
+                      {categories.map(cat => (
+                        <option key={cat} value={cat} className="bg-white text-stone-800">{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Your Name</label>
+                    <input
+                      type="text"
+                      placeholder="designer_99"
+                      value={requestedBy}
+                      onChange={(e) => setRequestedBy(e.target.value)}
+                      className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800 bg-[#faf6f5]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Associated Palette Colors (Pick 3)</label>
+                  <div className="flex items-center gap-3 bg-[#faf6f5] p-2.5 border border-[#bc8381]/25 rounded-xl justify-between shadow-xs">
+                    <div className="flex items-center gap-1.5">
+                      <input 
+                        type="color" 
+                        value={color1} 
+                        onChange={(e) => setColor1(e.target.value)} 
+                        className="w-6 h-6 rounded-full border border-stone-200 overflow-hidden cursor-pointer shrink-0"
+                      />
+                      <span className="text-[10px] text-stone-400 font-mono font-bold">{color1.toUpperCase()}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 border-l border-[#bc8381]/15 pl-3">
+                      <input 
+                        type="color" 
+                        value={color2} 
+                        onChange={(e) => setColor2(e.target.value)} 
+                        className="w-6 h-6 rounded-full border border-stone-200 overflow-hidden cursor-pointer shrink-0"
+                      />
+                      <span className="text-[10px] text-stone-400 font-mono font-bold">{color2.toUpperCase()}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 border-l border-[#bc8381]/15 pl-3">
+                      <input 
+                        type="color" 
+                        value={color3} 
+                        onChange={(e) => setColor3(e.target.value)} 
+                        className="w-6 h-6 rounded-full border border-stone-200 overflow-hidden cursor-pointer shrink-0"
+                      />
+                      <span className="text-[10px] text-stone-400 font-mono font-bold">{color3.toUpperCase()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Describe your Finish Vision</label>
+                  <textarea
+                    required
+                    placeholder="Describe texture specifications (e.g., high density chromatic glitter glaze, matte clay)..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                    className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800 bg-[#faf6f5]"
+                  />
+                </div>
+
+                {/* PUBLICITY PRIVACY TOGGLE SETTING */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide">Visibility Option</label>
+                  <div className="bg-[#faf6f5] p-3 rounded-xl border border-[#bc8381]/25 space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input 
+                        type="checkbox"
+                        checked={isPublic}
+                        onChange={(e) => setIsPublic(e.target.checked)}
+                        className="w-4 h-4 text-[#732729] border-[#bc8381]/35 rounded focus:ring-[#732729]/50"
+                      />
+                      <span className="text-xs font-bold text-stone-800">Publish to Community Board</span>
+                    </label>
+
+                    {isPublic ? (
+                      <p className="text-[10px] text-stone-500 font-semibold leading-relaxed">
+                        🌟 This look request will be displayed publicly on the community board so other users can view, share, and vote to increase its development priority.
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-amber-700/80 font-bold leading-relaxed bg-amber-500/10 border border-amber-500/15 p-2 rounded-lg">
+                        🔒 Private Submission: This request is set to private. Lab specialists will review your submission confidentially, but it will not appear on the public board for voting.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-[#732729] hover:bg-[#5c1d1f] text-white font-extrabold text-xs tracking-widest uppercase py-3 px-4 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all active:scale-[0.99]"
+                  >
+                    <Plus className="w-4 h-4" /> Submit Proposal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsFormExpanded(false)}
+                    className="px-4 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* RIGHT COLUMN: Demand Board with Covers (Cols: 8) */}
-      <div className="xl:col-span-8 bg-white rounded-2xl p-6 border border-[#bc8381]/25 shadow-md min-h-[600px] text-left">
+      {/* RIGHT COLUMN: Demand Board with 2x2 Cards Grid (Cols: 8) */}
+      <div className="xl:col-span-8 bg-white rounded-2xl p-4 sm:p-6 border border-[#bc8381]/25 shadow-md min-h-[600px] text-left">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#bc8381]/25 pb-4 mb-6">
           <div>
             <h3 className="text-lg font-serif font-bold text-[#732729]">Proposed Ideas & Vote Rankings</h3>
             <p className="text-xs text-stone-500">These concepts are actively designed based on community support. Upvote your favorites!</p>
           </div>
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            {/* Active Category Filter Tag if set */}
+            {activeCategoryFilter && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#732729] text-white text-xs font-bold shadow-xs">
+                <span>Category: {activeCategoryFilter}</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveCategoryFilter(null)}
+                  title="Clear category filter"
+                  className="p-0.5 hover:bg-white/20 rounded-full cursor-pointer transition-colors"
+                >
+                  <X className="w-3 h-3 text-white" />
+                </button>
+              </div>
+            )}
+
             {/* Search Input */}
             <div className="relative w-full md:w-64">
               <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-stone-400" />
@@ -599,93 +901,125 @@ export const TrendingPage: React.FC = () => {
             <p className="text-xs">Try searching for something else or submit your own concept on the left!</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          /* 2x2 RESPONSIVE GRID OF CARDS LIKE TRENDING */
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-4.5">
             {filteredRequests.map((req) => {
               const hasVoted = votedIds.includes(req.id);
+              const isRecentlyVoted = recentlyVotedLookId === req.id;
               const cardCover = CATEGORY_COVERS[req.category] || CATEGORY_COVERS['Other'];
               const isPrivate = req.isPublic === false;
 
               return (
                 <div
                   key={req.id}
-                  className="group bg-white rounded-2xl border border-[#bc8381]/25 hover:border-[#732729]/35 overflow-hidden transition-all duration-300 flex flex-col justify-between shadow-md hover:shadow-[0_10px_20px_rgba(115,39,41,0.06)]"
+                  onClick={() => onSelectProposalForFeed && onSelectProposalForFeed(req.id)}
+                  className={`group bg-white rounded-2xl border overflow-hidden transition-all duration-300 flex flex-col justify-between shadow-xs hover:shadow-md cursor-pointer hover:-translate-y-0.5 relative ${
+                    isRecentlyVoted 
+                      ? 'border-amber-400 ring-2 ring-amber-400/80 shadow-[0_0_25px_rgba(251,191,36,0.35)] scale-[1.01]' 
+                      : 'border-[#bc8381]/20 hover:border-[#732729]/35 hover:shadow-[0_8px_16px_rgba(115,39,41,0.06)]'
+                  }`}
                 >
-                  {/* Portrait Cover */}
-                  <div className="relative h-40 w-full overflow-hidden bg-stone-100 border-b border-[#bc8381]/15">
+                  {/* Portrait Cover Image */}
+                  <div className="relative h-28 sm:h-36 md:h-40 w-full overflow-hidden bg-stone-100 border-b border-[#bc8381]/15">
                     <img 
                       src={cardCover} 
                       alt={req.category}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-stone-900/80 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-stone-900/85 via-stone-900/20 to-transparent" />
 
-                    {/* Meta tag */}
-                    <div className="absolute top-3 left-3 bg-white/95 border border-[#bc8381]/25 backdrop-blur-md px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase text-[#732729]">
+                    {/* Category Meta Tag */}
+                    <div className="absolute top-2.5 left-2.5 bg-white/95 border border-[#bc8381]/25 backdrop-blur-md px-2 py-0.5 rounded-md text-[8.5px] sm:text-[9px] font-black uppercase text-[#732729] shadow-2xs">
                       {req.category}
                     </div>
 
                     {isPrivate && (
-                      <div className="absolute top-3 right-3 bg-amber-600 border border-amber-500/30 px-2.5 py-1 rounded text-[8px] font-black uppercase tracking-wider text-white flex items-center gap-1 shadow-xs">
+                      <div className="absolute top-2.5 right-2.5 bg-amber-600 border border-amber-500/30 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider text-white flex items-center gap-1 shadow-xs">
                         <Lock className="w-2.5 h-2.5" /> Private
                       </div>
                     )}
 
-                    <div className="absolute bottom-3 left-3 text-[10px] text-white/90 font-bold">
-                      Proposed by @{req.requestedBy}
+                    <div className="absolute bottom-2 left-2.5 right-2.5 text-[9.5px] sm:text-[10px] text-white/90 font-bold truncate">
+                      @{req.requestedBy}
                     </div>
                   </div>
 
                   {/* Body Details */}
-                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2.5 sm:space-y-3">
                     <div className="space-y-1">
-                      <h4 className="font-serif font-black text-[#732729] text-sm group-hover:text-[#bc8381] transition-colors flex items-center gap-1.5">
+                      <h4 className="font-serif font-bold text-[#732729] text-xs sm:text-sm group-hover:text-[#bc8381] transition-colors line-clamp-1 leading-snug">
                         {req.title}
                       </h4>
-                      <p className="text-xs text-stone-500 leading-relaxed font-semibold line-clamp-3">
+                      <p className="text-[10.5px] sm:text-xs text-stone-500 leading-relaxed font-medium line-clamp-2">
                         {req.description}
                       </p>
 
                       {isPrivate && (
-                        <div className="mt-2 text-[10px] text-amber-700 bg-amber-500/10 border border-amber-500/20 p-2 rounded-lg font-bold">
-                          🔒 Only you can see this private proposal.
+                        <div className="mt-1 text-[9px] text-amber-700 bg-amber-500/10 border border-amber-500/20 p-1.5 rounded-lg font-bold">
+                          🔒 Private proposal
                         </div>
                       )}
                     </div>
 
-                    <div className="space-y-3 pt-2">
+                    <div className="space-y-2.5 pt-1">
                       {/* Swatches */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-bold uppercase text-stone-400 tracking-wider">Concept Palette</span>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[8.5px] font-bold uppercase text-stone-400 tracking-wider">Palette</span>
                         <div className="flex gap-1">
-                          {req.colors.map((color, idx) => (
+                          {req.colors.slice(0, 3).map((color, idx) => (
                             <div
                               key={`${color}-${idx}`}
                               style={{ backgroundColor: color }}
-                              className="w-4 h-4 rounded-full border border-stone-200"
+                              className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border border-stone-200 shadow-2xs shrink-0"
                               title={color}
                             />
                           ))}
                         </div>
                       </div>
 
-                      {/* Vote Buttons */}
-                      <div className="flex items-center justify-between border-t border-[#bc8381]/15 pt-3">
-                        <div className="flex items-center gap-1.5">
-                          <Heart className={`w-4 h-4 text-[#732729] ${hasVoted ? 'fill-current' : ''}`} />
-                          <span className="text-xs font-bold text-stone-700">{req.votes} <span className="text-stone-400">votes</span></span>
+                      {/* Vote Count & Action Button */}
+                      <div className="flex items-center justify-between border-t border-[#bc8381]/15 pt-2.5 relative">
+                        {/* Floating +1 Sparkle Pop Animation */}
+                        {isRecentlyVoted && (
+                          <motion.div
+                            initial={{ opacity: 1, y: 0, scale: 0.8 }}
+                            animate={{ opacity: [1, 1, 0], y: -20, scale: [0.8, 1.25, 1.1] }}
+                            transition={{ duration: 2, ease: "easeOut" }}
+                            className="absolute -top-3 left-1 bg-gradient-to-r from-amber-500 via-rose-500 to-amber-500 text-white font-black text-[9px] px-2 py-0.5 rounded-full shadow-lg pointer-events-none flex items-center gap-1 z-30"
+                          >
+                            <span>+1 Vote!</span>
+                            <span>✨</span>
+                          </motion.div>
+                        )}
+
+                        <div className="flex items-center gap-1">
+                          <Heart 
+                            className={`w-3.5 h-3.5 text-[#732729] transition-transform duration-300 ${
+                              hasVoted ? 'fill-current' : ''
+                            } ${isRecentlyVoted ? 'scale-125 text-[#f43f5e]' : ''}`} 
+                          />
+                          <span className={`text-[11px] sm:text-xs font-bold transition-colors duration-300 ${
+                            isRecentlyVoted ? 'text-amber-700 font-extrabold' : 'text-stone-700'
+                          }`}>
+                            {req.votes} <span className="text-stone-400 font-normal hidden sm:inline">votes</span>
+                          </span>
                         </div>
 
                         <button
-                          onClick={() => handleUpvote(req.id)}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUpvote(req.id);
+                          }}
                           disabled={hasVoted}
-                          className={`text-[10px] font-extrabold tracking-widest uppercase px-3.5 py-1.5 rounded-lg cursor-pointer transition-all ${
+                          className={`text-[9.5px] sm:text-[10px] font-extrabold tracking-wider uppercase px-2.5 sm:px-3 py-1 rounded-lg cursor-pointer transition-all ${
                             hasVoted
                               ? 'bg-[#bc8381]/15 text-[#732729] border border-[#bc8381]/20 cursor-default'
-                              : 'bg-[#732729] hover:bg-[#5c1d1f] text-white border border-transparent'
+                              : 'bg-[#732729] hover:bg-[#5c1d1f] text-white border border-transparent active:scale-95 shadow-2xs'
                           }`}
                         >
-                          {hasVoted ? 'Voted' : 'Upvote'}
+                          {hasVoted ? 'Voted' : 'WANT'}
                         </button>
                       </div>
                     </div>

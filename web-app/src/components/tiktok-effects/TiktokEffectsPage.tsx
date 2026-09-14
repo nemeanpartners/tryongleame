@@ -20,7 +20,7 @@ const TIKTOK_EFFECTS_DATA: TiktokEffect[] = [
     description: 'A luminous, sun-kissed beauty filter featuring warm peachy blush, delicate golden highlight, and a glossy coral-pink lip tint.',
     image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=600&q=80',
     tiktokUrl: 'https://vt.tiktok.com/ZS9hKkunc5KF2-oXcAD/',
-    author: '@GleameLab',
+    author: '@TryOnBeauty',
     views: '1.2M',
     likes: '84.5K',
     category: 'Sunkissed'
@@ -31,7 +31,7 @@ const TIKTOK_EFFECTS_DATA: TiktokEffect[] = [
     description: 'Achieve an ultra-dewy, liquid-pearl complexion effect with subtle translucent pink flush and a glassy, high-shine lip lacquer.',
     image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=600&q=80',
     tiktokUrl: 'https://vt.tiktok.com/ZS9hKkunc5KF2-oXcAD/',
-    author: '@GleameLab',
+    author: '@TryOnBeauty',
     views: '890K',
     likes: '62.1K',
     category: 'Dewy'
@@ -42,7 +42,7 @@ const TIKTOK_EFFECTS_DATA: TiktokEffect[] = [
     description: 'A rich, nostalgic aesthetic combining a perfectly blended smoky eye contour, matte chestnut lips, and a flawless satin base.',
     image: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=600&q=80',
     tiktokUrl: 'https://vt.tiktok.com/ZS9hKkunc5KF2-oXcAD/',
-    author: '@GleameLab',
+    author: '@TryOnBeauty',
     views: '2.4M',
     likes: '195.3K',
     category: 'Retro'
@@ -53,7 +53,7 @@ const TIKTOK_EFFECTS_DATA: TiktokEffect[] = [
     description: 'The viral frosted cheek flush featuring crisp silver-blue undertones, snowy white highlights, and a sheer berry pout.',
     image: 'https://images.unsplash.com/photo-1515688594390-b649af70d282?auto=format&fit=crop&w=600&q=80',
     tiktokUrl: 'https://vt.tiktok.com/ZS9hKkunc5KF2-oXcAD/',
-    author: '@GleameLab',
+    author: '@TryOnBeauty',
     views: '3.1M',
     likes: '240.8K',
     category: 'Aesthetic'
@@ -64,7 +64,7 @@ const TIKTOK_EFFECTS_DATA: TiktokEffect[] = [
     description: 'Incredibly soft, ethereal glow with baby pink satin eyelids, doll-like blush placement, and sparkling diamond highlights.',
     image: 'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&w=600&q=80',
     tiktokUrl: 'https://vt.tiktok.com/ZS9hKkunc5KF2-oXcAD/',
-    author: '@GleameLab',
+    author: '@TryOnBeauty',
     views: '1.7M',
     likes: '112.4K',
     category: 'Glow'
@@ -75,7 +75,7 @@ const TIKTOK_EFFECTS_DATA: TiktokEffect[] = [
     description: 'Chic Parisian beauty effect highlighting a striking, ultra-defined matte ruby lip paired with a clean, sharp fox-eye wing.',
     image: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=600&q=80',
     tiktokUrl: 'https://vt.tiktok.com/ZS9hKkunc5KF2-oXcAD/',
-    author: '@GleameLab',
+    author: '@TryOnBeauty',
     views: '4.5M',
     likes: '380.2K',
     category: 'High Glam'

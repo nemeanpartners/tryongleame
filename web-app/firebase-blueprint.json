@@ -10,6 +10,9 @@
         "description": { "type": "string" },
         "eyeshadowColor": { "type": "string" },
         "eyeshadowOpacity": { "type": "number" },
+        "eyelinerColor": { "type": "string" },
+        "eyelinerOpacity": { "type": "number" },
+        "eyelinerStyle": { "type": "string" },
         "blushColor": { "type": "string" },
         "blushOpacity": { "type": "number" },
         "lipColor": { "type": "string" },
@@ -20,7 +23,8 @@
         "filter": { "type": "string" },
         "votes": { "type": "number" },
         "coverImage": { "type": "string" },
-        "isCustom": { "type": "boolean" }
+        "isCustom": { "type": "boolean" },
+        "requestedBy": { "type": "string" }
       },
       "required": ["id", "name", "description", "eyeshadowColor", "eyeshadowOpacity", "blushColor", "blushOpacity", "lipColor", "lipOpacity", "lipGloss", "lashesStyle", "glitterLevel", "filter", "votes"]
     },
@@ -75,9 +79,121 @@
         "createdAt": { "type": "number" }
       },
       "required": ["username", "lookName", "description", "makeupConfig", "votes", "createdAt"]
+    },
+    "DailySeriesActivity": {
+      "title": "DailySeriesActivity",
+      "description": "Stores recurring daily series community votes, try-ons, and interactions.",
+      "type": "object",
+      "properties": {
+        "seriesKey": { "type": "string" },
+        "dayName": { "type": "string" },
+        "votesA": { "type": "number" },
+        "votesB": { "type": "number" },
+        "totalTryOns": { "type": "number" },
+        "totalCheckIns": { "type": "number" },
+        "viralVotes": { "type": "number" },
+        "skipVotes": { "type": "number" },
+        "wear_rating_absolutely": { "type": "number" },
+        "wear_rating_maybe": { "type": "number" },
+        "wear_rating_not_for_me": { "type": "number" },
+        "remixCount": { "type": "number" },
+        "lastUpdated": { "type": "number" }
+      },
+      "required": ["seriesKey", "dayName"]
+    },
+    "AnalyticsEvent": {
+      "title": "AnalyticsEvent",
+      "description": "Real-time user engagement telemetry event for admin intelligence dashboard.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "category": { "type": "string" },
+        "targetName": { "type": "string" },
+        "userIdentifier": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "metadata": { "type": "object" }
+      },
+      "required": ["id", "type", "category", "targetName", "timestamp"]
+    },
+    "WantedLook": {
+      "title": "WantedLook",
+      "description": "A community-requested beauty formula or shader item on the wanted list with vote metrics.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "countLabel": { "type": "string" },
+        "numericVotes": { "type": "number" },
+        "category": { "type": "string" },
+        "swatchType": { "type": "string" },
+        "colors": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "description": { "type": "string" },
+        "requestedBy": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "name", "numericVotes", "category", "swatchType", "colors"]
+    },
+    "SupportInquiry": {
+      "title": "SupportInquiry",
+      "description": "User support inquiries, feedback, and issue reports with images and admin response threads.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "subject": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "images": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "status": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" },
+        "replies": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "resolvedAt": { "type": "number" }
+      },
+      "required": ["id", "userName", "userEmail", "subject", "category", "description", "status", "createdAt", "updatedAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Stores user profile configuration including custom avatar photo URL and studio banner URL.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "coverURL": { "type": "string" },
+        "coverUrl": { "type": "string" },
+        "providerIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "lastSeenAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      }
     }
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores personal account settings, photo avatar URL, and studio cover banner URL for each user."
+    },
+    "/wanted_looks/{lookId}": {
+      "schema": "WantedLook",
+      "description": "Store 100 community wanted looks and real-time vote totals."
+    },
     "/built_looks/{lookId}": {
       "schema": "BuiltLook",
       "description": "Store official packaged preset makeup looks."
@@ -89,6 +205,18 @@
     "/submissions/{submissionId}": {
       "schema": "ChallengeSubmission",
       "description": "Store monthly challenge submissions."
+    },
+    "/daily_series/{seriesKey}": {
+      "schema": "DailySeriesActivity",
+      "description": "Store live community interaction metrics for the 7 recurring daily series."
+    },
+    "/analytics_events/{eventId}": {
+      "schema": "AnalyticsEvent",
+      "description": "Store telemetry event stream for admin executive analytics."
+    },
+    "/support_inquiries/{inquiryId}": {
+      "schema": "SupportInquiry",
+      "description": "Store user support and technical inquiry tickets with image attachments and admin replies."
     }
   }
 }

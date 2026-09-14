@@ -34,6 +34,10 @@ export interface ChallengeSubmission {
   };
   votes: number;
   createdAt: number;
+  isLocked?: boolean;
+  tier?: 'free' | 'pro';
+  category?: string;
+  categoryLabel?: string;
 }
 
 export interface Winner {
@@ -77,4 +81,24 @@ export interface PresetLook {
   glitterLevel: number; // 0 to 100
   filter: 'none' | 'vintage' | 'warm-glow' | 'cool-cyber' | 'holographic';
   requestedBy?: string; // Attach original winning username if community preset
+  isLocked?: boolean;
+  tier?: 'free' | 'pro';
+}
+
+export interface ShadeProduct {
+  id: string;
+  name: string;
+  category: 'eyelashes' | 'lips' | 'lip-liner' | 'eyeliner';
+  categoryLabel: string;
+  shadeName: string;
+  colorHex?: string;
+  finish: string;
+  description: string;
+  image: string;
+  swatchImage?: string;
+  targetInterests: number;
+  currentInterests: number;
+  priceEstimate: string;
+  tags: string[];
+  presetConfig: PresetLook;
 }

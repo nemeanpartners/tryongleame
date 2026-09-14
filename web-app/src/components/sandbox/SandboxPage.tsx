@@ -4,6 +4,7 @@ import { PresetLook } from '../../types';
 import { auth, db, collection, addDoc, handleFirestoreError, OperationType } from '../../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { seedBuiltLooksIfEmpty } from '../../lib/looksService';
+import { PostSaveDiscoverModal } from '../common/PostSaveDiscoverModal';
 
 interface SandboxPageProps {
   onChallengeSubmitSuccess?: () => void;
@@ -176,14 +177,17 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
 
   const [localLookName, setLocalLookName] = useState<string>('');
   const [showSaveSuccess, setShowSaveSuccess] = useState<boolean>(false);
+  const [isPostSaveModalOpen, setIsPostSaveModalOpen] = useState<boolean>(false);
+  const [savedLookNameForModal, setSavedLookNameForModal] = useState<string>('');
 
   const handleSaveLookLocally = (e: React.FormEvent) => {
     e.preventDefault();
     if (!localLookName.trim()) return;
 
+    const savedName = localLookName.trim();
     const newLook = {
       id: `local_${Date.now()}`,
-      name: localLookName.trim(),
+      name: savedName,
       eyeshadowColor,
       eyeshadowOpacity,
       eyelinerColor,
@@ -206,6 +210,10 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
     setLocalLookName('');
     setShowSaveSuccess(true);
     setTimeout(() => setShowSaveSuccess(false), 2000);
+
+    // Open rich SAVE → DISCOVER AGAIN post-save experience
+    setSavedLookNameForModal(savedName);
+    setIsPostSaveModalOpen(true);
   };
 
   const handleLoadLocalLook = (look: any) => {
@@ -1244,7 +1252,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
               <Sparkles className="w-4 h-4" /> Enter Monthly Challenge
             </button>
             <p className="text-[10px] text-stone-400 text-center font-semibold">
-              Active challenge: <span className="font-bold text-[#732729]">August Holographic Heatwave</span>. Submit this custom look configuration to the community challenge board!
+              Active challenge: <span className="font-bold text-[#732729]">August Clean Summer Look</span>. Submit this custom look configuration to the community challenge board!
             </p>
           </div>
         </div>
@@ -1515,7 +1523,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                     <button
                       type="button"
                       onClick={() => {
-                        const recipeText = `GLEAME MAKEUP FORMULA SPECIFICATION
+                        const recipeText = `TRYONBEAUTY MAKEUP FORMULA SPECIFICATION
 ====================================
 Eyeshadow Color: ${eyeshadowColor} (${Math.round(eyeshadowOpacity * 100)}% Opacity)
 Eyeliner Style: ${eyelinerStyle} (Color: ${eyelinerColor}, ${Math.round(eyelinerOpacity * 100)}% Opacity)
@@ -1525,7 +1533,7 @@ Lash Extension: ${lashesStyle}
 Glitter Level: ${glitterLevel}% Sparkle Density
 Active Rendering Filter: ${activeFilter}
 ------------------------------------
-Rendered via Gleame: Makeup Try-On App`;
+Rendered via TryOnBeauty: Makeup Try-On App`;
                         navigator.clipboard.writeText(recipeText);
                         setCopiedRecipe(true);
                         setTimeout(() => setCopiedRecipe(false), 2000);
@@ -1587,6 +1595,24 @@ Rendered via Gleame: Makeup Try-On App`;
           </div>
         </div>
       )}
+
+      {/* Post-Save Discover Modal: SAVE → DISCOVER AGAIN */}
+      <PostSaveDiscoverModal
+        isOpen={isPostSaveModalOpen}
+        onClose={() => setIsPostSaveModalOpen(false)}
+        savedLookName={savedLookNameForModal}
+        onTryOn={(preset) => {
+          handleLoadLocalLook({
+            ...preset,
+            selectedFilter: preset.filter
+          });
+        }}
+        onNavigateToMyLooks={() => {
+          if (onNavigate) {
+            onNavigate('profile');
+          }
+        }}
+      />
 
     </div>
   );

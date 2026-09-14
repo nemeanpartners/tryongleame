@@ -1,6 +1,10 @@
 import { auth, db, collection, addDoc, doc, setDoc, handleFirestoreError, OperationType } from '../firebase';
 
-type NativeBridgeType = 'gleame:save-built-look' | 'gleame:submit-challenge';
+type NativeBridgeType = 
+  | 'gleame:save-built-look' 
+  | 'gleame:submit-challenge'
+  | 'tryonbeauty:save-built-look'
+  | 'tryonbeauty:submit-challenge';
 
 type NativeLookPayload = {
   lookName?: string;
@@ -26,6 +30,9 @@ type NativeBridgeMessage = {
 declare global {
   interface Window {
     GleameBridge?: {
+      postMessage: (message: string) => void;
+    };
+    TryOnBeautyBridge?: {
       postMessage: (message: string) => void;
     };
   }
@@ -76,12 +83,14 @@ const docIdFromName = (name: string) => {
 };
 
 const postNativeStatus = (type: NativeBridgeType, ok: boolean, message: string) => {
-  window.GleameBridge?.postMessage(JSON.stringify({
+  const payloadStr = JSON.stringify({
     source: 'tryon-beauty-web',
     type,
     ok,
     message
-  }));
+  });
+  window.GleameBridge?.postMessage(payloadStr);
+  window.TryOnBeautyBridge?.postMessage(payloadStr);
 };
 
 const writeUserMirror = async (section: 'built_looks' | 'submissions', id: string, data: Record<string, unknown>) => {
@@ -99,13 +108,13 @@ const writeUserMirror = async (section: 'built_looks' | 'submissions', id: strin
 };
 
 const saveNativeBuiltLook = async (payload?: NativeLookPayload) => {
-  const lookName = cleanText(payload?.lookName, 'Gleame iOS Build');
+  const lookName = cleanText(payload?.lookName, 'TryOnBeauty iOS Build');
   const id = docIdFromName(lookName);
   const config = nativeNameToConfig(payload);
   const builtLook = {
     id,
     name: lookName,
-    description: cleanText(payload?.description, 'Built in the Gleame iOS try-on app.', 500),
+    description: cleanText(payload?.description, 'Built in the TryOnBeauty iOS try-on app.', 500),
     eyeshadowColor: config.eyeshadowColor,
     eyeshadowOpacity: config.eyeshadowOpacity,
     blushColor: config.blushColor,
@@ -133,12 +142,12 @@ const submitNativeChallenge = async (payload?: NativeLookPayload) => {
     user?.email?.split('@')[0] ||
     localStorage.getItem('kobella_username') ||
     localStorage.getItem('tryon_beauty_username') ||
-    'Gleame User';
+    'TryOnBeauty User';
   const config = nativeNameToConfig(payload);
   const submission = {
-    username: cleanText(username, 'Gleame User'),
-    lookName: cleanText(payload?.lookName, 'Gleame iOS Challenge Look'),
-    description: cleanText(payload?.description, 'Submitted from the Gleame iOS try-on app.', 1000),
+    username: cleanText(username, 'TryOnBeauty User'),
+    lookName: cleanText(payload?.lookName, 'TryOnBeauty iOS Challenge Look'),
+    description: cleanText(payload?.description, 'Submitted from the TryOnBeauty iOS try-on app.', 1000),
     submissionType: 'challenge',
     category: cleanText(payload?.category, 'challenge'),
     makeupConfig: config,
@@ -155,16 +164,24 @@ const submitNativeChallenge = async (payload?: NativeLookPayload) => {
 export function installGleameNativeBridge(onChallengeSubmitSuccess?: () => void) {
   const handleMessage = async (event: MessageEvent<NativeBridgeMessage>) => {
     const message = event.data;
-    if (!message || message.source !== 'gleame-ios-wrapper') return;
-    if (message.type !== 'gleame:save-built-look' && message.type !== 'gleame:submit-challenge') return;
+    if (!message) return;
+    const isMatchedSource = message.source === 'gleame-ios-wrapper' || message.source === 'tryonbeauty-ios-wrapper';
+    if (!isMatchedSource) return;
+
+    const isMatchedType = 
+      message.type === 'gleame:save-built-look' || 
+      message.type === 'tryonbeauty:save-built-look' || 
+      message.type === 'gleame:submit-challenge' || 
+      message.type === 'tryonbeauty:submit-challenge';
+    if (!isMatchedType) return;
 
     try {
-      if (message.type === 'gleame:save-built-look') {
+      if (message.type === 'gleame:save-built-look' || message.type === 'tryonbeauty:save-built-look') {
         await saveNativeBuiltLook(message.payload);
         postNativeStatus(message.type, true, 'Saved to Look Lab');
       }
 
-      if (message.type === 'gleame:submit-challenge') {
+      if (message.type === 'gleame:submit-challenge' || message.type === 'tryonbeauty:submit-challenge') {
         if (!auth.currentUser) {
           postNativeStatus(message.type, false, 'Sign in on the web page before submitting.');
           return;

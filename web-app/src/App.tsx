@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { 
   Flame, 
   LogIn, 
@@ -12,12 +13,15 @@ import {
   Sparkles, 
   Trophy, 
   User,
+  Users,
   Compass,
   Columns2,
   Layers,
   Palette,
   ArrowRight,
-  Video
+  Video,
+  Bell,
+  Plus
 } from 'lucide-react';
 import SandboxPage from './components/sandbox/SandboxPage';
 import { Homepage } from './components/home/Homepage';
@@ -28,27 +32,72 @@ import { BuiltLooksPage } from './components/built-looks/BuiltLooksPage';
 import { VotesPage } from './components/votes/VotesPage';
 import { ProfilePage } from './components/profile/ProfilePage';
 import { TiktokEffectsPage } from './components/tiktok-effects/TiktokEffectsPage';
+import { InspirationWall } from './components/inspiration/InspirationWall';
+import { InspirationLooksScrollFeedPage } from './components/inspiration/InspirationLooksScrollFeedPage';
+import { WantedLooksScrollFeedPage } from './components/wanted/WantedLooksScrollFeedPage';
+import { WantedListPage } from './components/wanted/WantedListPage';
+import { ShadeEditPage } from './components/shade-edit/ShadeEditPage';
+import { AdminDashboardPage } from './components/admin/AdminDashboardPage';
+import { FrenchDoorIcon } from './components/common/FrenchDoorIcon';
+import { AppleWandSparklesIcon } from './components/common/AppleWandSparklesIcon';
 import { PresetLook } from './types';
 import { auth, db, doc, setDoc } from './firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { installGleameNativeBridge } from './lib/nativeBridge';
+import { trackDwellTime } from './lib/analytics';
+import { getEffectiveAvatar, loadUserProfileFromFirestore } from './lib/userProfileService';
 
-type LabNavTarget = 'sandbox' | 'gallery' | 'hall-of-fame' | 'trending' | 'built-looks' | 'votes' | 'profile' | 'looks' | 'tiktok-effects';
+type LabNavTarget = 'sandbox' | 'gallery' | 'gallery-looks' | 'gallery-challenges' | 'gallery-inspiration' | 'gallery-wanted' | 'wanted-list' | 'wanted-scrollfeed' | 'hall-of-fame' | 'trending' | 'built-looks' | 'votes' | 'profile' | 'looks' | 'tiktok-effects' | 'inspiration-wall' | 'inspirationlooks-scrollfeed' | 'shade-edit' | 'admin';
 
 export default function App() {
   // Path helper mapping
   const getTabFromPath = (path: string): 'home' | LabNavTarget => {
     const cleanPath = path.toLowerCase().replace(/\/$/, ''); // Remove trailing slash
+    if (cleanPath.startsWith('/settings')) {
+      return 'profile';
+    }
+
     switch (cleanPath) {
       case '/home':
       case '':
       case '/':
         return 'home';
+      case '/admin':
+      case '/admin-portal':
+      case '/dashboard':
+      case '/admin/dashboard':
+        return 'admin';
       case '/editor':
       case '/sandbox':
         return 'sandbox';
       case '/gallery':
         return 'gallery';
+      case '/gallery-looks':
+      case '/gallery/looks':
+      case '/looks-feed':
+        return 'gallery-looks';
+      case '/gallery-challenges':
+      case '/gallery/challenges':
+      case '/challenges':
+        return 'gallery-challenges';
+      case '/gallery-inspiration':
+      case '/gallery/inspiration':
+        return 'gallery-inspiration';
+      case '/gallery-wanted':
+      case '/gallery/wanted':
+      case '/gallery-requests':
+      case '/gallery/requests':
+        return 'gallery-wanted';
+      case '/wanted':
+      case '/wanted-list':
+      case '/wanted-looks':
+      case '/requests':
+        return 'wanted-list';
+      case '/wanted-scrollfeed':
+      case '/gallery-wanted-feed':
+      case '/wanted-feed':
+      case '/requests-feed':
+        return 'wanted-scrollfeed';
       case '/legends':
       case '/hall-of-fame':
         return 'hall-of-fame';
@@ -59,12 +108,30 @@ export default function App() {
         return 'built-looks';
       case '/votes':
         return 'votes';
+      case '/login':
+      case '/signin':
+      case '/auth':
       case '/profile':
         return 'profile';
       case '/looks':
         return 'looks';
       case '/tiktok-effects':
         return 'tiktok-effects';
+      case '/inspiration-wall':
+      case '/inspiration':
+      case '/moodboard':
+        return 'inspiration-wall';
+      case '/inspirationlooks-scrollfeed':
+      case '/inspiration-feed':
+      case '/inspiration-scrollfeed':
+      case '/inspirationlooks':
+        return 'inspirationlooks-scrollfeed';
+      case '/shade-edit':
+      case '/shades':
+      case '/shade':
+      case '/products':
+      case '/drop':
+        return 'shade-edit';
       default:
         return 'home';
     }
@@ -78,6 +145,16 @@ export default function App() {
         return '/editor';
       case 'gallery':
         return '/gallery';
+      case 'gallery-looks':
+        return '/gallery-looks';
+      case 'gallery-challenges':
+        return '/gallery-challenges';
+      case 'gallery-inspiration':
+        return '/gallery-inspiration';
+      case 'gallery-wanted':
+        return '/gallery-wanted';
+      case 'wanted-scrollfeed':
+        return '/wanted-scrollfeed';
       case 'hall-of-fame':
         return '/legends';
       case 'trending':
@@ -87,11 +164,22 @@ export default function App() {
       case 'votes':
         return '/votes';
       case 'profile':
-        return '/profile';
+        if (window.location.pathname.startsWith('/settings')) {
+          return window.location.pathname;
+        }
+        return firebaseUser ? '/profile' : '/login';
       case 'looks':
         return '/looks';
       case 'tiktok-effects':
         return '/tiktok-effects';
+      case 'inspiration-wall':
+        return '/inspiration-wall';
+      case 'inspirationlooks-scrollfeed':
+        return '/inspirationlooks-scrollfeed';
+      case 'shade-edit':
+        return '/shade-edit';
+      case 'admin':
+        return '/admin';
       default:
         return '/home';
     }
@@ -101,8 +189,18 @@ export default function App() {
     return getTabFromPath(window.location.pathname);
   });
   const [activePreset, setActivePreset] = useState<PresetLook | null>(null);
+  const [selectedInspirationLookId, setSelectedInspirationLookId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('look') || null;
+  });
+  const [selectedMoodFilter, setSelectedMoodFilter] = useState<string | null>(null);
+  const [selectedWantedRequestId, setSelectedWantedRequestId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('look') || params.get('req') || null;
+  });
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [activeLabMenu, setActiveLabMenu] = useState<boolean>(false);
+  const [isReelsActive, setIsReelsActive] = useState<boolean>(false);
   
   // Triggers updates across lists when a new challenge look is entered
   const [refreshSubmissionsTrigger, setRefreshSubmissionsTrigger] = useState<number>(0);
@@ -113,6 +211,19 @@ export default function App() {
   
   // Firebase Auth user state
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [headerAvatar, setHeaderAvatar] = useState<string>(() => getEffectiveAvatar());
+
+  useEffect(() => {
+    setHeaderAvatar(getEffectiveAvatar(firebaseUser));
+  }, [firebaseUser]);
+
+  useEffect(() => {
+    const handleAvatarUpdate = () => {
+      setHeaderAvatar(getEffectiveAvatar(firebaseUser));
+    };
+    window.addEventListener('tryon_profile_updated', handleAvatarUpdate);
+    return () => window.removeEventListener('tryon_profile_updated', handleAvatarUpdate);
+  }, [firebaseUser]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -128,15 +239,22 @@ export default function App() {
           uid: user.uid,
           email: user.email || null,
           displayName: user.displayName || name || null,
-          photoURL: user.photoURL || null,
           providerIds: user.providerData.map((provider) => provider.providerId),
           lastSeenAt: Date.now()
-        }, { merge: true });
+        }, { merge: true }).then(() => {
+          void loadUserProfileFromFirestore(user.uid);
+        });
+        if (window.location.pathname === '/login' || window.location.pathname === '/signin') {
+          window.history.replaceState(null, '', '/profile');
+        }
       } else {
         // If logged out, revert to localStorage username if any
         const local = localStorage.getItem('kobella_username') || '';
         setUsername(local);
         setIsEditingUsername(!local);
+        if (window.location.pathname === '/profile') {
+          window.history.replaceState(null, '', '/login');
+        }
       }
     });
     return () => unsubscribe();
@@ -156,6 +274,13 @@ export default function App() {
     return installGleameNativeBridge(handleChallengeSubmitSuccess);
   }, []);
 
+  useEffect(() => {
+    // Ensure all tab and portal transitions start immediately at the top without smooth scroll lag
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [activeTab]);
+
   const handleSaveUsername = () => {
     if (username.trim()) {
       localStorage.setItem('kobella_username', username.trim());
@@ -163,14 +288,29 @@ export default function App() {
     }
   };
 
-  const handleNavigate = (tab: 'home' | LabNavTarget) => {
+  const handleNavigate = (tab: 'home' | LabNavTarget, extraParam?: string | { mood?: string; lookId?: string; reqId?: string }) => {
+    if (typeof extraParam === 'string') {
+      setSelectedInspirationLookId(extraParam);
+    } else if (extraParam && typeof extraParam === 'object') {
+      if (extraParam.mood) {
+        setSelectedMoodFilter(extraParam.mood);
+      }
+      if (extraParam.lookId) {
+        setSelectedInspirationLookId(extraParam.lookId);
+      }
+      if (extraParam.reqId) {
+        setSelectedWantedRequestId(extraParam.reqId);
+      }
+    }
     const newPath = getPathFromTab(tab);
     if (window.location.pathname !== newPath) {
       window.history.pushState(null, '', newPath);
     }
     setActiveTab(tab);
     setActiveLabMenu(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   };
 
   const handleSelectPresetForTryOn = (preset: PresetLook) => {
@@ -191,8 +331,46 @@ export default function App() {
     handleNavigate('gallery');
   };
 
+  const getPageTitle = (tab: string): string => {
+    switch (tab) {
+      case 'gallery':
+        return 'Community';
+      case 'gallery-looks':
+        return 'Community Looks';
+      case 'gallery-challenges':
+        return 'Community Challenges';
+      case 'gallery-inspiration':
+      case 'inspiration-wall':
+      case 'inspirationlooks-scrollfeed':
+        return 'Inspiration Wall';
+      case 'gallery-wanted':
+      case 'wanted-list':
+      case 'wanted-scrollfeed':
+        return 'Wanted looks';
+      case 'looks':
+      case 'built-looks':
+        return 'Try On';
+      case 'sandbox':
+        return 'Create';
+      case 'shade-edit':
+        return 'Shade Edit';
+      case 'votes':
+        return 'Challenges & Votes';
+      case 'trending':
+        return 'Trending';
+      case 'hall-of-fame':
+        return 'Legends';
+      case 'profile':
+        return 'Profile';
+      case 'tiktok-effects':
+        return 'TikTok Effects';
+      default:
+        return 'Community';
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_50%_-10%,rgba(255,63,135,0.16),transparent_30%),linear-gradient(135deg,#f7f7f5,#ecebea_48%,#f8eef4)] text-stone-900 font-sans antialiased selection:bg-[#ff3f87]/12 selection:text-stone-950 pb-32">
+    <div className="min-h-screen bg-[#F7F2EF] text-[#000000] font-sans antialiased selection:bg-[#F7C6D7] selection:text-[#E91E63] pb-32">
       
       {/* SIDEBAR NAVIGATION DRAWER */}
       {isMenuOpen && (
@@ -200,53 +378,53 @@ export default function App() {
           {/* Backdrop Overlay */}
           <div 
             onClick={() => setIsMenuOpen(false)}
-            className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm transition-opacity duration-300"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
           />
           
           {/* Drawer Panel */}
-          <div className="relative flex flex-col w-full max-w-xs bg-white h-full shadow-[5px_0_30px_rgba(0,0,0,0.15)] border-r border-stone-200/60 z-10 animate-in slide-in-from-left duration-300">
+          <div className="relative flex flex-col w-full max-w-xs bg-white h-full shadow-2xl border-r border-[#EDE7E3] z-10 animate-in slide-in-from-left duration-300">
             {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-stone-100">
+            <div className="flex items-center justify-between p-5 border-b border-[#EDE7E3]">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 bg-gradient-to-tr from-stone-950 via-stone-800 to-[#ff3f87] rounded-xl flex items-center justify-center shadow-md">
-                  <span className="font-black text-sm text-white">G</span>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#000000] to-[#E91E63] flex items-center justify-center shadow-sm">
+                  <span className="font-bold text-xs text-white">T</span>
                 </div>
                 <div>
-                  <span className="font-black tracking-wider text-stone-950 text-sm">GLEAME</span>
-                  <p className="text-[8px] text-[#ff3f87] font-bold uppercase tracking-widest">Design Lab</p>
+                  <span className="font-bold tracking-wider text-black text-xs uppercase">TryOn Beauty</span>
+                  <p className="text-[8px] text-[#E91E63] font-bold uppercase tracking-widest">Design Lab</p>
                 </div>
               </div>
               <button 
                 onClick={() => setIsMenuOpen(false)}
-                className="p-2 rounded-xl hover:bg-stone-100 text-stone-500 hover:text-stone-900 transition-colors cursor-pointer"
+                className="p-1.5 rounded-full hover:bg-[#F7F2EF] text-stone-500 hover:text-black transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Profile Section inside Sidebar */}
-            <div className="p-5 bg-gradient-to-r from-stone-50 to-stone-100/50 border-b border-stone-100">
+            <div className="p-4 bg-[#FFF6F7] border-b border-[#EDE7E3]">
               {firebaseUser ? (
                 <div 
                   onClick={() => { handleNavigate('profile'); setIsMenuOpen(false); }}
                   className="flex items-center gap-3 cursor-pointer group"
                 >
-                  <div className="w-10 h-10 bg-gradient-to-tr from-stone-950 to-[#ff3f87] rounded-xl flex items-center justify-center text-white font-black uppercase shadow-sm">
-                    {username.charAt(0) || 'U'}
+                  <div className="w-10 h-10 rounded-full border-2 border-[#E91E63] overflow-hidden flex items-center justify-center bg-stone-900 text-white font-bold text-xs uppercase">
+                    {username.charAt(0) || 'B'}
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <p className="text-xs font-black text-stone-900 truncate">@{username}</p>
-                    <p className="text-[10px] text-stone-400 font-semibold truncate">{firebaseUser.email}</p>
+                    <p className="text-xs font-bold text-black truncate">@{username}</p>
+                    <p className="text-[10px] text-stone-400 font-medium truncate">{firebaseUser.email}</p>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-2.5">
-                  <p className="text-[11px] text-stone-500 font-semibold leading-normal">
-                    Sign in to sync your created looks, vote on community challenges, and track active presets.
+                <div className="space-y-2">
+                  <p className="text-[11px] text-stone-600 font-medium leading-normal">
+                    Sign in to sync your looks, enter challenges, and connect with the beauty community.
                   </p>
                   <button 
                     onClick={() => { handleNavigate('profile'); setIsMenuOpen(false); }}
-                    className="w-full flex items-center justify-center gap-2 bg-stone-950 hover:bg-stone-800 text-white py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+                    className="w-full flex items-center justify-center gap-2 bg-black hover:bg-stone-800 text-white py-2 px-3 rounded-full text-xs font-bold transition-all cursor-pointer shadow-sm"
                   >
                     <LogIn className="w-3.5 h-3.5" />
                     <span>Sign In to Profile</span>
@@ -256,19 +434,27 @@ export default function App() {
             </div>
 
             {/* Navigation Links */}
-            <div className="flex-1 overflow-y-auto p-4 py-6 space-y-1.5">
-              <p className="px-3 text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2.5">Studio Navigation</p>
+            <div className="flex-1 overflow-y-auto p-3 space-y-1">
+              <p className="px-3 text-[9px] font-bold text-stone-400 uppercase tracking-widest mb-1.5 mt-2">Menu</p>
               
               {[
-                { id: 'home', label: 'Home Page', desc: 'Challenges & active streams', icon: Home },
-                { id: 'sandbox', label: 'Mix & Match', desc: 'Customize real-time look formulas', icon: Sliders },
-                { id: 'gallery', label: 'Community Gallery', desc: 'Browse submitted blueprints', icon: Grid },
-                { id: 'hall-of-fame', label: 'Hall of Fame', desc: 'Browse legendary contest winners', icon: Award },
-                { id: 'trending', label: 'Trending Looks', desc: 'Hottest filter combinations', icon: TrendingUp },
-                { id: 'built-looks', label: 'Try On Looks', desc: 'Our handcrafted styles', icon: Sparkles },
-                { id: 'tiktok-effects', label: 'TikTok Effects', desc: 'Our published viral filters', icon: Video },
-                { id: 'votes', label: 'Votes & Pipeline', desc: 'Upvote upcoming formula releases', icon: Trophy },
-                { id: 'profile', label: 'Studio Profile', desc: 'Your custom portfolio & stats', icon: User },
+                { 
+                  id: 'home', 
+                  label: activeTab === 'home' ? 'Welcome' : 'Home', 
+                  desc: 'Featured looks & live challenges', 
+                  icon: (props: any) => <FrenchDoorIcon isOpen={activeTab === 'home'} {...props} /> 
+                },
+                { id: 'gallery', label: 'Community', desc: 'Community looks & blueprints', icon: Users },
+                { id: 'looks', label: 'Try On', desc: 'Preset looks & try-on catalog', icon: Sparkles },
+                { id: 'shade-edit', label: 'Shade Edit', desc: 'Single lashes, lips, liner & eyeliner', icon: Flame },
+                { id: 'sandbox', label: 'Create', desc: 'Mix & Match makeup studio', icon: (props: any) => <AppleWandSparklesIcon size={16} strokeColor={activeTab === 'sandbox' ? '#FFFFFF' : '#44403C'} {...props} /> },
+                { id: 'profile', label: firebaseUser ? 'Profile' : 'Sign In', desc: firebaseUser ? 'Saved looks, creations & settings' : 'Sign in to access', icon: User },
+                { id: 'inspiration-wall', label: 'Inspiration Wall', desc: 'Mood board of looks & textures', icon: Layers },
+                { id: 'built-looks', label: 'Preset Looks Catalog', desc: 'Curated beauty recipes', icon: Columns2 },
+                { id: 'votes', label: 'Challenges & Votes', desc: 'August: Clean Summer Look', icon: Trophy },
+                { id: 'trending', label: 'Trending', desc: 'Viral community trends', icon: TrendingUp },
+                { id: 'hall-of-fame', label: 'Legends', desc: 'Contest winners archive', icon: Award },
+                { id: 'tiktok-effects', label: 'TikTok Effects', desc: 'Viral filter exports', icon: Video },
               ].map((item) => {
                 const IconComponent = item.icon;
                 const isActive = activeTab === item.id;
@@ -279,18 +465,18 @@ export default function App() {
                       handleNavigate(item.id as any);
                       setIsMenuOpen(false);
                     }}
-                    className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-left transition-all duration-200 cursor-pointer ${
+                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left transition-all duration-200 cursor-pointer ${
                       isActive 
-                        ? 'bg-[#ff3f87]/10 text-[#ff3f87] font-black border-l-4 border-[#ff3f87] pl-3' 
-                        : 'text-stone-700 hover:text-stone-950 hover:bg-stone-50 font-bold'
+                        ? 'bg-[#FFF6F7] text-[#E91E63] font-bold border border-[#F7C6D7]' 
+                        : 'text-stone-700 hover:text-black hover:bg-[#F7F2EF] font-medium'
                     }`}
                   >
-                    <div className={`p-2 rounded-xl ${isActive ? 'bg-[#ff3f87]/10' : 'bg-stone-100 text-stone-500'}`}>
-                      <IconComponent className="w-4 h-4" />
+                    <div className={`p-1.5 rounded-lg ${isActive ? 'bg-[#E91E63] text-white' : 'bg-[#EDE7E3] text-stone-700'}`}>
+                      <IconComponent className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <p className="text-xs font-black tracking-tight">{item.label}</p>
-                      <p className={`text-[9px] truncate ${isActive ? 'text-[#ff3f87]/70' : 'text-stone-400 font-normal'}`}>
+                      <p className="text-xs font-bold">{item.label}</p>
+                      <p className={`text-[9px] truncate ${isActive ? 'text-[#E91E63]/80' : 'text-stone-400'}`}>
                         {item.desc}
                       </p>
                     </div>
@@ -300,69 +486,127 @@ export default function App() {
             </div>
 
             {/* Footer */}
-            <div className="p-5 border-t border-stone-100 text-center bg-stone-50/50">
-              <span className="text-[9px] text-[#d7b56d] font-bold uppercase tracking-widest">© 2026 GLEAME LAB</span>
-              <p className="text-[8px] text-stone-400 font-medium mt-0.5">Version 1.0.4 (Stable Release)</p>
+            <div className="p-4 border-t border-[#EDE7E3] text-center bg-[#F7F2EF]">
+              <span className="text-[9px] text-stone-500 font-bold uppercase tracking-widest">TRYON BEAUTY</span>
+              <p className="text-[8px] text-stone-400 font-medium mt-0.5">Try makeup before you wear it.</p>
             </div>
           </div>
         </div>
       )}
 
-      <header className="sticky top-0 z-40 border-b border-white/60 bg-white/[0.74] shadow-[0_8px_20px_rgba(20,20,20,0.04)] backdrop-blur-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 py-2">
-            <div className="flex items-center gap-3">
-              <div 
-                onClick={() => { handleNavigate('home'); setActivePreset(null); }}
-                className="flex items-center gap-2.5 cursor-pointer group"
-              >
-                <div className="w-8 h-8 bg-gradient-to-tr from-stone-950 via-stone-800 to-[#ff3f87] rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform shadow-[0_4px_12px_rgba(20,20,20,0.12)]">
-                  <span className="font-black text-sm text-white">G</span>
+      {/* TOP HEADER */}
+      {!isReelsActive && activeTab !== 'inspirationlooks-scrollfeed' && (
+        activeTab === 'home' ? (
+          /* HOMEPAGE TOP BANNER: Full TRYON BEAUTY branding, user profile icon, and notifications */
+          <header className="sticky top-0 z-40 bg-[#F7F2EF]/90 backdrop-blur-md border-b border-[#EDE7E3]/80 transition-all">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-14">
+                
+                {/* Left: User Avatar (Navigates directly to Settings page) */}
+                <div 
+                  onClick={() => {
+                    window.history.pushState(null, '', '/settings');
+                    setActiveTab('profile');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }}
+                  className="flex items-center gap-2 cursor-pointer group"
+                  title="Settings"
+                >
+                  <div className="w-8 h-8 rounded-full border border-black/10 overflow-hidden bg-stone-900 text-white flex items-center justify-center font-bold text-xs shadow-xs group-hover:scale-105 transition-transform">
+                    <img 
+                      src={headerAvatar} 
+                      alt="User Avatar" 
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-base font-black tracking-normal text-stone-950 flex items-center gap-1.5">
-                    Gleame
+
+                {/* Center: Brand Title & Tagline */}
+                <div 
+                  onClick={() => { handleNavigate('home'); setActivePreset(null); }}
+                  className="cursor-pointer text-center flex flex-col items-center justify-center py-1"
+                >
+                  <h1 className="text-[13px] sm:text-sm font-bold tracking-[0.14em] uppercase text-black font-sans select-none leading-tight">
+                    TRYON BEAUTY
                   </h1>
                 </div>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2.5">
-                {firebaseUser ? (
-                  <div 
-                    onClick={() => handleNavigate('profile')}
-                    className="flex items-center gap-2 bg-white/[0.70] border border-white/80 hover:bg-white px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all shadow-xs"
-                  >
-                    <div className="w-4.5 h-4.5 bg-stone-950 rounded-lg flex items-center justify-center text-[9px] text-white font-black uppercase shadow-inner">
-                      {username.charAt(0) || 'U'}
-                    </div>
-                    <span className="text-stone-800 text-[11px]">@{username}</span>
-                  </div>
-                ) : (
+                {/* Right: Notifications Bell & Menu */}
+                <div className="flex items-center gap-1.5">
                   <button 
-                    onClick={() => handleNavigate('profile')}
-                    className="flex items-center gap-2 bg-stone-950 hover:bg-stone-800 text-white px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all shadow-xs"
+                    onClick={() => handleNavigate('votes')}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-black hover:bg-[#EDE7E3] transition-colors relative cursor-pointer"
+                    title="Notifications & Challenges"
                   >
-                    <LogIn className="w-3.5 h-3.5" />
-                    <span className="text-[11px]">Sign In</span>
+                    <Bell className="w-4 h-4 stroke-[1.8]" />
+                    <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E91E63] opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#E91E63] ring-1.5 ring-[#F7F2EF]" />
+                    </span>
                   </button>
-                )}
+                  <button 
+                    onClick={() => setIsMenuOpen(true)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-black hover:bg-[#EDE7E3] transition-colors cursor-pointer sm:hidden"
+                    title="Menu"
+                  >
+                    <Menu className="w-4 h-4 stroke-[1.8]" />
+                  </button>
+                </div>
+
               </div>
             </div>
+          </header>
+        ) : (
+          /* ALL OTHER PAGES (COMMUNITY, TRY ON, CREATE, ETC.): Clean page title in small writing, no full banner */
+          <header className="sticky top-0 z-40 bg-[#F7F2EF]/90 backdrop-blur-md border-b border-[#EDE7E3]/60 transition-all">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-10 sm:h-11">
+                
+                {/* Left: Title of the page in small writing */}
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xs sm:text-[13px] font-bold tracking-wider uppercase text-stone-800 select-none">
+                    {getPageTitle(activeTab)}
+                  </h2>
+                </div>
 
-          </div>
-        </div>
-      </header>
+                {/* Right: Menu & Quick access */}
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={() => handleNavigate('votes')}
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-stone-600 hover:text-black hover:bg-[#EDE7E3]/80 transition-colors relative cursor-pointer"
+                    title="Challenges & Votes"
+                  >
+                    <Bell className="w-3.5 h-3.5 stroke-[1.8]" />
+                    <span className="absolute top-1 right-1 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E91E63] opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#E91E63] ring-1.5 ring-[#F7F2EF]" />
+                    </span>
+                  </button>
+                  <button 
+                    onClick={() => setIsMenuOpen(true)}
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-stone-600 hover:text-black hover:bg-[#EDE7E3]/80 transition-colors cursor-pointer"
+                    title="Menu"
+                  >
+                    <Menu className="w-3.5 h-3.5 stroke-[1.8]" />
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </header>
+        )
+      )}
 
       {/* CORE VIEWPORT STAGE */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-24 sm:pt-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-24 sm:pt-6 overflow-x-hidden w-full">
         
         {/* Render Active View Tab */}
         {activeTab === 'home' && (
           <Homepage 
             onNavigate={handleNavigate} 
             onLoadPreset={handleSelectPresetForTryOn} 
+            username={username}
           />
         )}
 
@@ -378,6 +622,65 @@ export default function App() {
           <GalleryPage 
             onTryOnSubmission={handleSelectPresetForTryOn}
             refreshTrigger={refreshSubmissionsTrigger}
+            onToggleReelsFeed={setIsReelsActive}
+            onNavigate={handleNavigate}
+            initialSubTab="looks"
+            initialMoodFilter={selectedMoodFilter}
+            onClearMoodFilter={() => setSelectedMoodFilter(null)}
+          />
+        )}
+
+        {activeTab === 'gallery-looks' && (
+          <GalleryPage 
+            onTryOnSubmission={handleSelectPresetForTryOn}
+            refreshTrigger={refreshSubmissionsTrigger}
+            onToggleReelsFeed={setIsReelsActive}
+            onNavigate={handleNavigate}
+            initialSubTab="looks"
+            initialMoodFilter={selectedMoodFilter}
+            onClearMoodFilter={() => setSelectedMoodFilter(null)}
+          />
+        )}
+
+        {activeTab === 'gallery-challenges' && (
+          <GalleryPage 
+            onTryOnSubmission={handleSelectPresetForTryOn}
+            refreshTrigger={refreshSubmissionsTrigger}
+            onToggleReelsFeed={setIsReelsActive}
+            onNavigate={handleNavigate}
+            initialSubTab="challenges"
+          />
+        )}
+
+        {activeTab === 'gallery-inspiration' && (
+          <GalleryPage 
+            onTryOnSubmission={handleSelectPresetForTryOn}
+            refreshTrigger={refreshSubmissionsTrigger}
+            onToggleReelsFeed={setIsReelsActive}
+            onNavigate={handleNavigate}
+            initialSubTab="inspiration"
+          />
+        )}
+
+        {activeTab === 'gallery-wanted' && (
+          <GalleryPage 
+            onTryOnSubmission={handleSelectPresetForTryOn}
+            refreshTrigger={refreshSubmissionsTrigger}
+            onToggleReelsFeed={setIsReelsActive}
+            onNavigate={handleNavigate}
+            onSelectWantedFeed={(reqId) => {
+              setSelectedWantedRequestId(reqId);
+              handleNavigate('wanted-scrollfeed');
+            }}
+            initialSubTab="requests"
+          />
+        )}
+
+        {activeTab === 'wanted-list' && (
+          <WantedListPage 
+            onNavigate={handleNavigate}
+            onBack={() => handleNavigate('gallery-wanted')}
+            onLoadPreset={handleSelectPresetForTryOn}
           />
         )}
 
@@ -388,7 +691,13 @@ export default function App() {
         )}
 
         {activeTab === 'trending' && (
-          <TrendingPage />
+          <TrendingPage 
+            onNavigate={handleNavigate}
+            onSelectProposalForFeed={(reqId) => {
+              setSelectedWantedRequestId(reqId);
+              handleNavigate('wanted-scrollfeed');
+            }}
+          />
         )}
 
         {activeTab === 'built-looks' && (
@@ -414,68 +723,77 @@ export default function App() {
           <TiktokEffectsPage />
         )}
 
-        {activeTab === 'looks' && (
-          <div className="space-y-6 text-center py-6 sm:py-10 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
-            {/* Page header */}
-            <div className="space-y-2 mb-8">
-              <h2 className="text-2xl font-black uppercase tracking-wider text-stone-950">
-                THE LOOKS PORTAL
-              </h2>
-              <p className="text-xs text-stone-500 max-w-sm mx-auto font-medium tracking-wide">
-                Experience instant beauty transformations or design your signature cosmetic style in our interactive studio.
-              </p>
-            </div>
+        {activeTab === 'inspiration-wall' && (
+          <InspirationWall 
+            onNavigate={handleNavigate}
+            onLoadPreset={handleSelectPresetForTryOn}
+            onToggleReelsFeed={setIsReelsActive}
+          />
+        )}
 
-            {/* Glassmorphic cards container */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-4">
+        {activeTab === 'inspirationlooks-scrollfeed' && (
+          <InspirationLooksScrollFeedPage 
+            onNavigate={handleNavigate}
+            onLoadPreset={handleSelectPresetForTryOn}
+            initialLookId={selectedInspirationLookId}
+          />
+        )}
+
+        {activeTab === 'wanted-scrollfeed' && (
+          <WantedLooksScrollFeedPage 
+            onNavigate={handleNavigate}
+            onLoadPreset={handleSelectPresetForTryOn}
+            initialRequestId={selectedWantedRequestId}
+          />
+        )}
+
+        {activeTab === 'looks' && (
+          <div className="text-center py-4 sm:py-8 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="grid grid-cols-2 gap-3.5 sm:gap-6 px-2 sm:px-4">
               
               {/* Card 1: Try Looks */}
               <div 
                 onClick={() => handleNavigate('built-looks')}
-                className="group relative overflow-hidden rounded-[24px] border border-white/60 bg-white/70 hover:bg-white/90 p-6 shadow-[0_12px_32px_rgba(20,20,20,0.05)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(255,63,135,0.12)] cursor-pointer text-left flex flex-col justify-between h-64 border-stone-200/50"
+                className="group relative overflow-hidden rounded-3xl border border-[#EDE7E3] bg-white hover:border-[#B8887A] p-5 sm:p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md cursor-pointer text-left flex flex-col justify-between min-h-[210px] sm:h-64"
               >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#ff3f87]/5 rounded-full blur-2xl pointer-events-none group-hover:bg-[#ff3f87]/10 transition-colors" />
-                
-                <div className="space-y-4">
-                  <div className="w-12 h-12 rounded-2xl bg-[#ff3f87]/10 text-[#ff3f87] flex items-center justify-center shadow-xs">
-                    <Sparkles className="w-5 h-5" />
+                <div className="space-y-3">
+                  <div className="w-10 h-10 rounded-full bg-[#FFF6F7] text-[#E91E63] flex items-center justify-center">
+                    <Sparkles className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-stone-900 tracking-tight">Try On Looks</h3>
-                    <p className="text-[11px] text-stone-500 font-medium leading-relaxed mt-1">
-                      Instantly overlay trending community presets and challenge designs live using your device's camera.
+                    <h3 className="text-base font-bold text-black tracking-tight">Try On Looks</h3>
+                    <p className="text-xs text-stone-500 font-normal leading-relaxed mt-1">
+                      Instantly overlay curated beauty formulas live using your device's camera.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[#ff3f87] font-black text-xs uppercase tracking-widest pt-4 border-t border-stone-100 mt-4 group-hover:text-stone-950 transition-colors">
-                  <span>Enter Try-On</span>
-                  <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+                <div className="flex items-center justify-between text-black font-bold text-xs uppercase tracking-wider pt-3 border-t border-[#EDE7E3] mt-3 group-hover:text-[#E91E63] transition-colors">
+                  <span>Enter Catalog</span>
+                  <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
 
               {/* Card 2: Build Mode */}
               <div 
                 onClick={() => handleNavigate('sandbox')}
-                className="group relative overflow-hidden rounded-[24px] border border-white/60 bg-white/70 hover:bg-white/90 p-6 shadow-[0_12px_32px_rgba(20,20,20,0.05)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(20,20,20,0.12)] cursor-pointer text-left flex flex-col justify-between h-64 border-stone-200/50"
+                className="group relative overflow-hidden rounded-3xl border border-[#EDE7E3] bg-white hover:border-[#B8887A] p-5 sm:p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md cursor-pointer text-left flex flex-col justify-between min-h-[210px] sm:h-64"
               >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-stone-950/5 rounded-full blur-2xl pointer-events-none group-hover:bg-stone-950/10 transition-colors" />
-
-                <div className="space-y-4">
-                  <div className="w-12 h-12 rounded-2xl bg-stone-100 text-stone-900 flex items-center justify-center shadow-xs">
-                    <Palette className="w-5 h-5" />
+                <div className="space-y-3">
+                  <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center">
+                    <Palette className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-stone-900 tracking-tight">Mix & Match</h3>
-                    <p className="text-[11px] text-stone-500 font-medium leading-relaxed mt-1">
-                      Design your own custom makeup looks, fine-tune pigments, and publish formulas to the community.
+                    <h3 className="text-base font-bold text-black tracking-tight">Mix & Match</h3>
+                    <p className="text-xs text-stone-500 font-normal leading-relaxed mt-1">
+                      Design custom formulas, fine-tune pigments, and publish to the community.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-stone-900 font-black text-xs uppercase tracking-widest pt-4 border-t border-stone-100 mt-4 group-hover:text-[#ff3f87] transition-colors">
-                  <span>Open Creator Lab</span>
-                  <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+                <div className="flex items-center justify-between text-black font-bold text-xs uppercase tracking-wider pt-3 border-t border-[#EDE7E3] mt-3 group-hover:text-[#E91E63] transition-colors">
+                  <span>Creator Studio</span>
+                  <ArrowRight className="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
 
@@ -483,126 +801,213 @@ export default function App() {
           </div>
         )}
 
+        {activeTab === 'shade-edit' && (
+          <ShadeEditPage 
+            onNavigate={handleNavigate}
+            onLoadPreset={handleSelectPresetForTryOn}
+          />
+        )}
+
+        {activeTab === 'admin' && (
+          <AdminDashboardPage 
+            onNavigateHome={() => handleNavigate('home')}
+            onTryOnLook={(lookName) => {
+              handleNavigate('sandbox');
+            }}
+            currentUser={firebaseUser ? {
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              username
+            } : {
+              username: localStorage.getItem('kobella_username') || 'christinalucas',
+              email: 'christinalucas1216@gmail.com'
+            }}
+          />
+        )}
+
       </main>
 
-      {/* FOOTER */}
-      <footer className="bg-stone-950 text-white/55 border-t border-white/10 py-12 mt-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-3.5">
-          <div className="flex items-center justify-center gap-2 text-white">
-            <span className="font-black tracking-widest uppercase text-lg">G L E A M E</span>
-            <Flame className="w-4 h-4 text-[#ff3f87] animate-pulse" />
+      {/* FOOTER (Displayed ONLY on Homepage) */}
+      {activeTab === 'home' && !isReelsActive && (
+        <footer className="bg-black text-white/80 py-12 mt-20 border-t border-black">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
+            <div className="flex items-center justify-center gap-2 text-white">
+              <span className="font-bold tracking-[0.2em] uppercase text-sm">TRYON BEAUTY</span>
+            </div>
+            <p className="text-xs text-stone-400 leading-relaxed max-w-sm mx-auto">
+              The ultimate beauty playground where you can try, mix, and match makeup in real-time.
+            </p>
+            <div className="text-[10px] text-stone-500 font-bold uppercase tracking-widest">
+              TRY MAKEUP BEFORE YOU WEAR IT.
+            </div>
           </div>
-          <p className="text-xs text-white/55 leading-relaxed max-w-md mx-auto">
-            Explore community looks, vote on challenges, and use the native Looks portal for camera try-on and build mode.
-          </p>
-          <div className="text-[10px] text-[#d7b56d] font-bold uppercase tracking-widest">
-            © 2026 Gleame. All rights reserved.
-          </div>
-        </div>
-      </footer>
+        </footer>
+      )}
 
       {/* Click Away Dismissal Overlay for Submenus */}
       {activeLabMenu && (
         <div 
-          onClick={() => {
-            setActiveLabMenu(false);
-          }}
+          onClick={() => setActiveLabMenu(false)}
           className="fixed inset-0 z-40 bg-transparent"
         />
       )}
 
-      {/* FLOATING GLASSMORPHIC BOTTOM NAVIGATION BAR */}
-      <div id="floating-bottom-nav" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-[340px] xs:max-w-xs sm:max-w-sm px-4 sm:px-0">
-        <div className="relative">
-          
-          {/* Lab Liquid Options List (Remaining Pages Stacked Liquid style) */}
-          {activeLabMenu && (
-            <div className="absolute bottom-18 right-0 flex flex-col items-end gap-1.5 w-44 sm:w-48 animate-in fade-in slide-in-from-bottom-4 duration-250">
+      {/* FLOATING GLASSMORPHIC 4-ICON NAVIGATION DOCK (PURE ICONS, NO TEXT LABELS) */}
+      {!isReelsActive && activeTab !== 'inspirationlooks-scrollfeed' && activeTab !== 'wanted-list' && activeTab !== 'wanted-scrollfeed' && (
+        <div id="floating-bottom-nav" className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-[290px] sm:max-w-[310px] px-3 select-none">
+          <div className="relative">
+            
+            {/* Lab Liquid Options List */}
+            {activeLabMenu && (
+              <div className="absolute bottom-16 right-4 flex flex-col items-end gap-1.5 w-44 sm:w-48 animate-in fade-in slide-in-from-bottom-4 duration-250 z-50">
+                {[
+                  { id: 'gallery', label: 'Community', icon: Users },
+                  { id: 'inspiration-wall', label: 'Inspiration Wall', icon: Layers },
+                  { id: 'shade-edit', label: 'Shade Edit', icon: Flame },
+                  { id: 'votes', label: 'Challenges', icon: Trophy },
+                  { id: 'trending', label: 'Trending', icon: TrendingUp },
+                  { id: 'hall-of-fame', label: 'Legends', icon: Award },
+                  { id: 'tiktok-effects', label: 'TikTok Effects', icon: Video }
+                ].map((item) => {
+                  const IconComponent = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        handleNavigate(item.id as any);
+                        setActiveLabMenu(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-4 py-2 rounded-full text-[11px] font-bold shadow-xl border transition-all cursor-pointer transform hover:-translate-x-1.5 duration-200 ${
+                        isActive
+                          ? 'bg-[#E91E63] border-[#E91E63] text-white shadow-[#E91E63]/30'
+                          : 'bg-white/95 backdrop-blur-xl border-[#EDE7E3] text-stone-700 hover:text-black hover:bg-white shadow-md'
+                      }`}
+                    >
+                      <IconComponent className="w-3.5 h-3.5" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Glassmorphic Pill Dock Container (Translucent Refractive Glass Behind Icons) */}
+            <div className="relative w-full h-[54px] rounded-full backdrop-blur-2xl bg-white/25 border border-white/60 shadow-[0_16px_36px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.06),inset_0_1.5px_2px_rgba(255,255,255,0.85),inset_0_-1px_1px_rgba(0,0,0,0.05)] flex items-center justify-between p-1.5 ring-1 ring-black/5">
+              
               {[
-                { id: 'gallery', label: 'Gallery', icon: Grid },
-                { id: 'votes', label: 'Vote Board', icon: Trophy },
-                { id: 'trending', label: 'Trending', icon: TrendingUp },
-                { id: 'hall-of-fame', label: 'Legends', icon: Award },
-                { id: 'tiktok-effects', label: 'TikTok Effects', icon: Video },
-                { id: 'profile', label: 'Profile', icon: User }
-              ].map((item) => {
-                const IconComponent = item.icon;
-                const isActive = activeTab === item.id;
+                {
+                  id: 'home',
+                  label: 'Home',
+                  isActive: activeTab === 'home',
+                  renderIcon: (active: boolean) => (
+                    <FrenchDoorIcon 
+                      isOpen={active} 
+                      size={24}
+                      strokeColor={active ? "#1C1917" : "#57534E"} 
+                      className="w-6 h-6 transition-all duration-300"
+                    />
+                  )
+                },
+                {
+                  id: 'gallery',
+                  label: 'Community',
+                  isActive: ['gallery', 'gallery-looks', 'gallery-challenges', 'gallery-inspiration', 'gallery-wanted'].includes(activeTab),
+                  renderIcon: (active: boolean) => (
+                    /* Exact 4-Bubble Molecule Cluster - crisp optical vector */
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      width={24}
+                      height={24}
+                      fill="none" 
+                      stroke={active ? "#1C1917" : "#57534E"} 
+                      strokeWidth={active ? "2.2" : "1.8"} 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      className="w-6 h-6 transition-colors"
+                      shapeRendering="geometricPrecision"
+                    >
+                      <circle cx="8.6" cy="8.2" r="4.8" />
+                      <circle cx="16.5" cy="7.8" r="3.7" />
+                      <circle cx="14.8" cy="15.2" r="5.4" />
+                      <circle cx="7.2" cy="15.5" r="3.7" />
+                    </svg>
+                  )
+                },
+                {
+                  id: 'looks',
+                  label: 'Try On',
+                  isActive: ['looks', 'built-looks', 'shade-edit'].includes(activeTab),
+                  renderIcon: (active: boolean) => (
+                    /* Delicate 4-Point Concave Sparkle Star - crisp optical vector */
+                    <svg 
+                      viewBox="0 0 24 24" 
+                      width={24}
+                      height={24}
+                      fill="none" 
+                      stroke={active ? "#1C1917" : "#57534E"} 
+                      strokeWidth={active ? "2.2" : "1.8"} 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      className="w-6 h-6 transition-colors"
+                      shapeRendering="geometricPrecision"
+                    >
+                      <path d="M12 2.5C12 7.5 16.5 12 21.5 12C16.5 12 12 16.5 12 21.5C12 16.5 7.5 12 2.5 12C7.5 12 12 7.5 12 2.5Z" />
+                    </svg>
+                  )
+                },
+                {
+                  id: 'sandbox',
+                  label: 'Create',
+                  isActive: activeTab === 'sandbox',
+                  renderIcon: (active: boolean) => (
+                    /* Apple SF Symbol: wand.and.sparkles */
+                    <AppleWandSparklesIcon 
+                      size={24}
+                      strokeColor={active ? "#1C1917" : "#57534E"} 
+                      className="w-6 h-6 transition-colors"
+                    />
+                  )
+                }
+              ].map((tab) => {
                 return (
                   <button
-                    key={item.id}
+                    key={tab.id}
                     onClick={() => {
-                      handleNavigate(item.id as any);
+                      handleNavigate(tab.id as any);
                       setActiveLabMenu(false);
                     }}
-                    className={`w-full flex items-center gap-2 px-4 py-2 rounded-full text-[10px] sm:text-[11px] font-bold shadow-[0_4px_12px_rgba(0,0,0,0.3)] border transition-all cursor-pointer transform hover:-translate-x-1.5 duration-200 ${
-                      isActive
-                        ? 'bg-[#ff3f87]/20 border-[#ff3f87]/40 text-[#ff3f87]'
-                        : 'bg-stone-900/95 backdrop-blur-xl border-white/10 text-stone-300 hover:text-white hover:bg-stone-800'
-                    }`}
+                    className="relative flex-1 h-full rounded-full flex items-center justify-center cursor-pointer group select-none transition-transform active:scale-95"
+                    title={tab.label}
+                    aria-label={tab.label}
                   >
-                    <IconComponent className="w-3.5 h-3.5" />
-                    <span>{item.label}</span>
+                    {/* Dynamic Smooth Sliding Glassmorphic Lens Disc Indicator (Behind the icon) */}
+                    {tab.isActive && (
+                      <motion.div
+                        layoutId="glassNavActiveInlinePill"
+                        transition={{
+                          type: 'spring',
+                          stiffness: 450,
+                          damping: 32,
+                          mass: 0.65
+                        }}
+                        className="pointer-events-none absolute inset-0 rounded-full bg-white/40 border border-white/80 shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1.5px_2px_rgba(255,255,255,0.9),inset_0_-1px_1px_rgba(0,0,0,0.06)] z-0"
+                      />
+                    )}
+
+                    {/* Pure Crystal Clear Tab Icon (Top Layer - Never Blurred) */}
+                    <div className="relative z-10 flex items-center justify-center pointer-events-none">
+                      {tab.renderIcon(tab.isActive)}
+                    </div>
                   </button>
                 );
               })}
+
             </div>
-          )}
-
-          {/* Bottom Pill Tab Container */}
-          <div className="bg-stone-900/95 backdrop-blur-xl border border-white/10 p-1.5 rounded-full flex items-center justify-between gap-1 shadow-[0_15px_40px_rgba(0,0,0,0.4)]">
-            
-            {/* Tab 1: Explore */}
-            <button
-              onClick={() => {
-                handleNavigate('home');
-                setActiveLabMenu(false);
-              }}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-full transition-all cursor-pointer ${
-                activeTab === 'home'
-                  ? 'bg-[#ff3f87]/15 border border-[#ff3f87]/40 text-[#ff3f87] shadow-[0_0_15px_rgba(255,63,135,0.25)]'
-                  : 'text-stone-400 hover:text-stone-200'
-              }`}
-            >
-              <Compass className="w-4 h-4" />
-              <span className="text-[9px] font-bold uppercase tracking-wider">Explore</span>
-            </button>
-
-            {/* Tab 2: Looks */}
-            <button
-              onClick={() => {
-                handleNavigate('looks');
-                setActiveLabMenu(false);
-              }}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-full transition-all cursor-pointer ${
-                ['looks', 'sandbox', 'built-looks'].includes(activeTab)
-                  ? 'bg-[#ff3f87]/15 border border-[#ff3f87]/40 text-[#ff3f87] shadow-[0_0_15px_rgba(255,63,135,0.25)]'
-                  : 'text-stone-400 hover:text-stone-200'
-              }`}
-            >
-              <Columns2 className="w-4 h-4" />
-              <span className="text-[9px] font-bold uppercase tracking-wider">Looks</span>
-            </button>
-
-            {/* Tab 3: Lab */}
-            <button
-              onClick={() => {
-                setActiveLabMenu(!activeLabMenu);
-              }}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 rounded-full transition-all cursor-pointer ${
-                activeLabMenu || ['gallery', 'votes', 'trending', 'hall-of-fame', 'profile', 'tiktok-effects'].includes(activeTab)
-                  ? 'bg-[#ff3f87]/15 border border-[#ff3f87]/40 text-[#ff3f87] shadow-[0_0_15px_rgba(255,63,135,0.25)]'
-                  : 'text-stone-400 hover:text-stone-200'
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span className="text-[9px] font-bold uppercase tracking-wider">Lab</span>
-            </button>
 
           </div>
-
         </div>
-      </div>
+      )}
 
     </div>
   );

@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore, collection, getDocs, addDoc, updateDoc, doc, increment, arrayUnion, query, orderBy, limit, setDoc } from 'firebase/firestore';
+import { initializeFirestore, collection, getDocs, addDoc, updateDoc, doc, increment, arrayUnion, query, orderBy, limit, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBdKGptmjaFKURh0vMkyNyA-y-WhP9ozKo",
@@ -65,5 +65,5 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-export { collection, getDocs, addDoc, updateDoc, doc, increment, arrayUnion, query, orderBy, limit, setDoc };
+export { collection, getDocs, addDoc, updateDoc, doc, increment, arrayUnion, query, orderBy, limit, setDoc, onSnapshot, getDoc };
 
