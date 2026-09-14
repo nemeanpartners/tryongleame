@@ -63,12 +63,18 @@ class _LookLabPageState extends State<LookLabPage> {
       Uri.parse('$_webBaseUrl$path?embedded=ios');
   static final Uri _webHomeUri = _embeddedWebUri('/home');
   static final Uri _webLookLabUri = _embeddedWebUri('/gallery');
+  static const _tryOnStudioModelAsset =
+      'assets/tryonstudio_native/face_landmarker.task';
+  static const _tryOnStudioCatalogAsset = 'assets/tryonstudio_catalog.json';
+  static const _tryOnStudioRendererRoot = 'assets/tryonstudio_renderer';
 
   final DeepArControllerPlus _deepArController = DeepArControllerPlus();
   final WebViewController _homeWebController = WebViewController();
   final WebViewController _lookLabWebController = WebViewController();
   final Set<String> _favoritePresetNames = {};
   final Map<String, Uint8List> _sfSymbolPngs = {};
+  MethodChannel? _tryOnStudioNativeChannel;
+  String? _activeTryOnStudioAsset;
 
   LabTab _tab = LabTab.home;
   bool _arInitialized = false;
@@ -80,17 +86,27 @@ class _LookLabPageState extends State<LookLabPage> {
   bool _looksPortalOpen = false;
   bool _sheerSkin = false;
   bool _beforeAfter = false;
+  bool _tryOnStudioRendererActive = false;
+  bool _tryOnStudioReady = false;
   double _brightness = 0.10;
+  String? _tryOnStudioStatus;
   Future<void> _effectQueue = Future<void>.value();
   final Map<String, Timer> _slotDebounceTimers = {};
   final Map<String, String> _activeSlotPaths = {};
+  final ScrollController _shadeController = ScrollController();
+  static const double _swatchExtent = 56;
+  Timer? _shadeApplyTimer;
+  int _tryOnStudioViewSerial = 0;
+  int _groupIndex = 0;
   int _presetIndex = 0;
   int _eyeshadowIndex = 0;
   int _eyelinerIndex = 0;
   int _lashIndex = 0;
   int _lipIndex = 0;
 
-  final List<LookItem> _presets = const [
+  /// Full-face DeepAR looks. They stay available as their own category
+  /// alongside the TryOn Studio lip packages loaded from the catalog.
+  static const List<LookItem> _studioLooks = [
     LookItem('Natural', 'effects/look_natural/naturalnolashes.deepar'),
     LookItem('Glam', 'effects/look_glam/smokey_eye_look.deepar'),
     LookItem(
@@ -120,6 +136,40 @@ class _LookLabPageState extends State<LookLabPage> {
     LookItem('Feather Black', 'effects/featherblack/featherblack.deepar'),
     LookItem('Cat Brown', 'effects/catbrown/catbrown.deepar'),
   ];
+
+  static const LookCategory _studioLookCategory = LookCategory(
+    key: 'studio_looks',
+    label: 'Studio Looks',
+    section: 'Looks',
+    items: _studioLooks,
+  );
+
+  static const LookCategory _loadingCategory = LookCategory(
+    key: 'loading',
+    label: 'Loading shades',
+    section: 'Filters',
+    items: <LookItem>[],
+  );
+
+  /// The DeepAR looks stay bundled under effects/, they are just not offered
+  /// in the picker any more. Set this to true to bring the category back.
+  final bool _showStudioLooks = false;
+
+  /// Filled in once assets/tryonstudio_catalog.json has been read.
+  List<LookCategory> _categories = const <LookCategory>[];
+
+  LookCategory get _currentCategory =>
+      _categories.isEmpty
+          ? _loadingCategory
+          : _categories[_groupIndex.clamp(0, _categories.length - 1)];
+
+  List<LookItem> get _presets => _currentCategory.items;
+
+  LookItem get _currentLook {
+    final looks = _presets;
+    if (looks.isEmpty) return const LookItem('None', '');
+    return looks[_presetIndex.clamp(0, looks.length - 1)];
+  }
 
   final List<LookItem> _eyeshadows = const [
     LookItem('None', ''),
@@ -175,7 +225,7 @@ class _LookLabPageState extends State<LookLabPage> {
     _configureWebControllers();
     unawaited(_loadSfSymbols());
     unawaited(_loadSavedState());
-    _initializeDeepAr();
+    unawaited(_loadFilterCatalog());
   }
 
   Future<void> _loadSfSymbols() async {
@@ -263,6 +313,100 @@ class _LookLabPageState extends State<LookLabPage> {
       ..loadRequest(uri);
   }
 
+  String? _activeTryOnStudioPayload;
+
+  Future<void> _openTryOnStudioRenderer(LookItem item) async {
+    final cameraStatus = await Permission.camera.request();
+    if (!cameraStatus.isGranted) {
+      if (mounted) setState(() => _cameraDenied = true);
+      throw StateError('Camera permission denied');
+    }
+
+    await _releaseDeepArForTryOnStudio();
+
+    if (!mounted) return;
+    setState(() {
+      _activeTryOnStudioAsset = item.assetPath;
+      _tryOnStudioNativeChannel = null;
+      _tryOnStudioRendererActive = true;
+      _tryOnStudioReady = false;
+      _tryOnStudioStatus = 'Starting native TryOn Studio renderer...';
+      _arViewCreated = false;
+      _tryOnStudioViewSerial++;
+    });
+  }
+
+  Future<void> _releaseDeepArForTryOnStudio() async {
+    if (!_arInitialized && !_arViewCreated) return;
+    if (mounted) {
+      setState(() {
+        _arInitialized = false;
+        _arViewCreated = false;
+      });
+    }
+    await _deepArController.destroy();
+    _activeSlotPaths.removeWhere((slot, _) => slot != 'tryonstudio');
+    await Future<void>.delayed(const Duration(milliseconds: 650));
+  }
+
+  Future<void> _ensureDeepArForNativeLooks() async {
+    if (_arInitialized || _cameraDenied) return;
+    await _initializeDeepAr();
+  }
+
+  Future<void> _closeTryOnStudioRenderer() async {
+    try {
+      await _tryOnStudioNativeChannel?.invokeMethod<void>('stop');
+    } catch (e, st) {
+      log('TryOn Studio renderer stop failed: $e', stackTrace: st);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _tryOnStudioRendererActive = false;
+      _tryOnStudioReady = false;
+      _tryOnStudioStatus = null;
+      _activeTryOnStudioAsset = null;
+      _tryOnStudioNativeChannel = null;
+    });
+  }
+
+  Future<void> _setTryOnStudioBefore(bool enabled) async {
+    try {
+      await _tryOnStudioNativeChannel?.invokeMethod<void>(
+        'setBefore',
+        <String, Object?>{'enabled': enabled},
+      );
+    } catch (e, st) {
+      log('TryOn Studio before toggle failed: $e', stackTrace: st);
+    }
+  }
+
+  void _onTryOnStudioViewCreated(int viewId) {
+    final channel = MethodChannel('tryon_studio_web/view/$viewId');
+    channel.setMethodCallHandler((call) async {
+      if (!mounted) return null;
+      if (call.method == 'ready') {
+        setState(() {
+          _tryOnStudioReady = true;
+          _tryOnStudioStatus = null;
+        });
+        return null;
+      }
+      if (call.method == 'error') {
+        final message = call.arguments?.toString();
+        setState(() {
+          _tryOnStudioReady = false;
+          _tryOnStudioStatus = message ?? 'TryOn Studio renderer failed.';
+        });
+        _snack(_tryOnStudioStatus!);
+        return null;
+      }
+      return null;
+    });
+    setState(() => _tryOnStudioNativeChannel = channel);
+  }
+
   Future<void> _handleWebNavigation(String? target) async {
     if (target == 'try') {
       await _switchTab(LabTab.tryLooks);
@@ -275,6 +419,7 @@ class _LookLabPageState extends State<LookLabPage> {
     }
 
     if (target == 'home') {
+      await _closeTryOnStudioRenderer();
       if (!mounted) return;
       setState(() {
         _tab = LabTab.home;
@@ -284,6 +429,7 @@ class _LookLabPageState extends State<LookLabPage> {
     }
 
     if (target == 'lab') {
+      await _closeTryOnStudioRenderer();
       if (!mounted) return;
       setState(() {
         _tab = LabTab.lab;
@@ -336,6 +482,52 @@ class _LookLabPageState extends State<LookLabPage> {
     await _lookLabWebController.loadRequest(_embeddedWebUri(path));
   }
 
+  /// Reads assets/tryonstudio_catalog.json, which the packaging step writes
+  /// alongside the flattened .tryonfilter assets.
+  Future<void> _loadFilterCatalog() async {
+    try {
+      final raw = await rootBundle.loadString(_tryOnStudioCatalogAsset);
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      final items = (data['items'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      final groups = (data['groups'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+
+      final categories = <LookCategory>[];
+      for (final group in groups) {
+        final key = group['key'] as String?;
+        if (key == null) continue;
+        final looks = items
+            .where((item) => item['group'] == key)
+            .map(LookItem.fromCatalog)
+            .where((look) => look.assetPath.isNotEmpty)
+            .toList();
+        if (looks.isEmpty) continue;
+        categories.add(
+          LookCategory(
+            key: key,
+            label: group['label'] as String? ?? key,
+            section: group['section'] as String? ?? 'Filters',
+            items: looks,
+          ),
+        );
+      }
+      if (_showStudioLooks) categories.add(_studioLookCategory);
+
+      if (!mounted || categories.isEmpty) return;
+      setState(() {
+        _categories = categories;
+        _groupIndex = 0;
+        _presetIndex = 0;
+      });
+      log('Loaded ${categories.length} filter categories');
+    } catch (e, st) {
+      log('Filter catalog failed to load: $e', stackTrace: st);
+    }
+  }
+
   Future<void> _loadSavedState() async {
     final prefs = await SharedPreferences.getInstance();
     final favorites = prefs.getStringList('favorite_presets') ?? const [];
@@ -375,12 +567,27 @@ class _LookLabPageState extends State<LookLabPage> {
     for (final timer in _slotDebounceTimers.values) {
       timer.cancel();
     }
+    _shadeApplyTimer?.cancel();
+    _shadeController.dispose();
+    unawaited(_tryOnStudioNativeChannel?.invokeMethod<void>('stop'));
     unawaited(_deepArController.destroy());
     super.dispose();
   }
 
   Future<void> _applyPreset(int index) async {
-    setState(() => _presetIndex = index);
+    final looks = _presets;
+    if (looks.isEmpty) return;
+    final safeIndex = index.clamp(0, looks.length - 1);
+    setState(() => _presetIndex = safeIndex);
+    final item = looks[safeIndex];
+    if (item.isTryOnStudio) {
+      await _applyTryOnStudioPreset(item);
+      return;
+    }
+
+    await _closeTryOnStudioRenderer();
+    _activeSlotPaths.remove('tryonstudio');
+    await _ensureDeepArForNativeLooks();
     await _runEffect(() async {
       await _clearSlots(const [
         'eyeshadow',
@@ -389,15 +596,189 @@ class _LookLabPageState extends State<LookLabPage> {
         'lips',
         'sheerskin',
       ]);
-      final assetPath = _presets[index].assetPath;
+      final assetPath = item.assetPath;
       await _deepArController.switchEffect(assetPath);
       _activeSlotPaths['effect'] = assetPath;
-      log('Applied preset ${_presets[index].name}: $assetPath');
+      log('Applied preset ${item.name}: $assetPath');
+    });
+  }
+
+  /// Turns a .tryonfilter into the payload TryOn Studio's preview page reads.
+  ///
+  /// The page resolves texture paths against the server origin, so anything the
+  /// bundle actually serves (/assets/effect-house/...) is left alone, while
+  /// paths that only exist inside Studio (/user-assets/...) are swapped for the
+  /// texture embedded in the filter itself.
+  String _previewPayload(Map<String, dynamic> filter, LookItem item) {
+    final embedded = <String, String>{};
+    for (final asset in (filter['assets'] as List? ?? const [])) {
+      if (asset is! Map) continue;
+      final region = asset['region'];
+      final dataUrl = asset['dataUrl'];
+      if (region is String && dataUrl is String && dataUrl.startsWith('data:')) {
+        embedded[region] = dataUrl;
+      }
+    }
+
+    String? resolve(Object? path, String region) {
+      if (path is! String || path.isEmpty) return path as String?;
+      if (path.startsWith('data:') || path.startsWith('/assets/')) return path;
+      return embedded[region] ?? path;
+    }
+
+    final payload = Map<String, dynamic>.from(filter);
+    final look = Map<String, dynamic>.from(payload['look'] as Map? ?? {});
+    final textures = Map<String, dynamic>.from(look['textures'] as Map? ?? {});
+    for (final region in textures.keys.toList()) {
+      textures[region] = resolve(textures[region], region);
+    }
+    look['textures'] = textures;
+    payload['look'] = look;
+
+    final eyeControls = payload['eyeControls'];
+    if (eyeControls is Map) {
+      final eyes = Map<String, dynamic>.from(eyeControls);
+      eyes['baseTexture'] = resolve(eyes['baseTexture'], 'eyes');
+      eyes['shimmerTexture'] = resolve(eyes['shimmerTexture'], 'glitter');
+      payload['eyeControls'] = eyes;
+    }
+    final lipControls = payload['lipControls'];
+    if (lipControls is Map) {
+      final lips = Map<String, dynamic>.from(lipControls);
+      lips['glossTexture'] = resolve(lips['glossTexture'], 'lipgloss');
+      lips['shimmerTexture'] = resolve(lips['shimmerTexture'], 'lipshimmer');
+      payload['lipControls'] = lips;
+    }
+
+    // Studio's payload calls this `lighting`; the saved filter calls it
+    // `lightingControls`.
+    payload['lighting'] ??= payload['lightingControls'];
+
+    // Swatch packs share one filter; the shade only moves colour, strength and
+    // finish, so the render path stays exactly the one Studio saved.
+    final shade = item.shade;
+    if (shade != null) {
+      final region = shade['region'] as String? ?? 'lips';
+      final palette = Map<String, dynamic>.from(look['palette'] as Map? ?? {});
+      final intensity = Map<String, dynamic>.from(look['intensity'] as Map? ?? {});
+      final layers = Map<String, dynamic>.from(payload['layers'] as Map? ?? {});
+      palette[region] = shade['colour'];
+      intensity[region] = shade['opacity'];
+      layers[region] = true;
+      look['palette'] = palette;
+      look['intensity'] = intensity;
+      look['name'] = item.name;
+      payload['layers'] = layers;
+      payload['look'] = look;
+      if (region == 'lips') {
+        final lips = Map<String, dynamic>.from(payload['lipControls'] as Map? ?? {});
+        lips['finish'] = shade['finish'];
+        payload['lipControls'] = lips;
+      }
+    }
+    return jsonEncode(payload);
+  }
+
+  Future<void> _applyTryOnStudioPreset(
+    LookItem item, {
+    bool showMessage = true,
+  }) async {
+    try {
+      final filterData =
+          jsonDecode(await rootBundle.loadString(item.assetPath))
+              as Map<String, dynamic>;
+      final schema = filterData['schema'];
+      final format = filterData['format'];
+      if (schema != 'tryonstudio.filter.v1' || format != 'tryonfilter-json') {
+        throw const FormatException('Unsupported TryOnStudio filter format.');
+      }
+
+      final payload = _previewPayload(filterData, item);
+      _activeTryOnStudioPayload = payload;
+
+      final live = _tryOnStudioNativeChannel;
+      if (_tryOnStudioRendererActive && live != null) {
+        // Renderer already running: hand it the new look, no camera restart.
+        await live.invokeMethod<void>('setPayload', payload);
+        _activeSlotPaths['tryonstudio'] = item.assetPath;
+        if (mounted) {
+          setState(() => _activeTryOnStudioAsset = item.assetPath);
+        }
+        return;
+      }
+
+      await _closeTryOnStudioRenderer();
+      _activeSlotPaths.remove('tryonstudio');
+      await _runEffect(() async {
+        await _clearSlots(const [
+          'effect',
+          'eyeshadow',
+          'eyeliner',
+          'eyelashes',
+          'lips',
+          'sheerskin',
+        ]);
+        log('Loaded TryOnStudio preset ${item.name}: ${item.assetPath}');
+      });
+      await _openTryOnStudioRenderer(item);
+      _activeSlotPaths['tryonstudio'] = item.assetPath;
+
+      if (mounted && showMessage) {
+        _snack('Imported ${item.name}');
+      }
+    } catch (e, st) {
+      log('TryOnStudio preset failed to load: $e', stackTrace: st);
+      if (mounted) {
+        _snack(
+          e is StateError && e.message == 'Camera permission denied'
+              ? 'Camera permission denied.'
+              : 'This custom filter could not be read.',
+        );
+      }
+    }
+  }
+
+  void _selectCategory(int index) {
+    if (index < 0 || index >= _categories.length || index == _groupIndex) {
+      return;
+    }
+    setState(() {
+      _groupIndex = index;
+      _presetIndex = 0;
+    });
+    _syncShadeController(0);
+    _shadeApplyTimer?.cancel();
+    unawaited(_applyPreset(0));
+  }
+
+  void _selectShade(int index) {
+    if (index == _presetIndex) return;
+    _shadeApplyTimer?.cancel();
+    if (_shadeController.hasClients) {
+      final target = (index * _swatchExtent) - 120;
+      unawaited(
+        _shadeController.animateTo(
+          target.clamp(0.0, _shadeController.position.maxScrollExtent),
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+        ),
+      );
+    }
+    unawaited(_applyPreset(index));
+  }
+
+  void _syncShadeController(int index) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_shadeController.hasClients) return;
+      final target = (index * _swatchExtent) - 120;
+      _shadeController.jumpTo(
+        target.clamp(0.0, _shadeController.position.maxScrollExtent),
+      );
     });
   }
 
   Future<void> _toggleFavoritePreset() async {
-    final name = _presets[_presetIndex].name;
+    final name = _currentLook.name;
     setState(() {
       if (!_favoritePresetNames.remove(name)) {
         _favoritePresetNames.add(name);
@@ -448,7 +829,7 @@ class _LookLabPageState extends State<LookLabPage> {
         'lashes': _lashes[_lashIndex].name,
         'lips': _lips[_lipIndex].name,
         'sheerSkin': _sheerSkin,
-        'preset': _tab == LabTab.tryLooks ? _presets[_presetIndex].name : null,
+        'preset': _tab == LabTab.tryLooks ? _currentLook.name : null,
       },
     };
   }
@@ -473,7 +854,47 @@ class _LookLabPageState extends State<LookLabPage> {
     }
   }
 
+  Future<void> _saveTryOnStudioCaptureToPhotos() async {
+    final channel = _tryOnStudioNativeChannel;
+    if (channel == null || !_tryOnStudioReady) {
+      _snack('TryOn Studio camera is still starting.');
+      return;
+    }
+    if (_savingCapture) return;
+
+    setState(() => _savingCapture = true);
+    try {
+      final status = await Permission.photosAddOnly.request();
+      if (!status.isGranted && !status.isLimited) {
+        _snack('Photo permission denied.');
+        return;
+      }
+
+      final bytes = await channel.invokeMethod<Uint8List>('capture');
+      if (bytes == null || bytes.isEmpty) {
+        throw const FormatException('Renderer did not return a PNG capture.');
+      }
+      final saveResult = await ImageGallerySaver.saveImage(
+        bytes,
+        quality: 100,
+        name: 'tryon_beauty_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      log('TryOn Studio ImageGallerySaver result: $saveResult');
+      _snack('Saved to Photos');
+    } catch (e, st) {
+      log('TryOn Studio capture failed: $e', stackTrace: st);
+      _snack('Capture failed.');
+    } finally {
+      if (mounted) setState(() => _savingCapture = false);
+    }
+  }
+
   Future<void> _saveCaptureToPhotos() async {
+    if (_tryOnStudioRendererActive) {
+      await _saveTryOnStudioCaptureToPhotos();
+      return;
+    }
+
     if (!_arInitialized || !_arViewCreated) {
       _snack('Camera is still starting.');
       return;
@@ -504,6 +925,11 @@ class _LookLabPageState extends State<LookLabPage> {
   }
 
   Future<void> _applyBuildSlot(String slot, LookItem item) async {
+    if (_tryOnStudioRendererActive) {
+      await _closeTryOnStudioRenderer();
+      _activeSlotPaths.remove('tryonstudio');
+    }
+    await _ensureDeepArForNativeLooks();
     await _runEffect(() async {
       await _deepArController.switchEffectWithSlot(
         slot: slot,
@@ -582,6 +1008,9 @@ class _LookLabPageState extends State<LookLabPage> {
       _lipIndex = 0;
       _sheerSkin = false;
     });
+    await _closeTryOnStudioRenderer();
+    _activeSlotPaths.remove('tryonstudio');
+    await _ensureDeepArForNativeLooks();
     await _runEffect(() async {
       await _clearSlots(const [
         'effect',
@@ -598,6 +1027,11 @@ class _LookLabPageState extends State<LookLabPage> {
   Future<void> _clearSlots(Iterable<String> slots) async {
     for (final slot in slots) {
       if (!_activeSlotPaths.containsKey(slot)) continue;
+      if (slot == 'tryonstudio') {
+        await _closeTryOnStudioRenderer();
+        _activeSlotPaths.remove(slot);
+        continue;
+      }
       await _deepArController.switchEffectWithSlot(slot: slot, path: '');
       _activeSlotPaths.remove(slot);
     }
@@ -610,6 +1044,11 @@ class _LookLabPageState extends State<LookLabPage> {
   Future<void> _showBeforeLook() async {
     if (_beforeAfter) return;
     setState(() => _beforeAfter = true);
+    if (_tryOnStudioRendererActive) {
+      await _setTryOnStudioBefore(true);
+      log('Before preview enabled for TryOn Studio renderer');
+      return;
+    }
     await _runEffect(() async {
       await _clearSlots(_activeSlotPaths.keys.toList());
       log('Before preview enabled');
@@ -619,12 +1058,25 @@ class _LookLabPageState extends State<LookLabPage> {
   Future<void> _restoreCurrentLook() async {
     if (!_beforeAfter) return;
     setState(() => _beforeAfter = false);
+    if (_tryOnStudioRendererActive) {
+      await _setTryOnStudioBefore(false);
+      log('Before preview restored TryOn Studio renderer');
+      return;
+    }
     await _runEffect(() async {
       if (_tab == LabTab.tryLooks) {
-        final assetPath = _presets[_presetIndex].assetPath;
+        final preset = _currentLook;
+        if (preset.isTryOnStudio) {
+          await _applyTryOnStudioPreset(preset, showMessage: false);
+          log('Before preview restored TryOnStudio preset ${preset.name}');
+          return;
+        }
+
+        final assetPath = preset.assetPath;
+        if (assetPath.isEmpty) return;
         await _deepArController.switchEffect(assetPath);
         _activeSlotPaths['effect'] = assetPath;
-        log('Before preview restored preset ${_presets[_presetIndex].name}');
+        log('Before preview restored preset ${preset.name}');
         return;
       }
 
@@ -662,14 +1114,23 @@ class _LookLabPageState extends State<LookLabPage> {
       await _openCleanBuildTab();
       return;
     }
+    if (tab == LabTab.home || tab == LabTab.lab) {
+      await _closeTryOnStudioRenderer();
+      _activeSlotPaths.remove('tryonstudio');
+    }
     setState(() {
       _tab = tab;
       _looksPortalOpen = false;
     });
-    if (tab == LabTab.tryLooks) unawaited(_applyPreset(_presetIndex));
+    if (tab == LabTab.tryLooks) {
+      _syncShadeController(_presetIndex);
+      unawaited(_applyPreset(_presetIndex));
+    }
   }
 
   Future<void> _openExploreTab() async {
+    await _closeTryOnStudioRenderer();
+    _activeSlotPaths.remove('tryonstudio');
     if (!mounted) return;
     setState(() {
       _tab = LabTab.home;
@@ -678,6 +1139,8 @@ class _LookLabPageState extends State<LookLabPage> {
   }
 
   Future<void> _openChallengeLab() async {
+    await _closeTryOnStudioRenderer();
+    _activeSlotPaths.remove('tryonstudio');
     if (!mounted) return;
     setState(() {
       _tab = LabTab.lab;
@@ -1073,6 +1536,12 @@ class _LookLabPageState extends State<LookLabPage> {
   }
 
   Widget _deepArLayer() {
+    final selectedTryOnStudioPreset =
+        _tab == LabTab.tryLooks && _currentLook.isTryOnStudio;
+    if (_tryOnStudioRendererActive || selectedTryOnStudioPreset) {
+      return _tryOnStudioLayer();
+    }
+
     if (_cameraDenied) {
       return Container(
         color: Colors.black,
@@ -1130,6 +1599,79 @@ class _LookLabPageState extends State<LookLabPage> {
       child: const Text(
         'Starting AR camera...',
         style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white70),
+      ),
+    );
+  }
+
+  Widget _tryOnStudioLayer() {
+    final filterAsset = _activeTryOnStudioAsset;
+    return ColoredBox(
+      color: Colors.black,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (filterAsset != null &&
+              defaultTargetPlatform == TargetPlatform.iOS)
+            UiKitView(
+              // Keyed on the serial only: one renderer stays alive and new
+              // looks are pushed into it, so swiping never restarts the camera.
+              key: ValueKey('tryon-studio-$_tryOnStudioViewSerial'),
+              viewType: 'tryon_studio_web_view',
+              creationParams: <String, Object?>{
+                'rendererRoot': _tryOnStudioRendererRoot,
+                'payload': _activeTryOnStudioPayload ?? '{}',
+                'modelAsset': _tryOnStudioModelAsset,
+              },
+              creationParamsCodec: const StandardMessageCodec(),
+              onPlatformViewCreated: _onTryOnStudioViewCreated,
+            )
+          else
+            const Center(child: CircularProgressIndicator(color: _pink)),
+          if (!_tryOnStudioReady || _tryOnStudioStatus != null)
+            Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 28),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 13,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.62),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.14),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!_tryOnStudioReady) ...[
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          color: _pink,
+                          strokeWidth: 2,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                    ],
+                    Flexible(
+                      child: Text(
+                        _tryOnStudioStatus ??
+                            'Starting native TryOn Studio renderer...',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -1262,34 +1804,85 @@ class _LookLabPageState extends State<LookLabPage> {
   }
 
   Widget _tryLooksPanel() {
+    final looks = _presets;
+    final current = _currentLook;
+
     return _glass(
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _sectionHeader('Try Looks', 'Presets with lips, liner and lashes'),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 34,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _presets.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 7),
-              itemBuilder:
-                  (context, index) => _choiceChip(
-                    _presets[index].name,
-                    selected: index == _presetIndex,
-                    onTap: () => _applyPreset(index),
+          _categoryPicker(),
+          const SizedBox(height: 12),
+          if (looks.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 26),
+              child: Text(
+                'No shades in this category',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white54,
+                ),
+              ),
+            )
+          else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    current.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.2,
+                    ),
                   ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  current.tagLine,
+                  style: TextStyle(
+                    fontSize: 9,
+                    letterSpacing: 1.1,
+                    fontWeight: FontWeight.w900,
+                    color: _pink,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 9),
+            const SizedBox(height: 2),
+            Text(
+              '${_presetIndex + 1} of ${looks.length}',
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: Colors.white38,
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 52,
+              child: ListView.builder(
+                controller: _shadeController,
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.zero,
+                itemExtent: _swatchExtent,
+                itemCount: looks.length,
+                itemBuilder: (context, index) => _swatch(looks[index], index),
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(child: _beforeAfterControl()),
               const SizedBox(width: 9),
               _miniCircle(
-                _favoritePresetNames.contains(_presets[_presetIndex].name)
+                _favoritePresetNames.contains(current.name)
                     ? Icons.favorite
                     : Icons.favorite_border,
                 onTap: _toggleFavoritePreset,
@@ -1299,6 +1892,40 @@ class _LookLabPageState extends State<LookLabPage> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// One circular shade. Big enough to tap comfortably, small enough that a
+  /// 234-shade palette still scrolls quickly.
+  Widget _swatch(LookItem item, int index) {
+    final selected = index == _presetIndex;
+    final fill = item.lipColor ?? _pink;
+    final edge = item.hasLiner ? (item.linerColor ?? _berry) : fill;
+
+    return Center(
+      child: GestureDetector(
+        onTap: () => _selectShade(index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: selected ? 46 : 40,
+          height: selected ? 46 : 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [fill, edge],
+            ),
+            border: Border.all(
+              color: selected ? Colors.white : Colors.white24,
+              width: selected ? 2.4 : 1,
+            ),
+            boxShadow: selected
+                ? [BoxShadow(color: _pink.withValues(alpha: 0.55), blurRadius: 10)]
+                : null,
+          ),
+        ),
       ),
     );
   }
@@ -1524,33 +2151,134 @@ class _LookLabPageState extends State<LookLabPage> {
     );
   }
 
-  Widget _choiceChip(
-    String label, {
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+  /// Dropdown of every filter category: TOG first, then the brand packages,
+  /// then the built-in DeepAR looks.
+  Widget _categoryPicker() {
+    final category = _currentCategory;
+    return PopupMenuButton<int>(
+      initialValue: _groupIndex,
+      padding: EdgeInsets.zero,
+      position: PopupMenuPosition.over,
+      color: const Color(0xf217121a),
+      constraints: const BoxConstraints(minWidth: 250, maxWidth: 320),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      onSelected: _selectCategory,
+      itemBuilder: (context) => _categoryMenuEntries(),
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: selected ? _pink : _berry.withValues(alpha: 0.88),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color:
-                selected
-                    ? Colors.white.withValues(alpha: 0.18)
-                    : Colors.transparent,
-          ),
+          color: Colors.white.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
         ),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    category.section.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 9,
+                      letterSpacing: 1.3,
+                      fontWeight: FontWeight.w900,
+                      color: _pink,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    category.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              '${category.items.length}',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Colors.white38,
+              ),
+            ),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 22,
+              color: Colors.white70,
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  List<PopupMenuEntry<int>> _categoryMenuEntries() {
+    final entries = <PopupMenuEntry<int>>[];
+    String? section;
+    for (var index = 0; index < _categories.length; index++) {
+      final category = _categories[index];
+      if (category.section != section) {
+        section = category.section;
+        if (entries.isNotEmpty) entries.add(const PopupMenuDivider());
+        entries.add(
+          PopupMenuItem<int>(
+            enabled: false,
+            height: 28,
+            child: Text(
+              section.toUpperCase(),
+              style: TextStyle(
+                fontSize: 10,
+                letterSpacing: 1.4,
+                fontWeight: FontWeight.w900,
+                color: _pink,
+              ),
+            ),
+          ),
+        );
+      }
+
+      final selected = index == _groupIndex;
+      entries.add(
+        PopupMenuItem<int>(
+          value: index,
+          height: 40,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  category.label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: selected ? _pink : Colors.white,
+                  ),
+                ),
+              ),
+              Text(
+                '${category.items.length}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white38,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return entries;
   }
 
   Widget _roundIcon(
@@ -1680,8 +2408,100 @@ class _LookLabPageState extends State<LookLabPage> {
   }
 }
 
+enum LookItemKind { deepar, tryOnStudio }
+
 class LookItem {
   final String name;
   final String assetPath;
-  const LookItem(this.name, this.assetPath);
+  final LookItemKind kind;
+  final Color? lipColor;
+  final Color? linerColor;
+  final String finish;
+  final bool hasLiner;
+  final bool hasGloss;
+  final bool hasShimmer;
+
+  /// Set for swatch-pack entries: {region, colour, opacity, finish}.
+  final Map<String, dynamic>? shade;
+
+  const LookItem(this.name, this.assetPath)
+    : kind = LookItemKind.deepar,
+      lipColor = null,
+      linerColor = null,
+      finish = '',
+      hasLiner = false,
+      hasGloss = false,
+      hasShimmer = false,
+      shade = null;
+
+  const LookItem.tryOnStudio(
+    this.name,
+    this.assetPath, {
+    this.lipColor,
+    this.linerColor,
+    this.finish = 'satin',
+    this.hasLiner = false,
+    this.hasGloss = false,
+    this.hasShimmer = false,
+    this.shade,
+  }) : kind = LookItemKind.tryOnStudio;
+
+  factory LookItem.fromCatalog(Map<String, dynamic> json) {
+    return LookItem.tryOnStudio(
+      json['name'] as String? ?? 'Shade',
+      json['asset'] as String? ?? '',
+      lipColor: parseHexColor(json['lipColor']) ?? const Color(0xffc46e6e),
+      linerColor: parseHexColor(json['linerColor']) ?? const Color(0xff6d3540),
+      finish: json['finish'] as String? ?? 'satin',
+      hasLiner: json['hasLiner'] == true,
+      hasGloss: json['hasGloss'] == true,
+      hasShimmer: json['hasShimmer'] == true,
+      shade: (json['shade'] as Map?)?.cast<String, dynamic>(),
+    );
+  }
+
+  bool get isShade => shade != null;
+
+  bool get isTryOnStudio => kind == LookItemKind.tryOnStudio;
+
+  /// Short badge under the shade name in the swipe carousel.
+  String get tagLine {
+    if (!isTryOnStudio) return 'LOOK';
+    if (isShade) return finish.toUpperCase();
+    final tags = <String>[if (finish.isNotEmpty) finish.toUpperCase()];
+    if (hasShimmer) {
+      tags.add('SHIMMER');
+    } else if (hasGloss) {
+      tags.add('GLOSS');
+    } else if (hasLiner) {
+      tags.add('LINER');
+    }
+    return tags.join(' · ');
+  }
+}
+
+class LookCategory {
+  final String key;
+  final String label;
+  final String section;
+  final List<LookItem> items;
+
+  const LookCategory({
+    required this.key,
+    required this.label,
+    required this.section,
+    required this.items,
+  });
+}
+
+Color? parseHexColor(Object? value) {
+  if (value is! String) return null;
+  var hex = value.replaceAll('#', '').trim();
+  if (hex.length == 3) {
+    hex = hex.split('').map((char) => '$char$char').join();
+  }
+  if (hex.length != 6) return null;
+  final parsed = int.tryParse(hex, radix: 16);
+  if (parsed == null) return null;
+  return Color(0xff000000 | parsed);
 }

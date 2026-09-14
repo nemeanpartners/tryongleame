@@ -6,6 +6,9 @@ PODS:
   - Flutter (1.0.0)
   - image_gallery_saver (2.0.2):
     - Flutter
+  - MediaPipeTasksCommon (1.0.0)
+  - MediaPipeTasksVision (1.0.0):
+    - MediaPipeTasksCommon (= 1.0.0)
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -26,11 +29,17 @@ DEPENDENCIES:
   - deepar_flutter_plus (from `.symlinks/plugins/deepar_flutter_plus/ios`)
   - Flutter (from `Flutter`)
   - image_gallery_saver (from `.symlinks/plugins/image_gallery_saver/ios`)
+  - MediaPipeTasksVision (~> 1.0)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - sqflite_darwin (from `.symlinks/plugins/sqflite_darwin/darwin`)
   - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
+
+SPEC REPOS:
+  trunk:
+    - MediaPipeTasksCommon
+    - MediaPipeTasksVision
 
 EXTERNAL SOURCES:
   camera_avfoundation:
@@ -57,12 +66,14 @@ SPEC CHECKSUMS:
   deepar_flutter_plus: b2748b89209427f80bfb763acf8d4e49306d7552
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   image_gallery_saver: 14711d79da40581063e8842a11acf1969d781ed7
+  MediaPipeTasksCommon: 520bf860a59a3425471fdd516d82263d2ced5700
+  MediaPipeTasksVision: 2a0e74fd13f7a5df9eae3716b21e459806c65ce9
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   permission_handler_apple: 92d754bbaa7361d436db2d6c3c1c2a0fdcec462e
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
   webview_flutter_wkwebview: 1821ceac936eba6f7984d89a9f3bcb4dea99ebb2
 
-PODFILE CHECKSUM: 44ff9e78fa70c12ada728b9686190a69fee3ea6a
+PODFILE CHECKSUM: f0561a9f0f36fe30939e1c2f014bbd9f13b6fc68
 
 COCOAPODS: 1.16.2

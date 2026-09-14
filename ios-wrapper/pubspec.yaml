@@ -94,6 +94,19 @@ flutter:
     - effects/softchampagne/
     - effects/softgold/
     - effects/whitesnow/
+    - assets/tryonstudio_native/
+    - assets/tryonstudio_catalog.json
+    - assets/tryonstudio_filters/tog/
+    - assets/tryonstudio_filters/brands/
+    - assets/tryonstudio_filters/swatches/
+    - assets/tryonstudio_renderer/
+    - assets/tryonstudio_renderer/assets/
+    - assets/tryonstudio_renderer/assets/blur/
+    - assets/tryonstudio_renderer/assets/effect-house/
+    - assets/tryonstudio_renderer/assets/lens/
+    - assets/tryonstudio_renderer/assets/makeup/
+    - assets/tryonstudio_renderer/models/
+    - assets/tryonstudio_renderer/wasm/
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
