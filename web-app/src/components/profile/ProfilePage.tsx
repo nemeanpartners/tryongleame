@@ -17,7 +17,9 @@ import {
   onAuthStateChanged, 
   User as FirebaseUser,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult
 } from 'firebase/auth';
 import { 
   User, 
@@ -471,11 +473,23 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
   };
 
   // Google Sign In
+  /** True when running inside the iOS wrapper's WebView. */
+  const isInAppWebView = () =>
+    typeof window !== 'undefined' &&
+    Boolean((window as any).GleameBridge || (window as any).TryOnBeautyBridge);
+
   const handleGoogleSignIn = async () => {
     clearMessages();
     setLoadingAction(true);
     try {
       const provider = new GoogleAuthProvider();
+      if (isInAppWebView()) {
+        // WKWebView has no window.open, so the popup flow ends on Firebase's
+        // handler page with no opener to post back to - a blank screen. The
+        // redirect flow navigates the same frame and returns cleanly.
+        await signInWithRedirect(auth, provider);
+        return;
+      }
       await signInWithPopup(auth, provider);
       setSuccessMsg('Successfully signed in with Google!');
       setShowAuthModal(false);
@@ -485,6 +499,21 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
       setLoadingAction(false);
     }
   };
+
+  // Finish a redirect sign-in when the page comes back from Google.
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          setSuccessMsg('Successfully signed in with Google!');
+          setShowAuthModal(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Google redirect sign-in failed:', err);
+        setErrorMsg(err?.message || 'Google sign-in did not complete.');
+      });
+  }, []);
 
   // Password Reset
   const handlePasswordReset = async () => {
