@@ -319,14 +319,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
         favIds = JSON.parse(storedFavs);
       }
       
-      const filtered = allPresets.filter(p => favIds.includes(p.id));
-      if (filtered.length === 0 && allPresets.length > 0) {
-        const fallbackFavorites = allPresets.slice(0, 3);
-        setSavedLooks(fallbackFavorites);
-        localStorage.setItem('tryon_favourites', JSON.stringify(fallbackFavorites.map(f => f.id)));
-      } else {
-        setSavedLooks(filtered);
-      }
+      // Only what the user actually favourited. It used to seed three random
+      // presets when the list was empty, which showed looks nobody saved.
+      setSavedLooks(allPresets.filter(p => favIds.includes(p.id)));
     } catch (err) {
       console.error('Error loading saved looks in profile:', err);
     } finally {

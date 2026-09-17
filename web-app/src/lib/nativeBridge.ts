@@ -122,12 +122,19 @@ const writeUserMirror = async (section: SavedSection, id: string, data: Record<s
 
   // Deliberately not routed through handleFirestoreError: that rethrows, and a
   // failure on one copy used to abort the others.
-  await setDoc(doc(db, 'users', user.uid, section, id), {
-    ...data,
-    userId: user.uid,
-    userEmail: user.email || null,
-    syncedAt: Date.now()
-  });
+  try {
+    await setDoc(doc(db, 'users', user.uid, section, id), {
+      ...data,
+      userId: user.uid,
+      userEmail: user.email || null,
+      syncedAt: Date.now()
+    });
+  } catch (error: any) {
+    // Name the path, so a denial says which write was refused.
+    throw new Error(
+      `${error?.code || 'write failed'} at users/${user.uid}/${section}/${id}`
+    );
+  }
 };
 
 /**
@@ -204,6 +211,7 @@ const saveNativeBuiltLook = async (payload?: NativeLookPayload) => {
       console.error('Could not write community built_looks:', error);
     });
   }
+  console.info('[save] wrote', section, id);
 
   return section;
 };
