@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:ui' as ui;
 
-import 'package:deepar_flutter_plus/deepar_flutter_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,11 +23,15 @@ class GleameApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Gleame',
-      theme: ThemeData.dark(useMaterial3: true).copyWith(
-        scaffoldBackgroundColor: Colors.black,
+      theme: ThemeData.light(useMaterial3: true).copyWith(
+        textTheme: ThemeData.light().textTheme.apply(
+          bodyColor: const Color(0xff1c1917),
+          displayColor: const Color(0xff1c1917),
+        ),
+        scaffoldBackgroundColor: const Color(0xfff7f2ef),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xffff3f87),
-          brightness: Brightness.dark,
+          seedColor: const Color(0xffe91e63),
+          brightness: Brightness.light,
         ),
       ),
       home: const LookLabPage(),
@@ -47,17 +49,28 @@ class LookLabPage extends StatefulWidget {
 }
 
 class _LookLabPageState extends State<LookLabPage> {
-  static const _pink = Color(0xffff3f87);
-  static const _berry = Color(0xff8f2a50);
-  static const _panel = Color(0xd9111111);
+  // Matches the web app so the two halves read as one product:
+  // #E91E63 accent, #F7F2EF ground, #EDE7E3 borders, stone text.
+  static const _pink = Color(0xffe91e63);
+  static const _berry = Color(0xffb8887a);
+  static const _panel = Color(0xfaf7f2ef);
+  static const _ink = Color(0xff1c1917);
+  static const _muted = Color(0xff57534e);
+  static const _line = Color(0xffede7e3);
   static const _sfSymbolsChannel = MethodChannel('gleame/sf_symbols');
-  static const _iosDeepArKey =
-      'cea1c575f20ba165fe73308381a71a6a7ed091a4c5c932f6630662002a33acb5bd7df298ee83b14a2';
-  static const _liveWebBaseUrl = 'https://tryon-beauty.ai.studio';
-  static const _debugWebBaseUrl = 'http://127.0.0.1:3000';
+  // Cloud Run service we control, so the web side can be redeployed alongside
+  // the app. The AI Studio URL still serves the same app if it is preferred.
+  static const _liveWebBaseUrl =
+      'https://gleame-web-729820542986.asia-southeast1.run.app';
+  // ignore: unused_field
+  static const _aiStudioWebBaseUrl = 'https://tryon-beauty.ai.studio';
+  // Always the live site, in every build mode. Running from Xcode builds Debug,
+  // and pointing that at a local dev server meant the web side failed with
+  // NSURLErrorCannotConnectToHost (-1004) unless one happened to be running.
+  // Pass --dart-define=GLEAME_WEB_BASE_URL=http://127.0.0.1:3000 for local work.
   static const _webBaseUrl = String.fromEnvironment(
     'GLEAME_WEB_BASE_URL',
-    defaultValue: kReleaseMode ? _liveWebBaseUrl : _debugWebBaseUrl,
+    defaultValue: _liveWebBaseUrl,
   );
   static Uri _embeddedWebUri(String path) =>
       Uri.parse('$_webBaseUrl$path?embedded=ios');
@@ -68,7 +81,6 @@ class _LookLabPageState extends State<LookLabPage> {
   static const _tryOnStudioCatalogAsset = 'assets/tryonstudio_catalog.json';
   static const _tryOnStudioRendererRoot = 'assets/tryonstudio_renderer';
 
-  final DeepArControllerPlus _deepArController = DeepArControllerPlus();
   final WebViewController _homeWebController = WebViewController();
   final WebViewController _lookLabWebController = WebViewController();
   final Set<String> _favoritePresetNames = {};
@@ -77,32 +89,26 @@ class _LookLabPageState extends State<LookLabPage> {
   String? _activeTryOnStudioAsset;
 
   LabTab _tab = LabTab.home;
-  bool _arInitialized = false;
+  final bool _arInitialized = false;
   bool _arViewCreated = false;
   bool _savingCapture = false;
   bool _cameraDenied = false;
   bool _homeWebReady = false;
   bool _lookLabWebReady = false;
   bool _looksPortalOpen = false;
-  bool _sheerSkin = false;
   bool _beforeAfter = false;
   bool _tryOnStudioRendererActive = false;
   bool _tryOnStudioReady = false;
   double _brightness = 0.10;
   String? _tryOnStudioStatus;
-  Future<void> _effectQueue = Future<void>.value();
   final Map<String, Timer> _slotDebounceTimers = {};
   final Map<String, String> _activeSlotPaths = {};
   final ScrollController _shadeController = ScrollController();
-  static const double _swatchExtent = 56;
+  static const double _swatchExtent = 42;
   Timer? _shadeApplyTimer;
   int _tryOnStudioViewSerial = 0;
   int _groupIndex = 0;
   int _presetIndex = 0;
-  int _eyeshadowIndex = 0;
-  int _eyelinerIndex = 0;
-  int _lashIndex = 0;
-  int _lipIndex = 0;
 
   /// Full-face DeepAR looks. They stay available as their own category
   /// alongside the TryOn Studio lip packages loaded from the catalog.
@@ -166,58 +172,10 @@ class _LookLabPageState extends State<LookLabPage> {
   List<LookItem> get _presets => _currentCategory.items;
 
   LookItem get _currentLook {
-    final looks = _presets;
+    final looks = _visibleLooks;
     if (looks.isEmpty) return const LookItem('None', '');
     return looks[_presetIndex.clamp(0, looks.length - 1)];
   }
-
-  final List<LookItem> _eyeshadows = const [
-    LookItem('None', ''),
-    LookItem('Aqua', 'effects/eyeshadows/aquaeyes.deepar'),
-    LookItem('Baby Blue', 'effects/eyeshadows/babyblueeyes.deepar'),
-    LookItem('Beige', 'effects/eyeshadows/beigeeyes.deepar'),
-    LookItem('Brown Ombre', 'effects/eyeshadows/brownombreeyeshadow.deepar'),
-    LookItem('Dark Blue', 'effects/eyeshadows/darkblueeyeshadow.deepar'),
-    LookItem('Dark Purple', 'effects/eyeshadows/darkpurpleeyes.deepar'),
-    LookItem('Deep Brown', 'effects/eyeshadows/deepbrowneyes.deepar'),
-    LookItem('Gold Ombre', 'effects/eyeshadows/goldombreeyeshadow.deepar'),
-    LookItem('Hot Pink', 'effects/eyeshadows/hotpinkeyes.deepar'),
-    LookItem('Jet Black', 'effects/eyeshadows/jetblackfulleyeshadow.deepar'),
-    LookItem('Lavender', 'effects/eyeshadows/lavendereyes.deepar'),
-    LookItem('Light Pink', 'effects/eyeshadows/lightpinkeyes.deepar'),
-    LookItem('Olive', 'effects/eyeshadows/oliveeyeshadow.deepar'),
-    LookItem('Peach', 'effects/eyeshadows/peacheyeshadow.deepar'),
-    LookItem('Soft Blue', 'effects/eyeshadows/softblueeyes.deepar'),
-    LookItem('Sparkle Ombre', 'effects/eyeshadows/sparkleombre.deepar'),
-    LookItem('White Pink', 'effects/eyeshadows/whitepinkeyes.deepar'),
-  ];
-
-  final List<LookItem> _eyeliners = const [
-    LookItem('None', ''),
-    LookItem('Cat Liner', 'effects/eyeliner/catliner.deepar'),
-    LookItem('Small Wing', 'effects/eyeliner/smallthinwing.deepar'),
-    LookItem('Thick Liner', 'effects/eyeliner/thickeyelinernowing.deepar'),
-    LookItem('Thin Liner', 'effects/eyeliner/thinlinernowing.deepar'),
-    LookItem('Winged Heavy', 'effects/eyeliner/wingedheavy.deepar'),
-  ];
-
-  final List<LookItem> _lashes = const [
-    LookItem('None', ''),
-    LookItem('Feather', 'effects/eyelashes/featherlashes.deepar'),
-    LookItem('Fluffy Cat', 'effects/eyelashes/fluffycatlashes.deepar'),
-    LookItem('Glam', 'effects/eyelashes/glamlashes.deepar'),
-    LookItem('Lash Lift', 'effects/eyelashes/lashliftlashes.deepar'),
-    LookItem('Natural Short', 'effects/eyelashes/naturalshortlashes.deepar'),
-  ];
-
-  final List<LookItem> _lips = const [
-    LookItem('None', ''),
-    LookItem('Cherry Red', ''),
-    LookItem('Rose Nude', ''),
-    LookItem('Berry', ''),
-    LookItem('Peach Gloss', ''),
-    LookItem('Brown Nude', ''),
-  ];
 
   @override
   void initState() {
@@ -226,6 +184,7 @@ class _LookLabPageState extends State<LookLabPage> {
     unawaited(_loadSfSymbols());
     unawaited(_loadSavedState());
     unawaited(_loadFilterCatalog());
+    unawaited(_loadSavedLooks());
   }
 
   Future<void> _loadSfSymbols() async {
@@ -264,6 +223,13 @@ class _LookLabPageState extends State<LookLabPage> {
         setState(() => _homeWebReady = true);
       },
     );
+  }
+
+  bool _lookLabWebStarted = false;
+
+  void _ensureLookLabWeb() {
+    if (_lookLabWebStarted) return;
+    _lookLabWebStarted = true;
     _configureWebController(
       controller: _lookLabWebController,
       uri: _webLookLabUri,
@@ -289,6 +255,24 @@ class _LookLabPageState extends State<LookLabPage> {
             final decoded = jsonDecode(message.message) as Map<String, dynamic>;
             final type = decoded['type'] as String?;
             final target = decoded['target'] as String?;
+            if (type == 'gleame:presets') {
+              final list = (decoded['presets'] as List? ?? const [])
+                  .whereType<Map>()
+                  .map((e) => WebPreset.fromJson(e.cast<String, dynamic>()))
+                  .toList();
+              if (list.isNotEmpty && mounted) {
+                setState(() => _webPresets = list);
+                log('Loaded ${list.length} presets from the web app');
+              }
+              return;
+            }
+            if (type == 'gleame:open-filter') {
+              final id = decoded['filterId'] as String?;
+              if (id != null) {
+                unawaited(_openFilterById(id));
+                return;
+              }
+            }
             if (type == 'gleame:navigate-native') {
               unawaited(_handleWebNavigation(target));
               return;
@@ -302,7 +286,34 @@ class _LookLabPageState extends State<LookLabPage> {
       )
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageFinished: (_) => onLoaded(),
+          onPageFinished: (_) {
+            onLoaded();
+            // Presets are maintained in the web app; ask it for the current
+            // list rather than keeping a second copy here.
+            unawaited(
+              controller.runJavaScript(
+                'window.__gleameSendPresets && window.__gleameSendPresets();',
+              ),
+            );
+          },
+          // The web app is a SPA, so its route changes arrive here rather than
+          // as page loads. Try On and Create belong to the native filter pages,
+          // so catch those routes and switch tabs. This works against the live
+          // site as it is today - it does not wait on a web redeploy.
+          onUrlChange: (change) {
+            final path = Uri.tryParse(change.url ?? '')?.path ?? '';
+            // These are the paths the web app's own getPathFromTab pushes.
+            // Create pushes /editor, and the Try On catalog pushes /presets.
+            const tryOnPaths = ['/looks', '/built-looks', '/presets'];
+            const createPaths = ['/editor', '/sandbox'];
+            final isTryOn = tryOnPaths.contains(path);
+            final isCreate = createPaths.contains(path);
+            if (!isTryOn && !isCreate) return;
+            unawaited(_handleWebNavigation(isTryOn ? 'try' : 'build'));
+            // Pop the placeholder route so returning from the native page
+            // lands back on Home or Community, never on these web pages.
+            unawaited(controller.goBack());
+          },
           onWebResourceError: (error) {
             log(
               'Gleame web page error ${error.errorCode}: ${error.description}',
@@ -315,14 +326,28 @@ class _LookLabPageState extends State<LookLabPage> {
 
   String? _activeTryOnStudioPayload;
 
+  // Mix & Match: one selection per makeup region, plus the preview source.
+  final Map<String, LookItem> _mixSlots = {};
+  String? _mixModelUrl;
+  int _mixCategory = 0;
+  bool _singleLookMode = false;
+  bool _shadesOpen = false;
+  String? _restoreGroupKey;
+  String? _restoreShadeId;
+  String _shadeQuery = '';
+  List<Map<String, dynamic>> _savedLooks = const [];
+  bool _favouritesOnly = false;
+  String? _family;
+  bool _searchOpen = false;
+  final TextEditingController _searchController = TextEditingController();
+  List<WebPreset> _webPresets = const [];
+
   Future<void> _openTryOnStudioRenderer(LookItem item) async {
     final cameraStatus = await Permission.camera.request();
     if (!cameraStatus.isGranted) {
       if (mounted) setState(() => _cameraDenied = true);
       throw StateError('Camera permission denied');
     }
-
-    await _releaseDeepArForTryOnStudio();
 
     if (!mounted) return;
     setState(() {
@@ -334,24 +359,6 @@ class _LookLabPageState extends State<LookLabPage> {
       _arViewCreated = false;
       _tryOnStudioViewSerial++;
     });
-  }
-
-  Future<void> _releaseDeepArForTryOnStudio() async {
-    if (!_arInitialized && !_arViewCreated) return;
-    if (mounted) {
-      setState(() {
-        _arInitialized = false;
-        _arViewCreated = false;
-      });
-    }
-    await _deepArController.destroy();
-    _activeSlotPaths.removeWhere((slot, _) => slot != 'tryonstudio');
-    await Future<void>.delayed(const Duration(milliseconds: 650));
-  }
-
-  Future<void> _ensureDeepArForNativeLooks() async {
-    if (_arInitialized || _cameraDenied) return;
-    await _initializeDeepAr();
   }
 
   Future<void> _closeTryOnStudioRenderer() async {
@@ -479,6 +486,7 @@ class _LookLabPageState extends State<LookLabPage> {
     }
 
     if (mounted) setState(() => _lookLabWebReady = false);
+    _ensureLookLabWeb();
     await _lookLabWebController.loadRequest(_embeddedWebUri(path));
   }
 
@@ -517,10 +525,22 @@ class _LookLabPageState extends State<LookLabPage> {
       if (_showStudioLooks) categories.add(_studioLookCategory);
 
       if (!mounted || categories.isEmpty) return;
+      var group = 0;
+      var shade = 0;
+      if (_restoreGroupKey != null) {
+        final g = categories.indexWhere((c) => c.key == _restoreGroupKey);
+        if (g >= 0) {
+          group = g;
+          final i = categories[g].items.indexWhere(
+            (item) => item.id == _restoreShadeId,
+          );
+          if (i >= 0) shade = i;
+        }
+      }
       setState(() {
         _categories = categories;
-        _groupIndex = 0;
-        _presetIndex = 0;
+        _groupIndex = group;
+        _presetIndex = shade;
       });
       log('Loaded ${categories.length} filter categories');
     } catch (e, st) {
@@ -528,38 +548,28 @@ class _LookLabPageState extends State<LookLabPage> {
     }
   }
 
+  /// Keeps the last category and shade so the app reopens where it was left.
+  Future<void> _rememberSelection(LookItem item) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_group', _currentCategory.key);
+      await prefs.setString('last_shade', item.id);
+    } catch (_) {
+      // Preferences are a convenience; never block a shade change on them.
+    }
+  }
+
   Future<void> _loadSavedState() async {
     final prefs = await SharedPreferences.getInstance();
     final favorites = prefs.getStringList('favorite_presets') ?? const [];
+    final lastGroup = prefs.getString('last_group');
+    final lastShade = prefs.getString('last_shade');
     if (!mounted) return;
-    setState(() => _favoritePresetNames.addAll(favorites));
-  }
-
-  Future<void> _initializeDeepAr() async {
-    try {
-      final cameraStatus = await Permission.camera.request();
-      if (!cameraStatus.isGranted) {
-        if (!mounted) return;
-        setState(() => _cameraDenied = true);
-        return;
-      }
-
-      final result = await _deepArController.initialize(
-        androidLicenseKey: null,
-        iosLicenseKey: _iosDeepArKey,
-        resolution: Resolution.high,
-      );
-      log('DeepAR initialize: ${result.success} ${result.message}');
-      if (!mounted) return;
-      setState(() => _arInitialized = result.success);
-    } catch (e, st) {
-      log('DeepAR initialize failed: $e', stackTrace: st);
-      if (!mounted) return;
-      setState(() {
-        _arInitialized = false;
-        _cameraDenied = false;
-      });
-    }
+    setState(() {
+      _favoritePresetNames.addAll(favorites);
+      _restoreGroupKey = lastGroup;
+      _restoreShadeId = lastShade;
+    });
   }
 
   @override
@@ -569,38 +579,19 @@ class _LookLabPageState extends State<LookLabPage> {
     }
     _shadeApplyTimer?.cancel();
     _shadeController.dispose();
+    _searchController.dispose();
     unawaited(_tryOnStudioNativeChannel?.invokeMethod<void>('stop'));
-    unawaited(_deepArController.destroy());
     super.dispose();
   }
 
   Future<void> _applyPreset(int index) async {
-    final looks = _presets;
+    final looks = _visibleLooks;
     if (looks.isEmpty) return;
     final safeIndex = index.clamp(0, looks.length - 1);
     setState(() => _presetIndex = safeIndex);
     final item = looks[safeIndex];
-    if (item.isTryOnStudio) {
-      await _applyTryOnStudioPreset(item);
-      return;
-    }
-
-    await _closeTryOnStudioRenderer();
-    _activeSlotPaths.remove('tryonstudio');
-    await _ensureDeepArForNativeLooks();
-    await _runEffect(() async {
-      await _clearSlots(const [
-        'eyeshadow',
-        'eyeliner',
-        'eyelashes',
-        'lips',
-        'sheerskin',
-      ]);
-      final assetPath = item.assetPath;
-      await _deepArController.switchEffect(assetPath);
-      _activeSlotPaths['effect'] = assetPath;
-      log('Applied preset ${item.name}: $assetPath');
-    });
+    unawaited(_rememberSelection(item));
+    await _applyTryOnStudioPreset(item);
   }
 
   /// Turns a .tryonfilter into the payload TryOn Studio's preview page reads.
@@ -679,6 +670,124 @@ class _LookLabPageState extends State<LookLabPage> {
     return jsonEncode(payload);
   }
 
+  /// Mix & Match composes one Studio payload from every selected region.
+  /// Each pack owns its own texture and controls, so the merge takes each
+  /// region's half from the filter that defines it.
+  Future<void> _applyMixAndMatch() async {
+    if (_mixSlots.isEmpty) {
+      await _closeTryOnStudioRenderer();
+      return;
+    }
+
+    try {
+      Map<String, dynamic>? merged;
+      LookItem? first;
+
+      for (final entry in _mixSlots.entries) {
+        final region = entry.key;
+        final item = entry.value;
+        first ??= item;
+        final raw = jsonDecode(await rootBundle.loadString(item.assetPath))
+            as Map<String, dynamic>;
+        final part =
+            jsonDecode(_previewPayload(raw, item)) as Map<String, dynamic>;
+        if (merged == null) {
+          merged = part;
+          continue;
+        }
+
+        final look = Map<String, dynamic>.from(merged['look'] as Map? ?? {});
+        final partLook = part['look'] as Map? ?? {};
+        for (final key in ['palette', 'intensity', 'textures']) {
+          final target = Map<String, dynamic>.from(look[key] as Map? ?? {});
+          final source = partLook[key] as Map? ?? {};
+          if (source[region] != null) target[region] = source[region];
+          look[key] = target;
+        }
+        merged['look'] = look;
+
+        final layers = Map<String, dynamic>.from(merged['layers'] as Map? ?? {});
+        layers[region] = true;
+        merged['layers'] = layers;
+
+        final assets = (merged['assets'] as List? ?? const [])
+            .whereType<Map>()
+            .map((a) => Map<String, dynamic>.from(a))
+            .where((a) => a['region'] != region)
+            .toList();
+        for (final asset in (part['assets'] as List? ?? const [])) {
+          if (asset is Map && asset['region'] == region) {
+            assets.add(Map<String, dynamic>.from(asset));
+          }
+        }
+        merged['assets'] = assets;
+
+        for (final key in ['cheekControls', 'eyeControls', 'lipControls']) {
+          if (part[key] != null && _controlsRegion(key) == region) {
+            merged[key] = part[key];
+          }
+        }
+      }
+
+      if (merged == null || first == null) return;
+      await _pushStudioPayload(jsonEncode(merged), first);
+    } catch (e, st) {
+      log('Mix & Match compose failed: $e', stackTrace: st);
+      if (mounted) _snack('Could not combine those shades.');
+    }
+  }
+
+  String _controlsRegion(String key) => switch (key) {
+    'cheekControls' => 'cheeks',
+    'eyeControls' => 'eyes',
+    _ => 'lips',
+  };
+
+  Future<void> _pushStudioPayload(String payload, LookItem anchor) async {
+    _activeTryOnStudioPayload = payload;
+    final live = _tryOnStudioNativeChannel;
+    if (_tryOnStudioRendererActive && live != null) {
+      await live.invokeMethod<void>('setPayload', payload);
+      return;
+    }
+    await _openTryOnStudioRenderer(anchor);
+  }
+
+  /// A saved look from the web app, rendered here with TryOn Studio filters so
+  /// presets live in one place: the web app's built_looks.
+  Future<void> _applyWebPreset(WebPreset preset) async {
+    final lip = _nearestShade('lip_swatches', preset.lipColor);
+    final blush = _nearestShade('blush_swatches', preset.blushColor);
+    setState(() {
+      _mixSlots.clear();
+      if (lip != null) _mixSlots['lips'] = lip;
+      if (blush != null) _mixSlots['cheeks'] = blush;
+    });
+    await _applyMixAndMatch();
+  }
+
+  /// Maps a web preset colour onto the closest shade we actually ship.
+  LookItem? _nearestShade(String group, String? hex) {
+    final target = parseHexColor(hex);
+    final items = _shadesFor(group);
+    if (target == null || items.isEmpty) return null;
+    LookItem? best;
+    var bestScore = double.infinity;
+    for (final item in items) {
+      final c = item.lipColor;
+      if (c == null) continue;
+      final score = ((c.r - target.r) * (c.r - target.r) +
+              (c.g - target.g) * (c.g - target.g) +
+              (c.b - target.b) * (c.b - target.b))
+          .toDouble();
+      if (score < bestScore) {
+        bestScore = score;
+        best = item;
+      }
+    }
+    return best;
+  }
+
   Future<void> _applyTryOnStudioPreset(
     LookItem item, {
     bool showMessage = true,
@@ -708,18 +817,7 @@ class _LookLabPageState extends State<LookLabPage> {
       }
 
       await _closeTryOnStudioRenderer();
-      _activeSlotPaths.remove('tryonstudio');
-      await _runEffect(() async {
-        await _clearSlots(const [
-          'effect',
-          'eyeshadow',
-          'eyeliner',
-          'eyelashes',
-          'lips',
-          'sheerskin',
-        ]);
-        log('Loaded TryOnStudio preset ${item.name}: ${item.assetPath}');
-      });
+      log('Loaded TryOnStudio preset ${item.name}: ${item.assetPath}');
       await _openTryOnStudioRenderer(item);
       _activeSlotPaths['tryonstudio'] = item.assetPath;
 
@@ -745,6 +843,9 @@ class _LookLabPageState extends State<LookLabPage> {
     setState(() {
       _groupIndex = index;
       _presetIndex = 0;
+      _family = null;
+      _shadeQuery = '';
+      _searchOpen = false;
     });
     _syncShadeController(0);
     _shadeApplyTimer?.cancel();
@@ -795,62 +896,316 @@ class _LookLabPageState extends State<LookLabPage> {
     );
   }
 
+  /// Saved looks are stored as the shade ids behind them, so reopening one
+  /// restores the exact filters rather than an approximation of its colours.
+  Future<void> _loadSavedLooks() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getStringList('saved_mix_looks') ?? const [];
+      final looks = raw
+          .map((e) => jsonDecode(e) as Map<String, dynamic>)
+          .toList();
+      if (!mounted || looks.isEmpty) return;
+      setState(() => _savedLooks = looks);
+    } catch (e, st) {
+      log('Saved looks failed to load: $e', stackTrace: st);
+    }
+  }
+
+  Future<void> _applySavedLook(Map<String, dynamic> look) async {
+    final slots = (look['slots'] as Map?)?.cast<String, dynamic>() ?? {};
+    setState(() {
+      _mixSlots.clear();
+      slots.forEach((region, id) {
+        for (final category in _categories) {
+          final match = category.items.where((i) => i.id == id);
+          if (match.isNotEmpty) {
+            _mixSlots[region] = match.first;
+            return;
+          }
+        }
+      });
+    });
+    await _applyMixAndMatch();
+  }
+
+  /// Name it, describe it, and choose whether it goes to the community or
+  /// stays private. Both land in the user's account; only shared looks are
+  /// visible to anyone else.
   Future<void> _saveBuildLook() async {
+    if (_mixSlots.isEmpty) {
+      _snack('Pick a shade first');
+      return;
+    }
+    final nameController = TextEditingController(text: _buildLookName());
+    final descController = TextEditingController();
+    var share = false;
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheet) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+            decoration: const BoxDecoration(
+              color: Color(0xfff7f2ef),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Save this look',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 12),
+                _sheetField(nameController, 'Look name', 1),
+                const SizedBox(height: 9),
+                _sheetField(descController, 'Description (optional)', 2),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _shareOption(
+                        'Private',
+                        'Only in your account',
+                        Icons.lock_outline,
+                        !share,
+                        () => setSheet(() => share = false),
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: _shareOption(
+                        'Share',
+                        'Post to the community',
+                        Icons.public,
+                        share,
+                        () => setSheet(() => share = true),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                GestureDetector(
+                  onTap: () => Navigator.of(sheetContext).pop(true),
+                  child: Container(
+                    height: 46,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _pink,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'Save look',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed != true) return;
+    await _persistLook(
+      name: nameController.text.trim().isEmpty
+          ? _buildLookName()
+          : nameController.text.trim(),
+      description: descController.text.trim(),
+      share: share,
+    );
+  }
+
+  Widget _sheetField(TextEditingController c, String hint, int lines) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: _line),
+      ),
+      child: TextField(
+        controller: c,
+        maxLines: lines,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        cursorColor: _pink,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          hintText: hint,
+          hintStyle: const TextStyle(fontSize: 13, color: _muted),
+        ),
+      ),
+    );
+  }
+
+  Widget _shareOption(
+    String title,
+    String subtitle,
+    IconData icon,
+    bool on,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+        decoration: BoxDecoration(
+          color: on ? _pink.withValues(alpha: 0.10) : Colors.white,
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: on ? _pink : _line, width: on ? 1.6 : 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 16, color: on ? _pink : _muted),
+            const SizedBox(height: 5),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 9, color: _muted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _persistLook({
+    required String name,
+    required String description,
+    required bool share,
+  }) async {
+    if (_mixSlots.isEmpty) {
+      _snack('Pick a shade first');
+      return;
+    }
+    final entry = {
+      'name': name,
+      'description': description,
+      'shared': share,
+      'slots': {
+        for (final e in _mixSlots.entries) e.key: e.value.id,
+      },
+      'lip': _mixSlots['lips']?.lipColor?.toARGB32().toRadixString(16),
+      'blush': _mixSlots['cheeks']?.lipColor?.toARGB32().toRadixString(16),
+    };
     final prefs = await SharedPreferences.getInstance();
-    final look = _buildLookName();
-    final savedLooks = prefs.getStringList('saved_build_looks') ?? <String>[];
-    savedLooks.add(look);
-    await prefs.setStringList('saved_build_looks', savedLooks);
-    unawaited(_sendBuildLookToWeb('gleame:save-built-look'));
-    _snack('Build look saved');
+    final saved = prefs.getStringList('saved_mix_looks') ?? <String>[];
+    saved.insert(0, jsonEncode(entry));
+    while (saved.length > 20) {
+      saved.removeLast();
+    }
+    await prefs.setStringList('saved_mix_looks', saved);
+    if (mounted) {
+      setState(
+        () => _savedLooks = saved
+            .map((e) => jsonDecode(e) as Map<String, dynamic>)
+            .toList(),
+      );
+    }
+    unawaited(
+      _sendBuildLookToWeb(
+        share ? 'gleame:submit-challenge' : 'gleame:save-built-look',
+        name: name,
+        description: description,
+        shared: share,
+      ),
+    );
+    _snack(share ? 'Shared to the community' : 'Saved privately');
   }
 
   String _buildLookName() {
-    final selected =
-        [
-          _eyeshadows[_eyeshadowIndex].name,
-          _eyeliners[_eyelinerIndex].name,
-          _lashes[_lashIndex].name,
-          _lips[_lipIndex].name,
-        ].where((name) => name != 'None').toList();
-
-    return selected.isEmpty ? 'Clean Gleame Build' : selected.join(' + ');
+    final parts = _mixSlots.values.map((i) => i.name).toList();
+    return parts.isEmpty ? 'Clean Gleame Look' : parts.take(2).join(' + ');
   }
 
-  Map<String, Object?> _buildLookPayload() {
+  /// Kept deliberately small: shade names, swatch hexes and the filter ids.
+  /// No textures or filter JSON travel to Firestore - the app already has
+  /// those, and the ids are enough to reproduce the look exactly.
+  Map<String, Object?> _buildLookPayload({
+    String? name,
+    String? description,
+    bool shared = false,
+  }) {
+    final shades = <Map<String, String?>>[];
+    for (final entry in _mixSlots.entries) {
+      final item = entry.value;
+      shades.add({
+        'region': entry.key,
+        'id': item.id,
+        'name': item.name,
+        'swatch': _hex(item.lipColor),
+      });
+    }
+
     return {
-      'lookName': _buildLookName(),
-      'description': 'Built in the Gleame iOS try-on app.',
-      'category': 'challenge',
+      'lookName': name ?? _buildLookName(),
+      'description': (description == null || description.isEmpty)
+          ? 'Built in the Gleame iOS try-on app.'
+          : description,
+      'visibility': shared ? 'public' : 'private',
+      'category': 'built',
       'source': 'gleame-ios-wrapper',
+      'shades': shades,
       'makeupConfig': {
-        'eyes': _eyeshadows[_eyeshadowIndex].name,
-        'liner': _eyeliners[_eyelinerIndex].name,
-        'lashes': _lashes[_lashIndex].name,
-        'lips': _lips[_lipIndex].name,
-        'sheerSkin': _sheerSkin,
+        'lipColor': _hex(_mixSlots['lips']?.lipColor),
+        'blushColor': _hex(_mixSlots['cheeks']?.lipColor),
+        'eyeshadowColor': _hex(_mixSlots['eyes']?.lipColor),
         'preset': _tab == LabTab.tryLooks ? _currentLook.name : null,
       },
     };
   }
 
-  Future<void> _sendBuildLookToWeb(String type) async {
+  static String? _hex(Color? c) =>
+      c == null ? null : '#${(c.toARGB32() & 0xffffff).toRadixString(16).padLeft(6, '0')}';
+
+  Future<void> _sendBuildLookToWeb(
+    String type, {
+    String? name,
+    String? description,
+    bool shared = false,
+  }) async {
     final message = <String, Object?>{
       'source': 'gleame-ios-wrapper',
       'type': type,
-      'payload': _buildLookPayload(),
+      'payload': _buildLookPayload(
+        name: name,
+        description: description,
+        shared: shared,
+      ),
     };
     final script =
         "window.dispatchEvent(new MessageEvent('message', { data: ${jsonEncode(message)} }));";
 
+    // The Home web view is always loaded and is where the signed-in Firebase
+    // session lives, so it writes the look to the user's account.
     try {
-      await _lookLabWebController.runJavaScript(script);
-      if (_homeWebReady) {
-        await _homeWebController.runJavaScript(script);
+      await _homeWebController.runJavaScript(script);
+      if (_lookLabWebStarted) {
+        await _lookLabWebController.runJavaScript(script);
       }
     } catch (e, st) {
-      log('Web bridge send failed: $e', stackTrace: st);
-      if (mounted) _snack('Open Look Lab to sync this look.');
+      log('Web bridge send failed: \$e', stackTrace: st);
+      if (mounted) _snack('Sign in on the web tab to sync this look.');
     }
   }
 
@@ -909,88 +1264,13 @@ class _LookLabPageState extends State<LookLabPage> {
         return;
       }
 
-      final file = await _deepArController.takeScreenshot();
-      final result = await ImageGallerySaver.saveFile(
-        file.path,
-        name: 'tryon_beauty_${DateTime.now().millisecondsSinceEpoch}',
-      );
-      log('ImageGallerySaver result: $result');
-      _snack('Saved to Photos');
+      await _saveTryOnStudioCaptureToPhotos();
     } catch (e, st) {
       log('Capture failed: $e', stackTrace: st);
       _snack('Capture failed.');
     } finally {
       if (mounted) setState(() => _savingCapture = false);
     }
-  }
-
-  Future<void> _applyBuildSlot(String slot, LookItem item) async {
-    if (_tryOnStudioRendererActive) {
-      await _closeTryOnStudioRenderer();
-      _activeSlotPaths.remove('tryonstudio');
-    }
-    await _ensureDeepArForNativeLooks();
-    await _runEffect(() async {
-      await _deepArController.switchEffectWithSlot(
-        slot: slot,
-        path: item.assetPath,
-      );
-      if (item.assetPath.isEmpty) {
-        _activeSlotPaths.remove(slot);
-      } else {
-        _activeSlotPaths[slot] = item.assetPath;
-      }
-      log('Applied slot $slot ${item.name}: ${item.assetPath}');
-    });
-  }
-
-  Future<void> _runEffect(Future<void> Function() action) async {
-    if (!_arInitialized || !_arViewCreated) return;
-    final next = _effectQueue.catchError((_) {}).then((_) async {
-      if (!_arInitialized || !_arViewCreated) return;
-      try {
-        await action();
-      } catch (e, st) {
-        log('DeepAR effect failed: $e', stackTrace: st);
-        if (mounted) _snack('This effect could not load.');
-      }
-    });
-    _effectQueue = next;
-    await next;
-  }
-
-  void _changeBuildIndex(String type, int delta) {
-    setState(() {
-      if (type == 'shadow') {
-        _eyeshadowIndex = _wrap(_eyeshadowIndex + delta, _eyeshadows.length);
-      }
-      if (type == 'liner') {
-        _eyelinerIndex = _wrap(_eyelinerIndex + delta, _eyeliners.length);
-      }
-      if (type == 'lash') {
-        _lashIndex = _wrap(_lashIndex + delta, _lashes.length);
-      }
-      if (type == 'lip') {
-        _lipIndex = _wrap(_lipIndex + delta, _lips.length);
-      }
-    });
-    if (type == 'shadow') {
-      _debouncedBuildSlot('eyeshadow', _eyeshadows[_eyeshadowIndex]);
-    }
-    if (type == 'liner') {
-      _debouncedBuildSlot('eyeliner', _eyeliners[_eyelinerIndex]);
-    }
-    if (type == 'lash') {
-      _debouncedBuildSlot('eyelashes', _lashes[_lashIndex]);
-    }
-  }
-
-  void _debouncedBuildSlot(String slot, LookItem item) {
-    _slotDebounceTimers[slot]?.cancel();
-    _slotDebounceTimers[slot] = Timer(
-      const Duration(milliseconds: 120),
-      () => unawaited(_applyBuildSlot(slot, item)),
-    );
   }
 
   Future<void> _openCleanBuildTab() async {
@@ -1002,41 +1282,13 @@ class _LookLabPageState extends State<LookLabPage> {
       _tab = LabTab.build;
       _looksPortalOpen = false;
       _beforeAfter = false;
-      _eyeshadowIndex = 0;
-      _eyelinerIndex = 0;
-      _lashIndex = 0;
-      _lipIndex = 0;
-      _sheerSkin = false;
     });
-    await _closeTryOnStudioRenderer();
-    _activeSlotPaths.remove('tryonstudio');
-    await _ensureDeepArForNativeLooks();
-    await _runEffect(() async {
-      await _clearSlots(const [
-        'effect',
-        'eyeshadow',
-        'eyeliner',
-        'eyelashes',
-        'lips',
-        'sheerskin',
-      ]);
-      log('Opened Build with clean effect slots');
-    });
+    // Bring the camera up straight away with nothing applied yet, rather than
+    // waiting for the first shade to be picked.
+    await _applyMixAndMatch();
   }
 
-  Future<void> _clearSlots(Iterable<String> slots) async {
-    for (final slot in slots) {
-      if (!_activeSlotPaths.containsKey(slot)) continue;
-      if (slot == 'tryonstudio') {
-        await _closeTryOnStudioRenderer();
-        _activeSlotPaths.remove(slot);
-        continue;
-      }
-      await _deepArController.switchEffectWithSlot(slot: slot, path: '');
-      _activeSlotPaths.remove(slot);
-    }
-  }
-
+  // ignore: unused_element
   Future<void> _submitBuildChallenge() async {
     await _sendBuildLookToWeb('gleame:submit-challenge');
   }
@@ -1049,10 +1301,7 @@ class _LookLabPageState extends State<LookLabPage> {
       log('Before preview enabled for TryOn Studio renderer');
       return;
     }
-    await _runEffect(() async {
-      await _clearSlots(_activeSlotPaths.keys.toList());
-      log('Before preview enabled');
-    });
+    log('Before preview: no renderer running');
   }
 
   Future<void> _restoreCurrentLook() async {
@@ -1063,51 +1312,8 @@ class _LookLabPageState extends State<LookLabPage> {
       log('Before preview restored TryOn Studio renderer');
       return;
     }
-    await _runEffect(() async {
-      if (_tab == LabTab.tryLooks) {
-        final preset = _currentLook;
-        if (preset.isTryOnStudio) {
-          await _applyTryOnStudioPreset(preset, showMessage: false);
-          log('Before preview restored TryOnStudio preset ${preset.name}');
-          return;
-        }
-
-        final assetPath = preset.assetPath;
-        if (assetPath.isEmpty) return;
-        await _deepArController.switchEffect(assetPath);
-        _activeSlotPaths['effect'] = assetPath;
-        log('Before preview restored preset ${preset.name}');
-        return;
-      }
-
-      await _restoreBuildSlots();
-      log('Before preview restored build look');
-    });
+    log('Before preview: no renderer running');
   }
-
-  Future<void> _restoreBuildSlots() async {
-    final buildSlots = <String, LookItem>{
-      'eyeshadow': _eyeshadows[_eyeshadowIndex],
-      'eyeliner': _eyeliners[_eyelinerIndex],
-      'eyelashes': _lashes[_lashIndex],
-      'lips': _lips[_lipIndex],
-      'sheerskin':
-          _sheerSkin
-              ? const LookItem('Sheer Skin', 'effects/filters/sheerskin.deepar')
-              : const LookItem('None', ''),
-    };
-
-    for (final entry in buildSlots.entries) {
-      if (entry.value.assetPath.isEmpty) continue;
-      await _deepArController.switchEffectWithSlot(
-        slot: entry.key,
-        path: entry.value.assetPath,
-      );
-      _activeSlotPaths[entry.key] = entry.value.assetPath;
-    }
-  }
-
-  int _wrap(int value, int length) => (value % length + length) % length;
 
   Future<void> _switchTab(LabTab tab) async {
     if (tab == LabTab.build) {
@@ -1123,9 +1329,47 @@ class _LookLabPageState extends State<LookLabPage> {
       _looksPortalOpen = false;
     });
     if (tab == LabTab.tryLooks) {
+      _singleLookMode = false;
       _syncShadeController(_presetIndex);
       unawaited(_applyPreset(_presetIndex));
     }
+  }
+
+  /// Opens one look straight from a web card, by catalog id. Single-look mode
+  /// shows just that filter; its palette stays behind the Shades menu.
+  Future<void> _openFilterById(String id) async {
+    LookItem? found;
+    var groupIndex = 0;
+    var itemIndex = 0;
+    for (var g = 0; g < _categories.length; g++) {
+      final items = _categories[g].items;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id == id) {
+          found = items[i];
+          groupIndex = g;
+          itemIndex = i;
+          break;
+        }
+      }
+      if (found != null) break;
+    }
+    if (found == null) {
+      log('No catalog filter with id \$id');
+      if (mounted) _snack('That look is not in the catalog yet.');
+      return;
+    }
+    setState(() {
+      _tab = LabTab.tryLooks;
+      _groupIndex = groupIndex;
+      _presetIndex = itemIndex;
+      _singleLookMode = true;
+      _family = null;
+      _favouritesOnly = false;
+      _shadeQuery = '';
+      _searchOpen = false;
+    });
+    _syncShadeController(itemIndex);
+    await _applyPreset(itemIndex);
   }
 
   Future<void> _openExploreTab() async {
@@ -1136,21 +1380,6 @@ class _LookLabPageState extends State<LookLabPage> {
       _tab = LabTab.home;
       _looksPortalOpen = false;
     });
-  }
-
-  Future<void> _openChallengeLab() async {
-    await _closeTryOnStudioRenderer();
-    _activeSlotPaths.remove('tryonstudio');
-    if (!mounted) return;
-    setState(() {
-      _tab = LabTab.lab;
-      _looksPortalOpen = false;
-    });
-    await _openLookLabPath('/gallery');
-  }
-
-  void _toggleLooksPortal() {
-    setState(() => _looksPortalOpen = !_looksPortalOpen);
   }
 
   @override
@@ -1178,8 +1407,33 @@ class _LookLabPageState extends State<LookLabPage> {
           ),
           if (!_isWebTab) SafeArea(child: _topBar()),
           Align(alignment: Alignment.bottomCenter, child: _bottomWorkspace()),
-          Positioned(left: 0, right: 0, bottom: 104, child: _looksPortal()),
-          Align(alignment: Alignment.bottomCenter, child: _nativeBottomNav()),
+          if (!_isWebTab)
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 14, top: 4),
+                  child: GestureDetector(
+                    onTap: () => unawaited(_openExploreTab()),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.92),
+                        border: Border.all(color: _line),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 15,
+                        color: _ink,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1187,328 +1441,8 @@ class _LookLabPageState extends State<LookLabPage> {
 
   bool get _isWebTab => _tab == LabTab.home || _tab == LabTab.lab;
 
-  bool get _isLooksTab => _tab == LabTab.tryLooks || _tab == LabTab.build;
-
-  Widget _sfIcon(
-    String symbolName, {
-    Key? key,
-    required IconData fallback,
-    required Color color,
-    required double size,
-  }) {
-    final bytes = _sfSymbolPngs[symbolName];
-    if (bytes == null) {
-      return Icon(fallback, key: key, color: color, size: size);
-    }
-    return Image.memory(
-      bytes,
-      key: key,
-      width: size,
-      height: size,
-      fit: BoxFit.contain,
-      color: color,
-      colorBlendMode: BlendMode.srcIn,
-      gaplessPlayback: true,
-    );
-  }
-
-  Widget _looksPortal() {
-    return IgnorePointer(
-      ignoring: !_looksPortalOpen,
-      child: SafeArea(
-        top: false,
-        bottom: false,
-        child: AnimatedSlide(
-          duration: const Duration(milliseconds: 240),
-          curve: Curves.easeOutCubic,
-          offset: _looksPortalOpen ? Offset.zero : const Offset(0, 0.16),
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 180),
-            opacity: _looksPortalOpen ? 1 : 0,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(26),
-                  child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 360),
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: const Color(0xff6d6265).withValues(alpha: 0.58),
-                        borderRadius: BorderRadius.circular(26),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.30),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.18),
-                            blurRadius: 26,
-                            offset: const Offset(0, 10),
-                          ),
-                          BoxShadow(
-                            color: _pink.withValues(alpha: 0.12),
-                            blurRadius: 30,
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _portalButton(
-                              symbolName: 'camera.filters',
-                              fallbackIcon:
-                                  Icons.face_retouching_natural_outlined,
-                              label: 'Try Looks',
-                              selected: _tab == LabTab.tryLooks,
-                              onTap:
-                                  () => unawaited(_switchTab(LabTab.tryLooks)),
-                            ),
-                          ),
-                          const SizedBox(width: 7),
-                          Expanded(
-                            child: _portalButton(
-                              symbolName: 'paintpalette',
-                              fallbackIcon: Icons.palette_outlined,
-                              label: 'Build',
-                              selected: _tab == LabTab.build,
-                              onTap: () => unawaited(_switchTab(LabTab.build)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _portalButton({
-    required String symbolName,
-    required IconData fallbackIcon,
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        height: 46,
-        decoration: BoxDecoration(
-          color:
-              selected
-                  ? Colors.white.withValues(alpha: 0.22)
-                  : Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color:
-                selected
-                    ? Colors.white.withValues(alpha: 0.48)
-                    : Colors.white.withValues(alpha: 0.18),
-          ),
-          boxShadow:
-              selected
-                  ? [
-                    BoxShadow(
-                      color: _pink.withValues(alpha: 0.20),
-                      blurRadius: 20,
-                    ),
-                  ]
-                  : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _sfIcon(
-              symbolName,
-              fallback: fallbackIcon,
-              color: selected ? _pink : Colors.white.withValues(alpha: 0.82),
-              size: 18,
-            ),
-            const SizedBox(width: 7),
-            Text(
-              label,
-              style: TextStyle(
-                color:
-                    selected
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.82),
-                fontSize: 12.5,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _nativeBottomNav() {
-    final looksActive = _isLooksTab || _looksPortalOpen;
-
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(26, 0, 26, 12),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(34),
-          child: BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-            child: Container(
-              height: 66,
-              constraints: const BoxConstraints(maxWidth: 390),
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: const Color(0xff6a6264).withValues(alpha: 0.56),
-                borderRadius: BorderRadius.circular(34),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.20),
-                    blurRadius: 26,
-                    offset: const Offset(0, 13),
-                  ),
-                  BoxShadow(
-                    color: _pink.withValues(alpha: 0.10),
-                    blurRadius: 34,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  _nativeNavItem(
-                    label: 'Explore',
-                    selected: _tab == LabTab.home && !_looksPortalOpen,
-                    icon: _sfIcon(
-                      'safari',
-                      fallback: Icons.explore_outlined,
-                      color:
-                          _tab == LabTab.home && !_looksPortalOpen
-                              ? _pink
-                              : Colors.white.withValues(alpha: 0.68),
-                      size: 21,
-                    ),
-                    onTap: () => unawaited(_openExploreTab()),
-                  ),
-                  _nativeNavItem(
-                    label: 'Looks',
-                    selected: looksActive,
-                    icon: _sfIcon(
-                      looksActive ? 'door.french.open' : 'door.french.closed',
-                      key: ValueKey(
-                        looksActive ? 'door.french.open' : 'door.french.closed',
-                      ),
-                      fallback: Icons.door_front_door_outlined,
-                      color:
-                          looksActive
-                              ? _pink
-                              : Colors.white.withValues(alpha: 0.68),
-                      size: 23,
-                    ),
-                    onTap: _toggleLooksPortal,
-                  ),
-                  _nativeNavItem(
-                    label: 'Lab',
-                    selected: _tab == LabTab.lab && !_looksPortalOpen,
-                    icon: _sfIcon(
-                      'square.stack.3d.up',
-                      fallback: Icons.auto_awesome_motion_outlined,
-                      color:
-                          _tab == LabTab.lab && !_looksPortalOpen
-                              ? _pink
-                              : Colors.white.withValues(alpha: 0.68),
-                      size: 21,
-                    ),
-                    onTap: () => unawaited(_openChallengeLab()),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _nativeNavItem({
-    required String label,
-    required bool selected,
-    required Widget icon,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
-          height: double.infinity,
-          decoration: BoxDecoration(
-            color:
-                selected
-                    ? Colors.white.withValues(alpha: 0.22)
-                    : Colors.transparent,
-            borderRadius: BorderRadius.circular(27),
-            border:
-                selected
-                    ? Border.all(color: Colors.white.withValues(alpha: 0.46))
-                    : null,
-            boxShadow:
-                selected
-                    ? [
-                      BoxShadow(
-                        color: _pink.withValues(alpha: 0.24),
-                        blurRadius: 18,
-                        offset: const Offset(0, 6),
-                      ),
-                    ]
-                    : null,
-          ),
-          child: IconTheme(
-            data: IconThemeData(
-              size: 22,
-              color: selected ? _pink : Colors.white.withValues(alpha: 0.68),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 260),
-                  transitionBuilder:
-                      (child, animation) => FadeTransition(
-                        opacity: animation,
-                        child: ScaleTransition(scale: animation, child: child),
-                      ),
-                  child: icon,
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color:
-                        selected ? _pink : Colors.white.withValues(alpha: 0.70),
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
+  /// The web app renders the real navigation dock. Try On and Create open
+  /// these native filter pages from it, so all they need is a way back.
   Widget _webWrapperLayer() {
     final loading = _tab == LabTab.home ? !_homeWebReady : !_lookLabWebReady;
 
@@ -1552,7 +1486,7 @@ class _LookLabPageState extends State<LookLabPage> {
           children: [
             const Icon(
               Icons.camera_alt_outlined,
-              color: Colors.white70,
+              color: _muted,
               size: 42,
             ),
             const SizedBox(height: 14),
@@ -1571,22 +1505,6 @@ class _LookLabPageState extends State<LookLabPage> {
       );
     }
 
-    if (_arInitialized) {
-      return Transform.scale(
-        scale: 1.18,
-        child: DeepArPreviewPlus(
-          _deepArController,
-          onViewCreated: () {
-            if (_arViewCreated) return;
-            _arViewCreated = true;
-            Future.delayed(
-              const Duration(milliseconds: 550),
-              () => _applyPreset(_presetIndex),
-            );
-          },
-        ),
-      );
-    }
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -1598,7 +1516,58 @@ class _LookLabPageState extends State<LookLabPage> {
       alignment: Alignment.center,
       child: const Text(
         'Starting AR camera...',
-        style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white70),
+        style: TextStyle(fontWeight: FontWeight.w900, color: _muted),
+      ),
+    );
+  }
+
+  /// Shown while the renderer and its face model warm up, so a cold start
+  /// reads as loading rather than a black screen.
+  Widget _startupOverlay(String message) {
+    return ColoredBox(
+      color: Colors.black,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 62,
+              height: 62,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(colors: [_pink, _berry]),
+              ),
+              child: const Icon(
+                Icons.auto_awesome,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Gleame',
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: 120,
+              child: LinearProgressIndicator(
+                minHeight: 2.5,
+                backgroundColor: _line,
+                color: _pink,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              message,
+              style: const TextStyle(fontSize: 11, color: _muted),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1626,8 +1595,10 @@ class _LookLabPageState extends State<LookLabPage> {
               onPlatformViewCreated: _onTryOnStudioViewCreated,
             )
           else
-            const Center(child: CircularProgressIndicator(color: _pink)),
-          if (!_tryOnStudioReady || _tryOnStudioStatus != null)
+            _startupOverlay('Warming up the camera'),
+          if (!_tryOnStudioReady && _tryOnStudioStatus == null)
+            _startupOverlay('Loading filters')
+          else if (_tryOnStudioStatus != null)
             Center(
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 28),
@@ -1639,7 +1610,7 @@ class _LookLabPageState extends State<LookLabPage> {
                   color: Colors.black.withValues(alpha: 0.62),
                   borderRadius: BorderRadius.circular(22),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.14),
+                    color: _line,
                   ),
                 ),
                 child: Row(
@@ -1676,110 +1647,48 @@ class _LookLabPageState extends State<LookLabPage> {
     );
   }
 
-  Widget _topBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+  /// Brightness only. Sheer Skin was a DeepAR pass and no longer applies.
+  Widget _brightnessPill() {
+    return Container(
+      width: 132,
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _line),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _roundIcon(
-            _favoritePresetNames.isEmpty
-                ? Icons.favorite_border
-                : Icons.favorite,
-            active: true,
-            onTap:
-                () => _snack(
-                  _favoritePresetNames.isEmpty
-                      ? 'No saved looks yet'
-                      : '${_favoritePresetNames.length} saved looks',
-                ),
+          const Icon(Icons.light_mode_outlined, size: 14, color: _muted),
+          Expanded(
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 2,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                overlayShape: SliderComponentShape.noOverlay,
+              ),
+              child: Slider(
+                value: _brightness,
+                min: -0.5,
+                max: 0.5,
+                activeColor: _pink,
+                inactiveColor: _line,
+                onChanged: (v) => setState(() => _brightness = v),
+              ),
+            ),
           ),
-          const SizedBox(width: 8),
-          _roundIcon(
-            Icons.person_outline,
-            onTap: () => _snack('Profile web page will open here.'),
-          ),
-          const Spacer(),
-          _beautyPanel(),
         ],
       ),
     );
   }
 
-  Widget _beautyPanel() {
-    return Container(
-      width: 154,
-      padding: const EdgeInsets.fromLTRB(12, 8, 8, 7),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.42),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Sheer Skin',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
-                ),
-              ),
-              Transform.scale(
-                scale: 0.50,
-                child: Switch(
-                  value: _sheerSkin,
-                  activeColor: _pink,
-                  inactiveTrackColor: const Color(0xffffedf4),
-                  onChanged: (value) {
-                    setState(() => _sheerSkin = value);
-                    unawaited(
-                      _applyBuildSlot(
-                        'sheerskin',
-                        value
-                            ? const LookItem(
-                              'Sheer Skin',
-                              'effects/filters/sheerskin.deepar',
-                            )
-                            : const LookItem('None', ''),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              const Icon(
-                Icons.wb_sunny_outlined,
-                size: 14,
-                color: Colors.white70,
-              ),
-              Expanded(
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 2.5,
-                    thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 6,
-                    ),
-                  ),
-                  child: Slider(
-                    value: _brightness,
-                    min: 0,
-                    max: 0.32,
-                    activeColor: _pink,
-                    inactiveColor: Colors.white24,
-                    onChanged: (v) => setState(() => _brightness = v),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+  Widget _topBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [const Spacer(), _brightnessPill()],
       ),
     );
   }
@@ -1803,101 +1712,316 @@ class _LookLabPageState extends State<LookLabPage> {
     );
   }
 
+  /// Shades after the search box and the favourites toggle.
+  List<LookItem> get _visibleLooks {
+    var looks = _presets;
+    if (_favouritesOnly) {
+      looks = looks
+          .where((l) => _favoritePresetNames.contains(l.name))
+          .toList();
+    }
+    if (_family != null) {
+      looks = looks.where((l) => l.family == _family).toList();
+    }
+    if (_shadeQuery.trim().isEmpty) return looks;
+    final q = _shadeQuery.trim().toLowerCase();
+    return looks.where((l) => l.name.toLowerCase().contains(q)).toList();
+  }
+
   Widget _tryLooksPanel() {
-    final looks = _presets;
+    final looks = _visibleLooks;
     final current = _currentLook;
+    final families = _families;
 
     return _glass(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _categoryPicker(),
-          const SizedBox(height: 12),
-          if (looks.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 26),
-              child: Text(
-                'No shades in this category',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white54,
-                ),
-              ),
-            )
-          else ...[
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    current.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  current.tagLine,
-                  style: TextStyle(
-                    fontSize: 9,
-                    letterSpacing: 1.1,
-                    fontWeight: FontWeight.w900,
-                    color: _pink,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              '${_presetIndex + 1} of ${looks.length}',
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: Colors.white38,
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 52,
-              child: ListView.builder(
-                controller: _shadeController,
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.zero,
-                itemExtent: _swatchExtent,
-                itemCount: looks.length,
-                itemBuilder: (context, index) => _swatch(looks[index], index),
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
+          if (_singleLookMode)
+            _singleLookHeader(current, looks.length)
+          else
+            _categoryPicker(),
+          const SizedBox(height: 8),
+          // The header, search field and family chips stay put whatever the
+          // filters return. Hiding them when a query matched nothing left no
+          // way to edit or clear the search.
           Row(
             children: [
-              Expanded(child: _beforeAfterControl()),
-              const SizedBox(width: 9),
-              _miniCircle(
-                _favoritePresetNames.contains(current.name)
-                    ? Icons.favorite
-                    : Icons.favorite_border,
-                onTap: _toggleFavoritePreset,
+              Expanded(
+                child: Text(
+                  looks.isEmpty
+                      ? 'No matching shades'
+                      : '${current.name}  ·  ${_presetIndex + 1}/${looks.length}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
-              const SizedBox(width: 9),
-              _captureButton(size: 58),
+              if (!_singleLookMode) ...[
+                _tinyIcon(
+                  _searchOpen ? Icons.close : Icons.search,
+                  () => setState(() {
+                    _searchOpen = !_searchOpen;
+                    if (!_searchOpen) {
+                      _shadeQuery = '';
+                      _searchController.clear();
+                    }
+                  }),
+                ),
+                const SizedBox(width: 6),
+                _tinyIcon(
+                  _favoritePresetNames.contains(current.name)
+                      ? Icons.favorite
+                      : Icons.favorite_border,
+                  _toggleFavoritePreset,
+                ),
+                const SizedBox(width: 6),
+                _beforeIcon(),
+                const SizedBox(width: 6),
+                _captureButton(size: 34),
+              ],
             ],
           ),
+          if (_searchOpen && !_singleLookMode) ...[
+            const SizedBox(height: 7),
+            _shadeSearchRow(),
+          ],
+          if (!_singleLookMode && families.length > 1) ...[
+            const SizedBox(height: 7),
+            SizedBox(height: 25, child: _familyChips()),
+          ],
+          if (!_singleLookMode || _shadesOpen) ...[
+            const SizedBox(height: 7),
+            SizedBox(
+              // Tall enough that the selected swatch's glow is not clipped.
+              height: 44,
+              child: looks.isEmpty
+                  ? Center(
+                      child: Text(
+                        _shadeQuery.trim().isEmpty
+                            ? 'No shades here yet'
+                            : 'Nothing matches "${_shadeQuery.trim()}"',
+                        style: const TextStyle(fontSize: 11, color: _muted),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _shadeController,
+                      scrollDirection: Axis.horizontal,
+                      padding: EdgeInsets.zero,
+                      itemExtent: _swatchExtent,
+                      itemCount: looks.length,
+                      itemBuilder: (context, index) =>
+                          _swatch(looks[index], index),
+                    ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  /// One circular shade. Big enough to tap comfortably, small enough that a
-  /// 234-shade palette still scrolls quickly.
+  /// Colour families present in the current category, in shopping order.
+  List<String> get _families {
+    const order = ['Pinks', 'Reds', 'Nudes', 'Browns', 'Purples'];
+    final present = _presets
+        .map((l) => l.family)
+        .whereType<String>()
+        .toSet();
+    return order.where(present.contains).toList();
+  }
+
+  /// 234 shades is too many to swipe. Families cut it to a browsable set and
+  /// give a reason to come back for the next one.
+  Widget _familyChips() {
+    final families = _families;
+    return ListView.separated(
+      scrollDirection: Axis.horizontal,
+      itemCount: families.length + 1,
+      separatorBuilder: (_, __) => const SizedBox(width: 6),
+      itemBuilder: (context, index) {
+        final label = index == 0 ? 'All' : families[index - 1];
+        final on = index == 0 ? _family == null : _family == families[index - 1];
+        return GestureDetector(
+          onTap: () {
+            setState(() => _family = index == 0 ? null : families[index - 1]);
+            _syncShadeController(0);
+            unawaited(_applyPreset(0));
+          },
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: on ? _pink : Colors.white,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: _line),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w900,
+                color: on ? Colors.white : _ink,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Press-and-hold to see the bare face, as a small icon beside capture.
+  Widget _beforeIcon() {
+    return GestureDetector(
+      onLongPressStart: (_) => unawaited(_showBeforeLook()),
+      onLongPressEnd: (_) => unawaited(_restoreCurrentLook()),
+      onTap: () => _snack('Hold to see before'),
+      child: Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _beforeAfter ? _pink : Colors.white,
+          border: Border.all(color: _line),
+        ),
+        child: Icon(
+          Icons.compare,
+          size: 15,
+          color: _beforeAfter ? Colors.white : _pink,
+        ),
+      ),
+    );
+  }
+
+  Widget _shadeSearchRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 36,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: _line),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.search, size: 15, color: _muted),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    textInputAction: TextInputAction.search,
+                    onChanged: (value) {
+                      setState(() {
+                        _shadeQuery = value;
+                        _presetIndex = 0;
+                      });
+                    },
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    cursorColor: _pink,
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      hintText: 'Search shades',
+                      hintStyle: TextStyle(
+                        fontSize: 12,
+                        color: _muted,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Opened from a web look card: the look's own name, with its palette kept
+  /// behind a Shades menu rather than filling the panel.
+  Widget _singleLookHeader(LookItem look, int shadeCount) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                look.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                look.tagLine,
+                style: TextStyle(
+                  fontSize: 9,
+                  letterSpacing: 1.1,
+                  fontWeight: FontWeight.w900,
+                  color: _pink,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (shadeCount > 1)
+          GestureDetector(
+            onTap: () => setState(() => _shadesOpen = !_shadesOpen),
+            child: Container(
+              height: 34,
+              padding: const EdgeInsets.symmetric(horizontal: 13),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _shadesOpen
+                    ? _pink
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: _line,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Shades ($shadeCount)',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Icon(
+                    _shadesOpen
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                    color: _muted,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// One circular shade, sized to match the Mix & Match strip.
   Widget _swatch(LookItem item, int index) {
     final selected = index == _presetIndex;
     final fill = item.lipColor ?? _pink;
@@ -1908,8 +2032,8 @@ class _LookLabPageState extends State<LookLabPage> {
         onTap: () => _selectShade(index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          width: selected ? 46 : 40,
-          height: selected ? 46 : 40,
+          width: selected ? 34 : 29,
+          height: selected ? 34 : 29,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
@@ -1918,11 +2042,17 @@ class _LookLabPageState extends State<LookLabPage> {
               colors: [fill, edge],
             ),
             border: Border.all(
-              color: selected ? Colors.white : Colors.white24,
-              width: selected ? 2.4 : 1,
+              color: selected ? Colors.white : _line,
+              width: selected ? 2.2 : 1,
             ),
             boxShadow: selected
-                ? [BoxShadow(color: _pink.withValues(alpha: 0.55), blurRadius: 10)]
+                ? [
+                  BoxShadow(
+                    color: _pink.withValues(alpha: 0.45),
+                    blurRadius: 7,
+                    spreadRadius: 0.5,
+                  ),
+                ]
                 : null,
           ),
         ),
@@ -1930,30 +2060,340 @@ class _LookLabPageState extends State<LookLabPage> {
     );
   }
 
-  Widget _beforeAfterControl() {
+  /// The makeup slots, in the order they are applied. Each maps to a TryOn
+  /// Studio region and the catalog group that supplies its shades.
+  static const List<Map<String, String>> _mixSlotDefs = [
+    {'region': 'lips', 'label': 'Lipstick', 'group': 'lip_swatches'},
+    {'region': 'lipliner', 'label': 'Lip Liner', 'group': 'tog_liners'},
+    {'region': 'cheeks', 'label': 'Blush', 'group': 'blush_swatches'},
+    {'region': 'eyes', 'label': 'Eyeshadow', 'group': 'full_face'},
+    {'region': 'liner', 'label': 'Eyeliner', 'group': 'eye_liners'},
+    {'region': 'lashes', 'label': 'Lashes', 'group': 'eye_liners'},
+  ];
+
+  // Served from the app's own renderer bundle; remote photos tainted the
+  // canvas and needed the network.
+  static const List<Map<String, String>> _faceModels = [
+    {'name': 'Live', 'url': ''},
+    {'name': 'Muse', 'url': 'faces/muse.jpg'},
+    {'name': 'Amara', 'url': 'faces/amara.jpg'},
+    {'name': 'Elena', 'url': 'faces/elena.jpg'},
+    {'name': 'Chloe', 'url': 'faces/chloe.jpg'},
+  ];
+
+  /// Swaps the renderer between the live camera and a bundled model photo.
+  Future<void> _setMixSource(String? url) async {
+    setState(() => _mixModelUrl = url);
+    final channel = _tryOnStudioNativeChannel;
+    if (channel == null) return;
+    try {
+      await channel.invokeMethod<void>('setSource', {'url': url});
+    } catch (e, st) {
+      log('Model source switch failed: $e', stackTrace: st);
+    }
+  }
+
+  List<LookItem> _shadesFor(String groupKey) {
+    for (final category in _categories) {
+      if (category.key == groupKey) return category.items;
+    }
+    return const <LookItem>[];
+  }
+
+  Widget _buildPanel() {
+    final slot = _mixSlotDefs[_mixCategory];
+    final region = slot['region']!;
+    final items = _shadesFor(slot['group']!);
+
+    return _glass(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Mix & Match',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+              ),
+              const Spacer(),
+              _mixSourceButton(),
+              const SizedBox(width: 6),
+              _tinyIcon(Icons.layers_clear_outlined, () {
+                setState(_mixSlots.clear);
+                unawaited(_applyMixAndMatch());
+              }),
+              const SizedBox(width: 6),
+              _tinyIcon(Icons.bookmark_add_outlined, _saveBuildLook),
+              const SizedBox(width: 6),
+              _beforeIcon(),
+              const SizedBox(width: 6),
+              _captureButton(size: 34),
+            ],
+          ),
+          if (_savedLooks.isNotEmpty || _webPresets.isNotEmpty) ...[
+            const SizedBox(height: 7),
+            SizedBox(height: 42, child: _presetCards()),
+          ],
+          const SizedBox(height: 7),
+          SizedBox(height: 25, child: _mixCategoryChips()),
+          const SizedBox(height: 4),
+          _mixStrip(items, _mixSlots[region], (item) {
+            setState(() => _mixSlots[region] = item);
+            unawaited(_applyMixAndMatch());
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _tinyIcon(IconData icon, VoidCallback onTap) {
     return GestureDetector(
-      onLongPressStart: (_) => unawaited(_showBeforeLook()),
-      onLongPressEnd: (_) => unawaited(_restoreCurrentLook()),
+      onTap: onTap,
       child: Container(
-        height: 40,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(15),
+          shape: BoxShape.circle,
+          color: Colors.white,
+          border: Border.all(color: _line),
+        ),
+        child: Icon(icon, size: 15, color: _pink),
+      ),
+    );
+  }
+
+  /// Category chips keep one strip on screen instead of six.
+  Widget _mixCategoryChips() {
+    return ListView.separated(
+      scrollDirection: Axis.horizontal,
+      itemCount: _mixSlotDefs.length,
+      separatorBuilder: (_, __) => const SizedBox(width: 6),
+      itemBuilder: (context, index) {
+        final def = _mixSlotDefs[index];
+        final on = index == _mixCategory;
+        final picked = _mixSlots[def['region']!];
+        return GestureDetector(
+          onTap: () => setState(() => _mixCategory = index),
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 11),
+            decoration: BoxDecoration(
+              color: on ? _pink : Colors.white,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: _line),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (picked != null) ...[
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: picked.lipColor ?? _pink,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                ],
+                Text(
+                  def['label']!,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w900,
+                    color: on ? Colors.white : _ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Opens the model picker: live camera, or a bundled portrait to try the
+  /// look on instead of your own face.
+  Widget _mixSourceButton() {
+    final current = _faceModels.firstWhere(
+      (m) => (m['url']!.isEmpty ? null : m['url']) == _mixModelUrl,
+      orElse: () => _faceModels.first,
+    );
+    return GestureDetector(
+      onTap: _showModelPicker,
+      child: Container(
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 11),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: _line),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _mixModelUrl == null
+                  ? Icons.photo_camera_outlined
+                  : Icons.face_retouching_natural,
+              size: 14,
+              color: _pink,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              current['name']!,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showModelPicker() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Container(
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+        decoration: const BoxDecoration(
+          color: Color(0xfff7f2ef),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Try it on',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                for (final model in _faceModels) ...[
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        final url = model['url']!.isEmpty
+                            ? null
+                            : model['url'];
+                        unawaited(_setMixSource(url));
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: (model['url']!.isEmpty
+                                        ? null
+                                        : model['url']) ==
+                                    _mixModelUrl
+                                ? _pink
+                                : _line,
+                            width: (model['url']!.isEmpty
+                                        ? null
+                                        : model['url']) ==
+                                    _mixModelUrl
+                                ? 1.6
+                                : 1,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              model['url']!.isEmpty
+                                  ? Icons.photo_camera_outlined
+                                  : Icons.person_outline,
+                              size: 18,
+                              color: _pink,
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              model['name']!,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _presetCards() {
+    if (_savedLooks.isNotEmpty) {
+      return ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _savedLooks.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final look = _savedLooks[index];
+          return _presetCard(
+            look['name'] as String? ?? 'Saved look',
+            parseHexColor(look['lip'] as String?) ?? _pink,
+            parseHexColor(look['blush'] as String?) ?? _berry,
+            () => unawaited(_applySavedLook(look)),
+          );
+        },
+      );
+    }
+    return ListView.separated(
+      scrollDirection: Axis.horizontal,
+      itemCount: _webPresets.length,
+      separatorBuilder: (_, __) => const SizedBox(width: 8),
+      itemBuilder: (context, index) {
+        final preset = _webPresets[index];
+        return _presetCard(
+          preset.name,
+          parseHexColor(preset.lipColor) ?? _pink,
+          parseHexColor(preset.blushColor) ?? _berry,
+          () => unawaited(_applyWebPreset(preset)),
+        );
+      },
+    );
+  }
+
+  Widget _presetCard(String name, Color lip, Color blush, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 104,
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: _line),
         ),
         child: Row(
           children: [
-            Icon(
-              _beforeAfter ? Icons.visibility_off : Icons.compare,
-              color: _pink,
-              size: 21,
-            ),
-            const SizedBox(width: 8),
+            _dot(lip),
+            const SizedBox(width: 4),
+            _dot(blush),
+            const SizedBox(width: 6),
             Expanded(
               child: Text(
-                _beforeAfter ? 'Before view' : 'Hold for before',
+                name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 9,
+                  height: 1.15,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -1964,76 +2404,72 @@ class _LookLabPageState extends State<LookLabPage> {
     );
   }
 
-  Widget _buildPanel() {
-    return _glass(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _sectionHeader('Build', 'Eyes, liner, lashes, lips'),
-              ),
-              _captureButton(size: 52),
-            ],
+  Widget _dot(Color color) {
+    return Container(
+      width: 14,
+      height: 14,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        border: Border.all(color: _line),
+      ),
+    );
+  }
+
+  Widget _mixStrip(
+    List<LookItem> items,
+    LookItem? selected,
+    ValueChanged<LookItem> onPick,
+  ) {
+    if (items.isEmpty) {
+      return const SizedBox(
+        height: 38,
+        child: Center(
+          child: Text(
+            'No shades loaded',
+            style: TextStyle(fontSize: 11, color: _muted),
           ),
-          const SizedBox(height: 5),
-          _buildPicker(
-            'EYES',
-            _eyeshadows[_eyeshadowIndex].name,
-            '${_eyeshadowIndex + 1}/${_eyeshadows.length}',
-            () => _changeBuildIndex('shadow', -1),
-            () => _changeBuildIndex('shadow', 1),
-          ),
-          _buildPicker(
-            'LINER',
-            _eyeliners[_eyelinerIndex].name,
-            '${_eyelinerIndex + 1}/${_eyeliners.length}',
-            () => _changeBuildIndex('liner', -1),
-            () => _changeBuildIndex('liner', 1),
-          ),
-          _buildPicker(
-            'LASHES',
-            _lashes[_lashIndex].name,
-            '${_lashIndex + 1}/${_lashes.length}',
-            () => _changeBuildIndex('lash', -1),
-            () => _changeBuildIndex('lash', 1),
-          ),
-          _buildPicker(
-            'LIPS',
-            _lips[_lipIndex].name,
-            '${_lipIndex + 1}/${_lips.length}',
-            () => _changeBuildIndex('lip', -1),
-            () => _changeBuildIndex('lip', 1),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Expanded(
-                child: _actionButton(
-                  Icons.bookmark_add_outlined,
-                  'Save',
-                  _saveBuildLook,
+        ),
+      );
+    }
+    return SizedBox(
+      height: 44,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemExtent: 42,
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          final isOn = selected?.assetPath == item.assetPath &&
+              selected?.name == item.name;
+          return Center(
+            child: GestureDetector(
+              onTap: () => onPick(item),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                width: isOn ? 34 : 29,
+                height: isOn ? 34 : 29,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: item.lipColor ?? _pink,
+                  boxShadow: isOn
+                      ? [
+                        BoxShadow(
+                          color: _pink.withValues(alpha: 0.45),
+                          blurRadius: 7,
+                          spreadRadius: 0.5,
+                        ),
+                      ]
+                      : null,
+                  border: Border.all(
+                    color: isOn ? Colors.white : _line,
+                    width: isOn ? 2.2 : 1,
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _actionButton(
-                  Icons.ios_share,
-                  'Share',
-                  () => _snack('Shareable look image'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 7),
-          _actionButton(
-            Icons.emoji_events_outlined,
-            'Submit to Challenge',
-            _submitBuildChallenge,
-            filled: true,
-          ),
-        ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -2047,7 +2483,7 @@ class _LookLabPageState extends State<LookLabPage> {
         decoration: BoxDecoration(
           color: _panel,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(color: Colors.white),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.22),
@@ -2057,96 +2493,6 @@ class _LookLabPageState extends State<LookLabPage> {
           ],
         ),
         child: child,
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title, String subtitle) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 1),
-        Text(
-          subtitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 10,
-            color: Colors.white60,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPicker(
-    String label,
-    String value,
-    String count,
-    VoidCallback left,
-    VoidCallback right,
-  ) {
-    return Container(
-      height: 38,
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 5),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.055),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          _arrow(Icons.chevron_left, left),
-          Expanded(
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 58,
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 9,
-                      letterSpacing: 1.2,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white60,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 34,
-                  child: Text(
-                    count,
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Colors.white54,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 4),
-          _arrow(Icons.chevron_right, right),
-        ],
       ),
     );
   }
@@ -2163,7 +2509,7 @@ class _LookLabPageState extends State<LookLabPage> {
       constraints: const BoxConstraints(minWidth: 250, maxWidth: 320),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+        side: BorderSide(color: _line),
       ),
       onSelected: _selectCategory,
       itemBuilder: (context) => _categoryMenuEntries(),
@@ -2171,9 +2517,9 @@ class _LookLabPageState extends State<LookLabPage> {
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.07),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+          border: Border.all(color: _line),
         ),
         child: Row(
           children: [
@@ -2209,13 +2555,13 @@ class _LookLabPageState extends State<LookLabPage> {
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-                color: Colors.white38,
+                color: _muted,
               ),
             ),
             const Icon(
               Icons.keyboard_arrow_down_rounded,
               size: 22,
-              color: Colors.white70,
+              color: _muted,
             ),
           ],
         ),
@@ -2270,7 +2616,7 @@ class _LookLabPageState extends State<LookLabPage> {
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white38,
+                  color: _muted,
                 ),
               ),
             ],
@@ -2279,61 +2625,6 @@ class _LookLabPageState extends State<LookLabPage> {
       );
     }
     return entries;
-  }
-
-  Widget _roundIcon(
-    IconData icon, {
-    bool active = false,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 42,
-        width: 42,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.45),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 14,
-            ),
-          ],
-        ),
-        child: Icon(icon, color: active ? _pink : Colors.white, size: 21),
-      ),
-    );
-  }
-
-  Widget _miniCircle(IconData icon, {required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 42,
-        width: 42,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.52),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: _pink, size: 21),
-      ),
-    );
-  }
-
-  Widget _arrow(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 28,
-        width: 28,
-        decoration: BoxDecoration(
-          color: _pink.withValues(alpha: 0.86),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, size: 22),
-      ),
-    );
   }
 
   Widget _captureButton({double size = 58}) {
@@ -2380,7 +2671,7 @@ class _LookLabPageState extends State<LookLabPage> {
           color:
               filled
                   ? _pink.withValues(alpha: 0.92)
-                  : Colors.white.withValues(alpha: 0.09),
+                  : Colors.white,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -2424,6 +2715,12 @@ class LookItem {
   /// Set for swatch-pack entries: {region, colour, opacity, finish}.
   final Map<String, dynamic>? shade;
 
+  /// Catalog id, used when a web card asks for one specific look.
+  final String id;
+
+  /// Colour family: Pinks, Reds, Nudes, Purples, Corals, Browns.
+  final String? family;
+
   const LookItem(this.name, this.assetPath)
     : kind = LookItemKind.deepar,
       lipColor = null,
@@ -2432,7 +2729,9 @@ class LookItem {
       hasLiner = false,
       hasGloss = false,
       hasShimmer = false,
-      shade = null;
+      shade = null,
+      id = '',
+      family = null;
 
   const LookItem.tryOnStudio(
     this.name,
@@ -2444,6 +2743,8 @@ class LookItem {
     this.hasGloss = false,
     this.hasShimmer = false,
     this.shade,
+    this.id = '',
+    this.family,
   }) : kind = LookItemKind.tryOnStudio;
 
   factory LookItem.fromCatalog(Map<String, dynamic> json) {
@@ -2457,6 +2758,8 @@ class LookItem {
       hasGloss: json['hasGloss'] == true,
       hasShimmer: json['hasShimmer'] == true,
       shade: (json['shade'] as Map?)?.cast<String, dynamic>(),
+      id: json['id'] as String? ?? '',
+      family: json['family'] as String?,
     );
   }
 
@@ -2478,6 +2781,28 @@ class LookItem {
     }
     return tags.join(' · ');
   }
+}
+
+/// A saved look from the web app's built_looks collection.
+class WebPreset {
+  final String name;
+  final String? lipColor;
+  final String? blushColor;
+  final String? eyeColor;
+
+  const WebPreset({
+    required this.name,
+    this.lipColor,
+    this.blushColor,
+    this.eyeColor,
+  });
+
+  factory WebPreset.fromJson(Map<String, dynamic> json) => WebPreset(
+    name: json['name'] as String? ?? 'Look',
+    lipColor: json['lipColor'] as String?,
+    blushColor: json['blushColor'] as String?,
+    eyeColor: json['eyeshadowColor'] as String?,
+  );
 }
 
 class LookCategory {
