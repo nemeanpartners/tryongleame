@@ -64,8 +64,7 @@ import {
   Calendar,
   ShoppingBag,
   Camera,
-  Edit3
-} from 'lucide-react';
+  Edit3, ChevronDown } from 'lucide-react';
 import { ChallengeSubmission, PresetLook } from '../../types';
 import { seedBuiltLooksIfEmpty, ExtendedBuiltLook } from '../../lib/looksService';
 import { 
@@ -172,6 +171,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
   // Saved / Favorited Looks & Created Looks
   const [savedLooks, setSavedLooks] = useState<ExtendedBuiltLook[]>([]);
   const [savedLooksLoading, setSavedLooksLoading] = useState<boolean>(false);
+  const [accountSavedLooks, setAccountSavedLooks] = useState<ExtendedBuiltLook[]>([]);
+  const [openSavedGroups, setOpenSavedGroups] = useState<Record<string, boolean>>({
+    mix: true,
+    tryon: true,
+    catalogue: true,
+  });
   const [createdLooks, setCreatedLooks] = useState<any[]>([]);
 
   // Notification Preference states
@@ -270,6 +275,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
   const loadSavedLooks = async () => {
     setSavedLooksLoading(true);
     try {
+      // Looks saved from the app live under the signed-in user, so read those
+      // first. Without this the section only ever showed local favourites and
+      // anything saved on the phone was invisible here.
+      const accountLooks: ExtendedBuiltLook[] = [];
+      const uid = auth.currentUser?.uid;
+      if (uid) {
+        try {
+          const snap = await getDocs(collection(db, 'users', uid, 'built_looks'));
+          snap.forEach((docSnap) => {
+            const data = docSnap.data() as Record<string, any>;
+            accountLooks.push({
+              ...(data as ExtendedBuiltLook),
+              id: docSnap.id,
+              name: data.name || 'Saved look',
+              description: data.description || '',
+            });
+          });
+        } catch (err) {
+          console.error('Could not read saved looks from your account:', err);
+        }
+      }
+      setAccountSavedLooks(accountLooks);
+
       const allPresets = await seedBuiltLooksIfEmpty();
       let favIds: string[] = [];
       const storedFavs = localStorage.getItem('tryon_favourites');
@@ -291,6 +319,37 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
       setSavedLooksLoading(false);
     }
   };
+
+  /** Saved looks split into the three places they can come from. */
+  const savedLookGroups = React.useMemo(() => {
+    const isMix = (l: any) =>
+      l?.nativePayload?.shades?.length > 1 ||
+      (l?.nativePayload?.makeupConfig && l?.nativePayload?.shades?.length !== 1);
+    const fromApp = accountSavedLooks.filter((l: any) => l?.nativePayload);
+    return [
+      {
+        key: 'mix',
+        title: 'Mix & Match',
+        subtitle: 'Looks you built from multiple shades',
+        looks: fromApp.filter(isMix),
+      },
+      {
+        key: 'tryon',
+        title: 'Try On shades',
+        subtitle: 'Single shades saved while trying on',
+        looks: fromApp.filter((l: any) => !isMix(l)),
+      },
+      {
+        key: 'catalogue',
+        title: 'Catalogue looks',
+        subtitle: 'Presets you favourited',
+        looks: savedLooks,
+      },
+    ].filter((group) => group.looks.length > 0);
+  }, [accountSavedLooks, savedLooks]);
+
+  const totalSavedLooks =
+    savedLookGroups.reduce((sum, g) => sum + g.looks.length, 0);
 
   const handleRemoveSavedLook = (lookId: string) => {
     try {
@@ -1118,7 +1177,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                     <RefreshCw className="w-6 h-6 animate-spin text-stone-700" />
                     <span className="text-xs font-bold text-stone-600">Loading saved looks...</span>
                   </div>
-                ) : savedLooks.length === 0 ? (
+                ) : totalSavedLooks === 0 ? (
                   <div className="bg-[#ede9e4]/70 border border-white/70 shadow-[inset_2px_2px_4px_rgba(0,0,0,0.04),inset_-2px_-2px_4px_rgba(255,255,255,0.8)] rounded-2xl p-8 text-center space-y-3">
                     <div className="w-12 h-12 rounded-full bg-[#f2eee9] shadow-[2px_2px_6px_rgba(0,0,0,0.06),-2px_-2px_6px_rgba(255,255,255,0.95)] border border-white/80 flex items-center justify-center mx-auto text-stone-500">
                       <Bookmark className="w-6 h-6" />
@@ -1137,8 +1196,37 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                     )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-                    {savedLooks.map((look) => (
+                  <div className="space-y-3 pt-1">
+                    {savedLookGroups.map((group) => (
+                      <div key={group.key} className="space-y-2.5">
+                        <button
+                          onClick={() =>
+                            setOpenSavedGroups((prev) => ({
+                              ...prev,
+                              [group.key]: !prev[group.key],
+                            }))
+                          }
+                          className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[#ede9e4]/80 border border-white/70 shadow-[2px_2px_5px_rgba(0,0,0,0.04),-2px_-2px_5px_rgba(255,255,255,0.85)] cursor-pointer"
+                        >
+                          <span className="flex flex-col items-start">
+                            <span className="text-xs font-bold text-stone-900">
+                              {group.title}
+                              <span className="ml-2 text-[10px] font-bold text-stone-400">
+                                {group.looks.length}
+                              </span>
+                            </span>
+                            <span className="text-[10px] text-stone-500">{group.subtitle}</span>
+                          </span>
+                          <ChevronDown
+                            className={`w-4 h-4 text-stone-500 transition-transform ${
+                              openSavedGroups[group.key] === false ? '' : 'rotate-180'
+                            }`}
+                          />
+                        </button>
+
+                        {openSavedGroups[group.key] !== false && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+                    {group.looks.map((look) => (
                       <div
                         key={look.id}
                         className="bg-[#ede9e4]/80 rounded-2xl border border-white/70 shadow-[3px_3px_8px_rgba(0,0,0,0.04),-3px_-3px_8px_rgba(255,255,255,0.85)] p-3.5 flex flex-col justify-between space-y-3 group hover:scale-[1.01] transition-all"
@@ -1202,6 +1290,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                             <span>Try Look</span>
                           </button>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                        )}
                       </div>
                     ))}
                   </div>
