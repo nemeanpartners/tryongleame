@@ -601,6 +601,73 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
     );
   }
 
+  // Signed out means signed out. The page used to fall back to a placeholder
+  // account, which looked like a real session and hid the fact that nothing
+  // could be saved.
+  if (!user) {
+    return (
+      <div className="py-16 px-5 max-w-sm mx-auto text-center space-y-5">
+        <div className="w-16 h-16 rounded-full bg-[#f2eee9] border border-white/80 shadow-[2px_2px_6px_rgba(0,0,0,0.06),-2px_-2px_6px_rgba(255,255,255,0.95)] flex items-center justify-center mx-auto text-stone-500">
+          <User className="w-8 h-8" />
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="text-base font-bold text-stone-900">You're signed out</h3>
+          <p className="text-xs text-stone-500">
+            Sign in to save looks to your account and see them on any device.
+          </p>
+        </div>
+        {errorMsg && (
+          <p className="text-xs font-bold text-rose-600">{errorMsg}</p>
+        )}
+        <button
+          onClick={handleGoogleSignIn}
+          disabled={loadingAction}
+          className="w-full py-3 rounded-full bg-stone-900 text-white text-xs font-bold shadow-[2px_2px_6px_rgba(0,0,0,0.12)] cursor-pointer disabled:opacity-60"
+        >
+          Continue with Google
+        </button>
+
+        <form
+          onSubmit={authMode === 'signup' ? handleSignUp : handleSignIn}
+          className="space-y-2.5 text-left"
+        >
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            autoComplete="email"
+            className="w-full px-4 py-3 rounded-2xl bg-white border border-white/80 text-xs font-medium text-stone-900 outline-none"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
+            className="w-full px-4 py-3 rounded-2xl bg-white border border-white/80 text-xs font-medium text-stone-900 outline-none"
+          />
+          <button
+            type="submit"
+            disabled={loadingAction}
+            className="w-full py-3 rounded-full bg-[#ede9e4] text-stone-900 text-xs font-bold border border-white/80 cursor-pointer disabled:opacity-60"
+          >
+            {authMode === 'signup' ? 'Create account' : 'Sign in'}
+          </button>
+        </form>
+
+        <button
+          onClick={() => setAuthMode(authMode === 'signup' ? 'signin' : 'signup')}
+          className="w-full py-2 text-stone-700 text-xs font-bold cursor-pointer"
+        >
+          {authMode === 'signup'
+            ? 'Already have an account? Sign in'
+            : 'New here? Create an account'}
+        </button>
+      </div>
+    );
+  }
+
   /* List of Categories in exact order requested by user & screenshot */
   const categories: { id: SettingsCategory | 'logout'; label: string; icon: React.FC<any> }[] = [
     { id: 'profile', label: 'Profile', icon: User },
