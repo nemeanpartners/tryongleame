@@ -476,9 +476,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
     setLoadingAction(true);
     try {
       const provider = new GoogleAuthProvider();
-      // Without this Google reuses whichever account is already signed in to
-      // the browser, so no chooser appears and you cannot switch accounts.
-      provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithPopup(auth, provider);
       setSuccessMsg('Successfully signed in with Google!');
       setShowAuthModal(false);
