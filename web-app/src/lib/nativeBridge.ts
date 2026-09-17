@@ -15,6 +15,8 @@ type NativeLookPayload = {
   visibility?: 'public' | 'private';
   /** Which saved bucket this belongs in. */
   savedFrom?: 'mixnmatch' | 'tryon' | 'gallery';
+  /** Stable id from the app, so re-delivery overwrites rather than duplicates. */
+  lookId?: string;
   shades?: Array<{ region?: string; id?: string; name?: string; swatch?: string }>;
   makeupConfig?: {
     eyes?: string;
@@ -116,21 +118,50 @@ const savedSectionFor = (payload?: NativeLookPayload): SavedSection => {
 
 const writeUserMirror = async (section: SavedSection, id: string, data: Record<string, unknown>) => {
   const user = auth.currentUser;
-  if (!user) return;
+  if (!user) throw new Error('Sign in on the web tab before saving.');
 
+  // Deliberately not routed through handleFirestoreError: that rethrows, and a
+  // failure on one copy used to abort the others.
   await setDoc(doc(db, 'users', user.uid, section, id), {
     ...data,
     userId: user.uid,
     userEmail: user.email || null,
     syncedAt: Date.now()
-  }).catch((error) => {
-    handleFirestoreError(error, OperationType.CREATE, `users/${user.uid}/${section}/${id}`);
+  });
+};
+
+/**
+ * The app hosts more than one WebView. Signing in on one leaves the others with
+ * auth.currentUser still null until the SDK has restored the session from
+ * IndexedDB, which is shared but not instant. Waiting for that avoids telling a
+ * signed-in user to sign in.
+ */
+const waitForUser = async (timeoutMs = 6000) => {
+  if (auth.currentUser) return auth.currentUser;
+  const { onAuthStateChanged } = await import('firebase/auth');
+  return new Promise<typeof auth.currentUser>((resolve) => {
+    const timer = setTimeout(() => {
+      unsubscribe();
+      resolve(auth.currentUser);
+    }, timeoutMs);
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      if (!u) return;
+      clearTimeout(timer);
+      unsubscribe();
+      resolve(u);
+    });
   });
 };
 
 const saveNativeBuiltLook = async (payload?: NativeLookPayload) => {
+  const user = await waitForUser();
+  if (!user) throw new Error('Sign in on the web tab before saving.');
+
   const lookName = cleanText(payload?.lookName, 'TryOnBeauty iOS Build');
-  const id = docIdFromName(lookName);
+  const id =
+    payload?.lookId && /^[a-zA-Z0-9_-]{1,128}$/.test(payload.lookId)
+      ? payload.lookId
+      : docIdFromName(lookName);
   const config = nativeNameToConfig(payload);
   const builtLook = {
     id,
@@ -150,13 +181,6 @@ const saveNativeBuiltLook = async (payload?: NativeLookPayload) => {
     isCustom: true
   };
 
-  // A private look lives only under the signed-in user. Only shared looks are
-  // written to the community collection.
-  if (payload?.visibility !== 'private') {
-    await setDoc(doc(db, 'built_looks', id), builtLook).catch((error) => {
-      handleFirestoreError(error, OperationType.CREATE, `built_looks/${id}`);
-    });
-  }
   const record = {
     ...builtLook,
     visibility: payload?.visibility ?? 'public',
@@ -164,10 +188,24 @@ const saveNativeBuiltLook = async (payload?: NativeLookPayload) => {
     savedAt: Date.now(),
     nativePayload: payload || null
   };
-  // Written twice on purpose: built_looks keeps the existing behaviour, and
-  // the saved_* collection is what the profile's Saved tab reads.
-  await writeUserMirror('built_looks', id, record);
-  await writeUserMirror(savedSectionFor(payload), id, record);
+
+  const section = savedSectionFor(payload);
+
+  // The user's own copy is the one the Saved tab reads, so it goes first and
+  // its failure is the only one that makes the save a failure.
+  await writeUserMirror(section, id, record);
+
+  // Best-effort extras. A rejected community write must not lose the save.
+  await writeUserMirror('built_looks', id, record).catch((error) => {
+    console.error('Could not write built_looks mirror:', error);
+  });
+  if (payload?.visibility !== 'private') {
+    await setDoc(doc(db, 'built_looks', id), builtLook).catch((error) => {
+      console.error('Could not write community built_looks:', error);
+    });
+  }
+
+  return section;
 };
 
 const submitNativeChallenge = async (payload?: NativeLookPayload) => {
@@ -197,6 +235,15 @@ const submitNativeChallenge = async (payload?: NativeLookPayload) => {
 };
 
 export function installGleameNativeBridge(onChallengeSubmitSuccess?: () => void) {
+  // Publish the signed-in uid so the app can tell which WebView holds the
+  // session and deliver saves there.
+  void (async () => {
+    const { onAuthStateChanged } = await import('firebase/auth');
+    onAuthStateChanged(auth, (u) => {
+      (window as any).__gleameUid = u?.uid || '';
+    });
+  })();
+
   const handleMessage = async (event: MessageEvent<NativeBridgeMessage>) => {
     const message = event.data;
     if (!message) return;
@@ -212,12 +259,12 @@ export function installGleameNativeBridge(onChallengeSubmitSuccess?: () => void)
 
     try {
       if (message.type === 'gleame:save-built-look' || message.type === 'tryonbeauty:save-built-look') {
-        await saveNativeBuiltLook(message.payload);
-        postNativeStatus(message.type, true, 'Saved to Look Lab');
+        const section = await saveNativeBuiltLook(message.payload);
+        postNativeStatus(message.type, true, `Saved to ${section}`);
       }
 
       if (message.type === 'gleame:submit-challenge' || message.type === 'tryonbeauty:submit-challenge') {
-        if (!auth.currentUser) {
+        if (!(await waitForUser())) {
           postNativeStatus(message.type, false, 'Sign in on the web page before submitting.');
           return;
         }
@@ -227,7 +274,9 @@ export function installGleameNativeBridge(onChallengeSubmitSuccess?: () => void)
       }
     } catch (error) {
       console.error('Native bridge write failed:', error);
-      postNativeStatus(message.type, false, 'Web sync failed.');
+      const reason =
+        error instanceof Error ? error.message : 'Web sync failed.';
+      postNativeStatus(message.type, false, reason);
     }
   };
 

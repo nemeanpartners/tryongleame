@@ -1089,6 +1089,8 @@ class _LookLabPageState extends State<LookLabPage> {
     );
   }
 
+  String _pendingLookId = '';
+
   Future<void> _persistLook({
     required String name,
     required String description,
@@ -1098,6 +1100,10 @@ class _LookLabPageState extends State<LookLabPage> {
       _snack('Pick a shade first');
       return;
     }
+    _pendingLookId =
+        'ios_${DateTime.now().millisecondsSinceEpoch}_'
+        '${name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_')}'
+            .replaceAll(RegExp(r'_+$'), '');
     final entry = {
       'name': name,
       'description': description,
@@ -1122,14 +1128,25 @@ class _LookLabPageState extends State<LookLabPage> {
             .toList(),
       );
     }
-    unawaited(
-      _sendBuildLookToWeb(
-        share ? 'gleame:submit-challenge' : 'gleame:save-built-look',
-        name: name,
-        description: description,
-        shared: share,
-      ),
+    // Always save it to the account. Sharing is an extra step on top, not a
+    // replacement - sending only submit-challenge meant shared looks never
+    // reached the user's saved collections.
+    await _sendBuildLookToWeb(
+      'gleame:save-built-look',
+      name: name,
+      description: description,
+      shared: share,
     );
+    if (share) {
+      unawaited(
+        _sendBuildLookToWeb(
+          'gleame:submit-challenge',
+          name: name,
+          description: description,
+          shared: true,
+        ),
+      );
+    }
     _snack(share ? 'Shared to the community' : 'Saved privately');
   }
 
@@ -1165,6 +1182,8 @@ class _LookLabPageState extends State<LookLabPage> {
       'visibility': shared ? 'public' : 'private',
       // Tells the web which saved_* collection this belongs in.
       'savedFrom': _tab == LabTab.build ? 'mixnmatch' : 'tryon',
+      // Stable id so delivering to both web views writes one document.
+      'lookId': _pendingLookId,
       'category': 'built',
       'source': 'gleame-ios-wrapper',
       'shades': shades,
@@ -1198,17 +1217,58 @@ class _LookLabPageState extends State<LookLabPage> {
     final script =
         "window.dispatchEvent(new MessageEvent('message', { data: ${jsonEncode(message)} }));";
 
-    // The Home web view is always loaded and is where the signed-in Firebase
-    // session lives, so it writes the look to the user's account.
+    // Deliver to whichever view actually holds the session. The views do not
+    // reliably share Firebase's IndexedDB, so the signed-in one is the only
+    // one that can write.
+    final target = await _signedInWebController();
+    if (target == null) {
+      if (mounted) {
+        _snack('Open the Home tab and sign in, then save again.');
+      }
+      return;
+    }
+    try {
+      await target.runJavaScript(script);
+      return;
+    } catch (e, st) {
+      log('Targeted bridge send failed: \$e', stackTrace: st);
+    }
     try {
       await _homeWebController.runJavaScript(script);
       if (_lookLabWebStarted) {
-        await _lookLabWebController.runJavaScript(script);
+        try {
+          await _lookLabWebController.runJavaScript(script);
+        } catch (_) {
+          // One view failing must not lose the save.
+        }
       }
     } catch (e, st) {
       log('Web bridge send failed: \$e', stackTrace: st);
       if (mounted) _snack('Sign in on the web tab to sync this look.');
     }
+  }
+
+  /// Returns the web view with a signed-in Firebase session, if any.
+  Future<WebViewController?> _signedInWebController() async {
+    final candidates = <WebViewController>[
+      _homeWebController,
+      if (_lookLabWebStarted) _lookLabWebController,
+    ];
+    for (final controller in candidates) {
+      try {
+        final result = await controller.runJavaScriptReturningResult(
+          "(window.__gleameUid || '')",
+        );
+        final uid = result.toString().replaceAll('"', '').trim();
+        if (uid.isNotEmpty) {
+          log('Signed-in web view found: \$uid');
+          return controller;
+        }
+      } catch (e) {
+        log('Could not read uid from a web view: \$e');
+      }
+    }
+    return null;
   }
 
   Future<void> _saveTryOnStudioCaptureToPhotos() async {
