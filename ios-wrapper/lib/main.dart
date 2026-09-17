@@ -1666,6 +1666,26 @@ class _LookLabPageState extends State<LookLabPage> {
     return (_firebaseIdToken ?? '').isEmpty ? null : _firebaseIdToken;
   }
 
+  /// The uid inside the token is the only one Firestore will accept. Reading
+  /// it from the token rather than from stored state removes any chance of the
+  /// two drifting apart, which reads as a permissions failure.
+  String? _uidFromToken(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length < 2) return null;
+      var payload = parts[1].replaceAll('-', '+').replaceAll('_', '/');
+      while (payload.length % 4 != 0) {
+        payload += '=';
+      }
+      final claims =
+          jsonDecode(utf8.decode(base64.decode(payload))) as Map<String, dynamic>;
+      return (claims['user_id'] ?? claims['sub'])?.toString();
+    } catch (e) {
+      log('Could not read uid from token: $e');
+      return null;
+    }
+  }
+
   Map<String, dynamic> _firestoreValue(Object? value) {
     if (value == null) return {'nullValue': null};
     if (value is bool) return {'booleanValue': value};
@@ -1695,11 +1715,16 @@ class _LookLabPageState extends State<LookLabPage> {
     required Map<String, Object?> look,
   }) async {
     final token = await _validToken();
-    final uid = _firebaseUid;
-    if (token == null || uid == null || uid.isEmpty) {
+    if (token == null) {
       if (mounted) _snack('Sign in with Google first, then save.');
       return false;
     }
+    final uid = _uidFromToken(token) ?? _firebaseUid;
+    if (uid == null || uid.isEmpty) {
+      if (mounted) _snack('Sign in with Google first, then save.');
+      return false;
+    }
+    _firebaseUid = uid;
     final url = Uri.parse(
       'https://firestore.googleapis.com/v1/projects/$_firestoreProject'
       '/databases/$_firestoreDatabase/documents/users/$uid/$collection/$docId',
@@ -1718,8 +1743,9 @@ class _LookLabPageState extends State<LookLabPage> {
       log('Saved to users/$uid/$collection/$docId');
       return true;
     } catch (e, st) {
-      log('Firestore write failed: $e', stackTrace: st);
-      if (mounted) _snack('Save failed: $e');
+      log('Firestore write failed for users/$uid/$collection/$docId: $e',
+          stackTrace: st);
+      if (mounted) _snack('Save failed (uid ${uid.substring(0, 6)}): $e');
       return false;
     }
   }
