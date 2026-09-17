@@ -58,6 +58,7 @@ class _LookLabPageState extends State<LookLabPage> {
   static const _muted = Color(0xff57534e);
   static const _line = Color(0xffede7e3);
   static const _sfSymbolsChannel = MethodChannel('gleame/sf_symbols');
+  static const _googleSignInChannel = MethodChannel('gleame/google_signin');
   // Cloud Run service we control, so the web side can be redeployed alongside
   // the app. The AI Studio URL still serves the same app if it is preferred.
   static const _liveWebBaseUrl =
@@ -271,6 +272,12 @@ class _LookLabPageState extends State<LookLabPage> {
                 setState(() => _webPresets = list);
                 log('Loaded ${list.length} presets from the web app');
               }
+              return;
+            }
+            // The web page asks the app to run Google sign-in natively,
+            // because Google refuses OAuth inside a WebView.
+            if (type == 'gleame:native-google-signin') {
+              unawaited(_runNativeGoogleSignIn());
               return;
             }
             if (type == 'gleame:open-filter') {
@@ -1474,6 +1481,36 @@ class _LookLabPageState extends State<LookLabPage> {
     });
     _syncShadeController(itemIndex);
     await _applyPreset(itemIndex);
+  }
+
+  /// Runs Google sign-in in Safari via ASWebAuthenticationSession and hands
+  /// the resulting ID token to the web page, which completes the Firebase
+  /// session with signInWithCredential.
+  Future<void> _runNativeGoogleSignIn() async {
+    try {
+      final idToken = await _googleSignInChannel.invokeMethod<String>('signIn');
+      if (idToken == null || idToken.isEmpty) {
+        if (mounted) _snack('Google sign-in was cancelled.');
+        return;
+      }
+      final script =
+          'window.__gleameGoogleCredential && '
+          'window.__gleameGoogleCredential(${jsonEncode(idToken)});';
+      await _homeWebController.runJavaScript(script);
+      if (_lookLabWebStarted) {
+        try {
+          await _lookLabWebController.runJavaScript(script);
+        } catch (_) {
+          // The other view may not be loaded; the home one is what matters.
+        }
+      }
+    } on PlatformException catch (e) {
+      log('Native Google sign-in failed: \${e.message}');
+      if (mounted) _snack(e.message ?? 'Google sign-in failed.');
+    } catch (e, st) {
+      log('Native Google sign-in error: \$e', stackTrace: st);
+      if (mounted) _snack('Google sign-in failed.');
+    }
   }
 
   Future<void> _openExploreTab() async {

@@ -62,6 +62,31 @@ import WebKit
         tryOnRegistrar.register(tryOnFactory, withId: "tryon_studio_view")
       }
 
+      let googleChannel = FlutterMethodChannel(
+        name: "gleame/google_signin",
+        binaryMessenger: controller.binaryMessenger
+      )
+      googleChannel.setMethodCallHandler { call, result in
+        guard call.method == "signIn" else {
+          result(FlutterMethodNotImplemented)
+          return
+        }
+        GoogleSignInBridge.shared.signIn { outcome in
+          DispatchQueue.main.async {
+            switch outcome {
+            case .success(let idToken):
+              result(idToken)
+            case .failure(let error):
+              result(FlutterError(
+                code: "google_signin_failed",
+                message: error.localizedDescription,
+                details: nil
+              ))
+            }
+          }
+        }
+      }
+
       if let webRegistrar = registrar(forPlugin: "TryOnStudioWebRenderer") {
         let webFactory = TryOnStudioWebViewFactory(
           messenger: controller.binaryMessenger,
@@ -1504,7 +1529,7 @@ final class TryOnStudioWebPlatformView: NSObject, FlutterPlatformView, WKUIDeleg
     // 4x fewer pixels for the whole pipeline, tracker included.
     configuration.userContentController.addUserScript(
       WKUserScript(
-        source: "(function(){var md=navigator.mediaDevices;if(md&&md.getUserMedia){var g=md.getUserMedia.bind(md);md.getUserMedia=function(c){try{if(c&&c.video&&typeof c.video==='object'){c.video.width={ideal:1280};c.video.height={ideal:720};c.video.frameRate={ideal:30,max:30};}}catch(e){}return g(c);};}window.__gleameScale=function(w,h){try{var v=document.getElementById('video');var t=v&&v.srcObject&&v.srcObject.getVideoTracks&&v.srcObject.getVideoTracks()[0];if(t&&t.applyConstraints)t.applyConstraints({width:{ideal:w},height:{ideal:h},frameRate:{ideal:30,max:30}});}catch(e){}};function post(k,m){try{window.webkit.messageHandlers.gleame.postMessage(k+': '+m);}catch(e){}}['error','warn'].forEach(function(k){var o=console[k];console[k]=function(){post(k,Array.prototype.join.call(arguments,' '));o.apply(console,arguments);};});window.addEventListener('error',function(e){post('jserror',e.message);});setInterval(function(){var f=document.getElementById('fps');var c=document.getElementById('canvas');post('stat',(f?f.textContent:'?')+' canvas='+(c?c.width+'x'+c.height:'?'));},4000);})();",
+        source: "(function(){var md=navigator.mediaDevices;if(md&&md.getUserMedia){var g=md.getUserMedia.bind(md);md.getUserMedia=function(c){try{if(c&&c.video&&typeof c.video==='object'){c.video.width={ideal:1280};c.video.height={ideal:720};c.video.frameRate={ideal:30,max:30};}}catch(e){}return g(c).then(function(st){window.__gleameCam=st;return st;});};}window.__gleameSetSource=function(url){try{var v=document.getElementById('video');if(!v)return;if(window.__gleameModelTimer){cancelAnimationFrame(window.__gleameModelTimer);window.__gleameModelTimer=null;}if(!url){if(window.__gleameCam){v.srcObject=window.__gleameCam;v.play();}return;}var img=new Image();img.crossOrigin='anonymous';img.onload=function(){var c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;var cx=c.getContext('2d');var draw=function(){cx.drawImage(img,0,0,c.width,c.height);window.__gleameModelTimer=requestAnimationFrame(draw);};draw();try{v.srcObject=c.captureStream(30);v.play();}catch(e){window.webkit.messageHandlers.gleame.postMessage('modelerror: '+e);}};img.onerror=function(){window.webkit.messageHandlers.gleame.postMessage('modelerror: load failed');};img.src=url;}catch(e){}};window.__gleameScale=function(w,h){try{var v=document.getElementById('video');var t=v&&v.srcObject&&v.srcObject.getVideoTracks&&v.srcObject.getVideoTracks()[0];if(t&&t.applyConstraints)t.applyConstraints({width:{ideal:w},height:{ideal:h},frameRate:{ideal:30,max:30}});}catch(e){}};function post(k,m){try{window.webkit.messageHandlers.gleame.postMessage(k+': '+m);}catch(e){}}['error','warn'].forEach(function(k){var o=console[k];console[k]=function(){post(k,Array.prototype.join.call(arguments,' '));o.apply(console,arguments);};});window.addEventListener('error',function(e){post('jserror',e.message);});setInterval(function(){var f=document.getElementById('fps');var c=document.getElementById('canvas');post('stat',(f?f.textContent:'?')+' canvas='+(c?c.width+'x'+c.height:'?'));},4000);})();",
         injectionTime: .atDocumentStart,
         forMainFrameOnly: true
       )
@@ -1534,6 +1559,14 @@ final class TryOnStudioWebPlatformView: NSObject, FlutterPlatformView, WKUIDeleg
     channel.setMethodCallHandler { [weak self] call, result in
       guard let self else { result(nil); return }
       switch call.method {
+      case "setSource":
+        let url = (call.arguments as? [String: Any])?["url"] as? String
+        let arg = url.map { "'\($0)'" } ?? "null"
+        self.webView.evaluateJavaScript(
+          "window.__gleameSetSource && window.__gleameSetSource(\(arg))",
+          completionHandler: nil
+        )
+        result(nil)
       case "setPayload":
         if let json = call.arguments as? String {
           TryOnStudioPreviewServer.shared.update(payload: Data(json.utf8))
@@ -1623,5 +1656,138 @@ final class TryOnStudioWebPlatformView: NSObject, FlutterPlatformView, WKUIDeleg
     webView.takeSnapshot(with: config) { image, _ in
       result(image?.pngData())
     }
+  }
+}
+
+// MARK: - Native Google Sign-In
+//
+// Google refuses OAuth inside an embedded WebView, and Firebase's redirect flow
+// loses its pending marker when WKWebView drops sessionStorage across the
+// cross-origin round trip. Running the flow in ASWebAuthenticationSession is
+// the path Google sanctions: it uses Safari's own session, so the account
+// chooser appears, and it hands back an ID token the web page can sign in with.
+
+import AuthenticationServices
+import CryptoKit
+
+final class GoogleSignInBridge: NSObject, ASWebAuthenticationPresentationContextProviding {
+  static let shared = GoogleSignInBridge()
+
+  private static let clientId =
+    "729820542986-mmfg9f6bs4flhng0vtjh0l5lfbiok535.apps.googleusercontent.com"
+  private static let redirectScheme =
+    "com.googleusercontent.apps.729820542986-mmfg9f6bs4flhng0vtjh0l5lfbiok535"
+
+  private var session: ASWebAuthenticationSession?
+
+  func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+    UIApplication.shared.connectedScenes
+      .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+      .first ?? ASPresentationAnchor()
+  }
+
+  /// Runs the whole flow and returns Google's ID token.
+  func signIn(completion: @escaping (Result<String, Error>) -> Void) {
+    let verifier = Self.randomVerifier()
+    let challenge = Self.challenge(for: verifier)
+    let redirectUri = "\(Self.redirectScheme):/oauth2redirect"
+
+    var components = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
+    components.queryItems = [
+      URLQueryItem(name: "client_id", value: Self.clientId),
+      URLQueryItem(name: "redirect_uri", value: redirectUri),
+      URLQueryItem(name: "response_type", value: "code"),
+      URLQueryItem(name: "scope", value: "openid email profile"),
+      URLQueryItem(name: "code_challenge", value: challenge),
+      URLQueryItem(name: "code_challenge_method", value: "S256"),
+      // Always offer the account list rather than reusing one silently.
+      URLQueryItem(name: "prompt", value: "select_account")
+    ]
+
+    let session = ASWebAuthenticationSession(
+      url: components.url!,
+      callbackURLScheme: Self.redirectScheme
+    ) { callbackURL, error in
+      if let error {
+        completion(.failure(error))
+        return
+      }
+      guard
+        let callbackURL,
+        let code = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false)?
+          .queryItems?.first(where: { $0.name == "code" })?.value
+      else {
+        completion(.failure(NSError(
+          domain: "GoogleSignIn", code: -1,
+          userInfo: [NSLocalizedDescriptionKey: "No authorization code returned."]
+        )))
+        return
+      }
+      Self.exchange(code: code, verifier: verifier, redirectUri: redirectUri, completion: completion)
+    }
+    session.presentationContextProvider = self
+    // Use Safari's session so the user's existing Google accounts are listed.
+    session.prefersEphemeralWebBrowserSession = false
+    self.session = session
+    session.start()
+  }
+
+  private static func exchange(
+    code: String,
+    verifier: String,
+    redirectUri: String,
+    completion: @escaping (Result<String, Error>) -> Void
+  ) {
+    var request = URLRequest(url: URL(string: "https://oauth2.googleapis.com/token")!)
+    request.httpMethod = "POST"
+    request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+    // Installed apps use PKCE and carry no client secret.
+    let body = [
+      "client_id=\(clientId)",
+      "code=\(code)",
+      "code_verifier=\(verifier)",
+      "grant_type=authorization_code",
+      "redirect_uri=\(redirectUri)"
+    ].joined(separator: "&")
+    request.httpBody = body.data(using: .utf8)
+
+    URLSession.shared.dataTask(with: request) { data, _, error in
+      if let error {
+        completion(.failure(error))
+        return
+      }
+      guard
+        let data,
+        let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+        let idToken = json["id_token"] as? String
+      else {
+        let detail = data.flatMap { String(data: $0, encoding: .utf8) } ?? "no body"
+        completion(.failure(NSError(
+          domain: "GoogleSignIn", code: -2,
+          userInfo: [NSLocalizedDescriptionKey: "Token exchange failed: \(detail)"]
+        )))
+        return
+      }
+      completion(.success(idToken))
+    }.resume()
+  }
+
+  private static func randomVerifier() -> String {
+    var bytes = [UInt8](repeating: 0, count: 64)
+    _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+    return Data(bytes).base64URLEncoded()
+  }
+
+  private static func challenge(for verifier: String) -> String {
+    Data(SHA256.hash(data: Data(verifier.utf8))).base64URLEncoded()
+  }
+}
+
+private extension Data {
+  func base64URLEncoded() -> String {
+    base64EncodedString()
+      .replacingOccurrences(of: "+", with: "-")
+      .replacingOccurrences(of: "/", with: "_")
+      .replacingOccurrences(of: "=", with: "")
   }
 }

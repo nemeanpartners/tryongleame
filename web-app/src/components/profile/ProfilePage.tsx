@@ -491,6 +491,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
   };
 
   // Google Sign In
+  // Completes a native Google sign-in: the app hands over Google's ID token
+  // and Firebase turns it into a real session in this page.
+  useEffect(() => {
+    (window as any).__gleameGoogleCredential = async (idToken: string) => {
+      try {
+        setLoadingAction(true);
+        const credential = GoogleAuthProvider.credential(idToken);
+        const { signInWithCredential } = await import('firebase/auth');
+        await signInWithCredential(auth, credential);
+        setSuccessMsg('Successfully signed in with Google!');
+        setShowAuthModal(false);
+      } catch (err: any) {
+        console.error('Native Google credential sign-in failed:', err);
+        setErrorMsg(err?.message || 'Google sign-in failed.');
+      } finally {
+        setLoadingAction(false);
+      }
+    };
+    return () => {
+      delete (window as any).__gleameGoogleCredential;
+    };
+  }, []);
+
   /** True when running inside the iOS wrapper's WebView. */
   const isInAppWebView = () =>
     typeof window !== 'undefined' &&
@@ -502,10 +525,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
     try {
       const provider = new GoogleAuthProvider();
       if (isInAppWebView()) {
-        // WKWebView has no window.open, so the popup flow ends on Firebase's
-        // handler page with no opener to post back to - a blank screen. The
-        // redirect flow navigates the same frame and returns cleanly.
-        await signInWithRedirect(auth, provider);
+        // Google refuses OAuth in a WebView, and the redirect flow loses its
+        // pending marker when WKWebView drops sessionStorage. The app runs the
+        // flow natively in Safari and calls __gleameGoogleCredential with the
+        // resulting ID token.
+        (window as any).GleameBridge?.postMessage(
+          JSON.stringify({
+            source: 'tryon-beauty-web',
+            type: 'gleame:native-google-signin'
+          })
+        );
         return;
       }
       await signInWithPopup(auth, provider);

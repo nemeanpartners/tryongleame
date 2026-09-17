@@ -244,11 +244,37 @@ export default function App() {
         await setPersistence(auth, indexedDBLocalPersistence).catch(() =>
           setPersistence(auth, browserLocalPersistence)
         );
+        // Report the outcome to the app so the failure is visible on device.
+        const report = (msg: string) => {
+          try {
+            (window as any).GleameBridge?.postMessage(
+              JSON.stringify({ source: 'tryon-beauty-web', type: 'gleame:authdebug', message: msg })
+            );
+          } catch {}
+          console.error('[authdebug]', msg);
+        };
+        let pending = 'n/a';
+        try {
+          pending = String(
+            Object.keys(sessionStorage).filter((k) => k.includes('pendingRedirect')).length
+          );
+        } catch (e) {
+          pending = 'sessionStorage-blocked';
+        }
         const result = await getRedirectResult(auth);
+        report(
+          `redirect user=${result?.user?.uid || 'none'} current=${auth.currentUser?.uid || 'none'} pendingKeys=${pending}`
+        );
         if (!cancelled && result?.user) {
           console.info('Signed in via redirect:', result.user.uid);
         }
-      } catch (err) {
+      } catch (err: any) {
+        const code = err?.code || err?.message || String(err);
+        try {
+          (window as any).GleameBridge?.postMessage(
+            JSON.stringify({ source: 'tryon-beauty-web', type: 'gleame:authdebug', message: `redirect error: ${code}` })
+          );
+        } catch {}
         console.error('Google redirect sign-in failed:', err);
       }
     })();

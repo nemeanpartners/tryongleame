@@ -1,0 +1,3133 @@
+{
+  "schema": "tryonstudio.filter.v1",
+  "format": "tryonfilter-json",
+  "exportedAt": "2026-09-12T05:53:55.879Z",
+  "name": "Lip Builder - Subtlewhitelipscolor / No Liner",
+  "engine": {
+    "tracker": "mediapipe-face-landmarker",
+    "landmarkModel": "468-face-landmarks",
+    "renderModel": "effect-house-style-face-mask-lip-mesh",
+    "coordinateSpace": "normalized-mirrored-selfie"
+  },
+  "deepARStyle": {
+    "region": "Lips",
+    "surfaceType": "satin",
+    "textureBlend": "multiply",
+    "opacityTextureEnabled": true,
+    "tintEnabled": true
+  },
+  "look": {
+    "id": "lip-builder",
+    "name": "Lip Builder - Subtlewhitelipscolor / No Liner",
+    "category": "lips",
+    "thumbnail": "/assets/effect-house/textures-subtlewhitelipscolor-png.png",
+    "source": "Custom lipstick base: SubtleWhiteLipsColor",
+    "textures": {
+      "lips": "/assets/effect-house/textures-subtlewhitelipscolor-png.png"
+    },
+    "palette": {
+      "lips": "#c5322b",
+      "lipliner": "#6d3540",
+      "eyes": "#d89b35",
+      "cheeks": "#df704e",
+      "face": "#7d513c",
+      "brows": "#3a241a",
+      "liner": "#1b1715",
+      "lashes": "#111111",
+      "glitter": "#f5d890",
+      "freckles": "#8a5d3d"
+    },
+    "intensity": {
+      "lips": 0.9,
+      "lipliner": 0,
+      "eyes": 0,
+      "cheeks": 0,
+      "face": 0,
+      "brows": 0,
+      "liner": 0,
+      "lashes": 0,
+      "glitter": 0,
+      "freckles": 0
+    }
+  },
+  "layers": {
+    "lips": true,
+    "lipliner": false,
+    "eyes": false,
+    "cheeks": false,
+    "face": false,
+    "brows": false,
+    "liner": false,
+    "lashes": false,
+    "glitter": false,
+    "freckles": false
+  },
+  "lipControls": {
+    "finish": "satin",
+    "gloss": 0.34,
+    "shimmer": 0,
+    "shimmerColor": "#f3b6cf",
+    "edgeSoftness": 0.38,
+    "textureDetail": 0.68,
+    "sheer": 0.12,
+    "blend": 1,
+    "linerThickness": 0.58,
+    "linerBlend": 0.78,
+    "linerMelt": 0.42,
+    "cupidBowBlur": 0.32,
+    "lipColourMode": "independent",
+    "phoneLipPreviewMode": "native",
+    "globalIntensity": 0.75,
+    "smoothing": 0.16,
+    "layerOrder": [
+      "lips",
+      "lipshimmer",
+      "lipliner",
+      "lipgloss"
+    ]
+  },
+  "eyeControls": {
+    "active": false,
+    "style": "soft-ombre",
+    "shadeCount": 2,
+    "baseDropped": false,
+    "basePhoto": false,
+    "basePhotoFlip": false,
+    "basePhotoFlipVertical": true,
+    "baseColor": "#b9857e",
+    "midColor": "#7b5b83",
+    "depthColor": "#2f2433",
+    "shimmerColor": "#f5d6b8",
+    "eyeColor": "#5f82b8",
+    "eyeColorIntensity": 0,
+    "shimmer": 0.18,
+    "cutCrease": 0.45,
+    "linerShape": "soft-wing",
+    "linerRecolor": false,
+    "linerThickness": 0.55,
+    "wingLinerActive": false,
+    "wingLinerIntensity": 0.72,
+    "wingLinerLength": 0.46,
+    "wingLinerThickness": 0.52,
+    "wingLinerCurve": 0.42,
+    "wingLinerAngle": 0.44,
+    "wingLinerFullness": 0.62,
+    "wingLinerSoftness": 0.14,
+    "wingLinerOuterMap": false,
+    "wingLinerInnerBlend": false,
+    "lashStyle": "wispy",
+    "lashIntensity": 0.72,
+    "lashDensity": 0.62,
+    "topLashesVisible": true,
+    "bottomLashesVisible": true,
+    "lashColorize": false,
+    "layerOrder": [
+      "eyeshadow",
+      "eyeliner",
+      "eyelashes"
+    ]
+  },
+  "browControls": {
+    "active": false,
+    "recolor": false,
+    "thickness": 0.5,
+    "lift": 0.5,
+    "softness": 0.2
+  },
+  "cheekControls": {
+    "active": false,
+    "recolor": false
+  },
+  "bronzerControls": {
+    "active": false,
+    "recolor": false,
+    "color": "#a9694c",
+    "intensity": 0.315
+  },
+  "contourControls": {
+    "active": false,
+    "recolor": false
+  },
+  "blurControls": {
+    "active": false,
+    "region": "whole-face",
+    "amount": 0.5
+  },
+  "lensControls": {
+    "active": false,
+    "recolor": false,
+    "intensity": 0.75,
+    "rimWidth": 0.5,
+    "inner": "#7fa6c9",
+    "outer": "#2f5d84",
+    "rim": "#101b28"
+  },
+  "guide": {
+    "schema": "tryonstudio.guide.v1",
+    "mode": "cumulative-or-isolated",
+    "steps": [
+      {
+        "order": 1,
+        "id": "lips",
+        "label": "Lipstick",
+        "control": "layer",
+        "region": "lips",
+        "layers": {
+          "lips": true,
+          "lipliner": false,
+          "eyes": false,
+          "cheeks": false,
+          "face": false,
+          "brows": false,
+          "liner": false,
+          "lashes": false,
+          "glitter": false,
+          "freckles": false
+        },
+        "only": {
+          "lips": true,
+          "lipliner": false,
+          "eyes": false,
+          "cheeks": false,
+          "face": false,
+          "brows": false,
+          "liner": false,
+          "lashes": false,
+          "glitter": false,
+          "freckles": false
+        },
+        "bronzer": false,
+        "blur": false,
+        "lens": false
+      }
+    ]
+  },
+  "presets": {
+    "schema": "tryonstudio.presets.v1",
+    "groups": [
+      {
+        "region": "lips",
+        "label": "Lip shade",
+        "defaultShadeId": "lips-mtxvs0o9",
+        "shades": [
+          {
+            "id": "lips-mtxvs0o9",
+            "name": "Shade 1",
+            "swatch": "#c85f83",
+            "set": {
+              "colour": "#c85f83",
+              "opacity": 0,
+              "finish": "glossy"
+            }
+          },
+          {
+            "id": "lips-mtxvtlf7",
+            "name": "Shade 2",
+            "swatch": "#d685a1",
+            "set": {
+              "colour": "#d685a1",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvufud",
+            "name": "Shade 3",
+            "swatch": "#b55a79",
+            "set": {
+              "colour": "#b55a79",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvuufu",
+            "name": "Shade 4",
+            "swatch": "#a22a52",
+            "set": {
+              "colour": "#a22a52",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvv3no",
+            "name": "Shade 5",
+            "swatch": "#b04a6c",
+            "set": {
+              "colour": "#b04a6c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvw0ua",
+            "name": "Shade 6",
+            "swatch": "#ce7d75",
+            "set": {
+              "colour": "#ce7d75",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvwb9c",
+            "name": "Shade 7",
+            "swatch": "#c97169",
+            "set": {
+              "colour": "#c97169",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvwn4r",
+            "name": "Shade 8",
+            "swatch": "#c5665c",
+            "set": {
+              "colour": "#c5665c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvx1y2",
+            "name": "Shade 9",
+            "swatch": "#c05a50",
+            "set": {
+              "colour": "#c05a50",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvxc0i",
+            "name": "Shade 10",
+            "swatch": "#bc4e43",
+            "set": {
+              "colour": "#bc4e43",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvxpc0",
+            "name": "Shade 11",
+            "swatch": "#760901",
+            "set": {
+              "colour": "#760901",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvy0kj",
+            "name": "Shade 12",
+            "swatch": "#ad1300",
+            "set": {
+              "colour": "#ad1300",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvygus",
+            "name": "Shade 13",
+            "swatch": "#f14b4b",
+            "set": {
+              "colour": "#f14b4b",
+              "opacity": 0.85,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvyrnt",
+            "name": "Shade 14",
+            "swatch": "#f27b7b",
+            "set": {
+              "colour": "#f27b7b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvz466",
+            "name": "Shade 15",
+            "swatch": "#dd5b67",
+            "set": {
+              "colour": "#dd5b67",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxvzro1",
+            "name": "Shade 16",
+            "swatch": "#c47e73",
+            "set": {
+              "colour": "#c47e73",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw02o2",
+            "name": "Shade 17",
+            "swatch": "#cc9581",
+            "set": {
+              "colour": "#cc9581",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw0pqj",
+            "name": "Shade 18",
+            "swatch": "#9f6a78",
+            "set": {
+              "colour": "#9f6a78",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw105k",
+            "name": "Shade 19",
+            "swatch": "#955667",
+            "set": {
+              "colour": "#955667",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw1han",
+            "name": "Shade 20",
+            "swatch": "#754554",
+            "set": {
+              "colour": "#754554",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw3cls",
+            "name": "Shade 21",
+            "swatch": "#f0979d",
+            "set": {
+              "colour": "#f0979d",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw3pmk",
+            "name": "Shade 22",
+            "swatch": "#e5868e",
+            "set": {
+              "colour": "#e5868e",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw3zcv",
+            "name": "Shade 23",
+            "swatch": "#d77d87",
+            "set": {
+              "colour": "#d77d87",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw4bvo",
+            "name": "Shade 24",
+            "swatch": "#d07177",
+            "set": {
+              "colour": "#d07177",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw4n5q",
+            "name": "Shade 25",
+            "swatch": "#cc6977",
+            "set": {
+              "colour": "#cc6977",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw4xxj",
+            "name": "Shade 26",
+            "swatch": "#c95d6c",
+            "set": {
+              "colour": "#c95d6c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw59nd",
+            "name": "Shade 27",
+            "swatch": "#c95d6c",
+            "set": {
+              "colour": "#c95d6c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw5mnf",
+            "name": "Shade 28",
+            "swatch": "#dca0a2",
+            "set": {
+              "colour": "#dca0a2",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw5xa7",
+            "name": "Shade 29",
+            "swatch": "#e39799",
+            "set": {
+              "colour": "#e39799",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw684n",
+            "name": "Shade 30",
+            "swatch": "#da8c8d",
+            "set": {
+              "colour": "#da8c8d",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw6jcn",
+            "name": "Shade 31",
+            "swatch": "#b96165",
+            "set": {
+              "colour": "#b96165",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxw6vm5",
+            "name": "Shade 32",
+            "swatch": "#a65d60",
+            "set": {
+              "colour": "#a65d60",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwb8kz",
+            "name": "Shade 33",
+            "swatch": "#d37776",
+            "set": {
+              "colour": "#d37776",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwc1y6",
+            "name": "Shade 34",
+            "swatch": "#cc7371",
+            "set": {
+              "colour": "#cc7371",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwcdtt",
+            "name": "Shade 35",
+            "swatch": "#d5706b",
+            "set": {
+              "colour": "#d5706b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwcqkl",
+            "name": "Shade 36",
+            "swatch": "#ea787a",
+            "set": {
+              "colour": "#ea787a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwd82b",
+            "name": "Shade 37",
+            "swatch": "#e16267",
+            "set": {
+              "colour": "#e16267",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwdpwe",
+            "name": "Shade 38",
+            "swatch": "#ce4f53",
+            "set": {
+              "colour": "#ce4f53",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwe4d4",
+            "name": "Shade 39",
+            "swatch": "#e62e2e",
+            "set": {
+              "colour": "#e62e2e",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxweijz",
+            "name": "Shade 40",
+            "swatch": "#c22121",
+            "set": {
+              "colour": "#c22121",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwet19",
+            "name": "Shade 41",
+            "swatch": "#b52226",
+            "set": {
+              "colour": "#b52226",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwf9c8",
+            "name": "Shade 42",
+            "swatch": "#be3b40",
+            "set": {
+              "colour": "#be3b40",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwgq5f",
+            "name": "Shade 43",
+            "swatch": "#ab393f",
+            "set": {
+              "colour": "#ab393f",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwh214",
+            "name": "Shade 44",
+            "swatch": "#a42a27",
+            "set": {
+              "colour": "#a42a27",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwhpkx",
+            "name": "Shade 45",
+            "swatch": "#ad5e57",
+            "set": {
+              "colour": "#ad5e57",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwiz5e",
+            "name": "Shade 46",
+            "swatch": "#ae5e59",
+            "set": {
+              "colour": "#ae5e59",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwjcnb",
+            "name": "Shade 47",
+            "swatch": "#b2625f",
+            "set": {
+              "colour": "#b2625f",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwjmbe",
+            "name": "Shade 48",
+            "swatch": "#bb4f4b",
+            "set": {
+              "colour": "#bb4f4b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwjvk3",
+            "name": "Shade 49",
+            "swatch": "#a74741",
+            "set": {
+              "colour": "#a74741",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwkbl6",
+            "name": "Shade 50",
+            "swatch": "#d52820",
+            "set": {
+              "colour": "#d52820",
+              "opacity": 0.89,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwkp8i",
+            "name": "Shade 51",
+            "swatch": "#c83731",
+            "set": {
+              "colour": "#c83731",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwl3ex",
+            "name": "Shade 52",
+            "swatch": "#c5322b",
+            "set": {
+              "colour": "#c5322b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwlnou",
+            "name": "Shade 53",
+            "swatch": "#c52b4a",
+            "set": {
+              "colour": "#c52b4a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwn477",
+            "name": "Shade 54",
+            "swatch": "#cc5e53",
+            "set": {
+              "colour": "#cc5e53",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwnp5e",
+            "name": "Shade 55",
+            "swatch": "#d18272",
+            "set": {
+              "colour": "#d18272",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwnzyk",
+            "name": "Shade 56",
+            "swatch": "#b36858",
+            "set": {
+              "colour": "#b36858",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwoaud",
+            "name": "Shade 57",
+            "swatch": "#9e5247",
+            "set": {
+              "colour": "#9e5247",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwom0j",
+            "name": "Shade 58",
+            "swatch": "#91453e",
+            "set": {
+              "colour": "#91453e",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwow19",
+            "name": "Shade 59",
+            "swatch": "#8d3c30",
+            "set": {
+              "colour": "#8d3c30",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwpd60",
+            "name": "Shade 60",
+            "swatch": "#893025",
+            "set": {
+              "colour": "#893025",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwpm9l",
+            "name": "Shade 61",
+            "swatch": "#893024",
+            "set": {
+              "colour": "#893024",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwpuw1",
+            "name": "Shade 62",
+            "swatch": "#78251d",
+            "set": {
+              "colour": "#78251d",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwq4ul",
+            "name": "Shade 63",
+            "swatch": "#6a1f19",
+            "set": {
+              "colour": "#6a1f19",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwqfgq",
+            "name": "Shade 64",
+            "swatch": "#652117",
+            "set": {
+              "colour": "#652117",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwqtke",
+            "name": "Shade 65",
+            "swatch": "#5e3028",
+            "set": {
+              "colour": "#5e3028",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwr8dd",
+            "name": "Shade 66",
+            "swatch": "#a1645f",
+            "set": {
+              "colour": "#a1645f",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwrilw",
+            "name": "Shade 67",
+            "swatch": "#793835",
+            "set": {
+              "colour": "#793835",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwrqve",
+            "name": "Shade 68",
+            "swatch": "#4e1c18",
+            "set": {
+              "colour": "#4e1c18",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwrzji",
+            "name": "Shade 69",
+            "swatch": "#8a6c68",
+            "set": {
+              "colour": "#8a6c68",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwsija",
+            "name": "Shade 70",
+            "swatch": "#805651",
+            "set": {
+              "colour": "#805651",
+              "opacity": 0.86,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwsvt6",
+            "name": "Shade 71",
+            "swatch": "#b98376",
+            "set": {
+              "colour": "#b98376",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwt5ar",
+            "name": "Shade 72",
+            "swatch": "#b2786b",
+            "set": {
+              "colour": "#b2786b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwtg11",
+            "name": "Shade 73",
+            "swatch": "#a2655a",
+            "set": {
+              "colour": "#a2655a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwtszl",
+            "name": "Shade 74",
+            "swatch": "#935a53",
+            "set": {
+              "colour": "#935a53",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwu1gq",
+            "name": "Shade 75",
+            "swatch": "#8f4d41",
+            "set": {
+              "colour": "#8f4d41",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwug7a",
+            "name": "Shade 76",
+            "swatch": "#9a6d5a",
+            "set": {
+              "colour": "#9a6d5a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwupul",
+            "name": "Shade 77",
+            "swatch": "#915937",
+            "set": {
+              "colour": "#915937",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwvy17",
+            "name": "Shade 78",
+            "swatch": "#e5a58d",
+            "set": {
+              "colour": "#e5a58d",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxww6gs",
+            "name": "Shade 79",
+            "swatch": "#dea493",
+            "set": {
+              "colour": "#dea493",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwwgfy",
+            "name": "Shade 80",
+            "swatch": "#cb9983",
+            "set": {
+              "colour": "#cb9983",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwwuyr",
+            "name": "Shade 81",
+            "swatch": "#c58575",
+            "set": {
+              "colour": "#c58575",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwx5hg",
+            "name": "Shade 82",
+            "swatch": "#c38077",
+            "set": {
+              "colour": "#c38077",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwxgi7",
+            "name": "Shade 83",
+            "swatch": "#c28178",
+            "set": {
+              "colour": "#c28178",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwxsbc",
+            "name": "Shade 84",
+            "swatch": "#c9846e",
+            "set": {
+              "colour": "#c9846e",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwy3en",
+            "name": "Shade 85",
+            "swatch": "#c8806c",
+            "set": {
+              "colour": "#c8806c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwyexz",
+            "name": "Shade 86",
+            "swatch": "#d8907b",
+            "set": {
+              "colour": "#d8907b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwyq1d",
+            "name": "Shade 87",
+            "swatch": "#dd8d74",
+            "set": {
+              "colour": "#dd8d74",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwzali",
+            "name": "Shade 88",
+            "swatch": "#b57d65",
+            "set": {
+              "colour": "#b57d65",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwzk8c",
+            "name": "Shade 89",
+            "swatch": "#ae775a",
+            "set": {
+              "colour": "#ae775a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxwzyba",
+            "name": "Shade 90",
+            "swatch": "#af765c",
+            "set": {
+              "colour": "#af765c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx07ip",
+            "name": "Shade 91",
+            "swatch": "#af6e56",
+            "set": {
+              "colour": "#af6e56",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx0idk",
+            "name": "Shade 92",
+            "swatch": "#9d5b46",
+            "set": {
+              "colour": "#9d5b46",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx0svk",
+            "name": "Shade 93",
+            "swatch": "#a96050",
+            "set": {
+              "colour": "#a96050",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx138t",
+            "name": "Shade 94",
+            "swatch": "#b86348",
+            "set": {
+              "colour": "#b86348",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx1clq",
+            "name": "Shade 95",
+            "swatch": "#a8563b",
+            "set": {
+              "colour": "#a8563b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx1osr",
+            "name": "Shade 96",
+            "swatch": "#90533e",
+            "set": {
+              "colour": "#90533e",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx20h6",
+            "name": "Shade 97",
+            "swatch": "#8c4d38",
+            "set": {
+              "colour": "#8c4d38",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx2a5l",
+            "name": "Shade 98",
+            "swatch": "#994938",
+            "set": {
+              "colour": "#994938",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx2sg2",
+            "name": "Shade 99",
+            "swatch": "#ed5e37",
+            "set": {
+              "colour": "#ed5e37",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx317n",
+            "name": "Shade 100",
+            "swatch": "#e35931",
+            "set": {
+              "colour": "#e35931",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx3cpc",
+            "name": "Shade 101",
+            "swatch": "#d85940",
+            "set": {
+              "colour": "#d85940",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx3on0",
+            "name": "Shade 102",
+            "swatch": "#cd5342",
+            "set": {
+              "colour": "#cd5342",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx425o",
+            "name": "Shade 103",
+            "swatch": "#c95947",
+            "set": {
+              "colour": "#c95947",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx4ema",
+            "name": "Shade 104",
+            "swatch": "#d1432f",
+            "set": {
+              "colour": "#d1432f",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx4rpa",
+            "name": "Shade 105",
+            "swatch": "#b4553e",
+            "set": {
+              "colour": "#b4553e",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx5jpn",
+            "name": "Shade 106",
+            "swatch": "#d09993",
+            "set": {
+              "colour": "#d09993",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx5uep",
+            "name": "Shade 107",
+            "swatch": "#c8918e",
+            "set": {
+              "colour": "#c8918e",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx655t",
+            "name": "Shade 108",
+            "swatch": "#ca8883",
+            "set": {
+              "colour": "#ca8883",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx6fwb",
+            "name": "Shade 109",
+            "swatch": "#bc6860",
+            "set": {
+              "colour": "#bc6860",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx73x9",
+            "name": "Shade 110",
+            "swatch": "#ef9877",
+            "set": {
+              "colour": "#ef9877",
+              "opacity": 0.88,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx7f1l",
+            "name": "Shade 111",
+            "swatch": "#ea775c",
+            "set": {
+              "colour": "#ea775c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx7phj",
+            "name": "Shade 112",
+            "swatch": "#da6b4c",
+            "set": {
+              "colour": "#da6b4c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx8nt7",
+            "name": "Shade 113",
+            "swatch": "#ce5a5a",
+            "set": {
+              "colour": "#ce5a5a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx9djd",
+            "name": "Shade 114",
+            "swatch": "#ce5a6b",
+            "set": {
+              "colour": "#ce5a6b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxx9qrc",
+            "name": "Shade 115",
+            "swatch": "#ce5b96",
+            "set": {
+              "colour": "#ce5b96",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxa1l1",
+            "name": "Shade 116",
+            "swatch": "#c66391",
+            "set": {
+              "colour": "#c66391",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxacb0",
+            "name": "Shade 117",
+            "swatch": "#c5637b",
+            "set": {
+              "colour": "#c5637b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxarne",
+            "name": "Shade 118",
+            "swatch": "#c56380",
+            "set": {
+              "colour": "#c56380",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxb56n",
+            "name": "Shade 119",
+            "swatch": "#c66391",
+            "set": {
+              "colour": "#c66391",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxbma2",
+            "name": "Shade 120",
+            "swatch": "#c0596d",
+            "set": {
+              "colour": "#c0596d",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxby5c",
+            "name": "Shade 121",
+            "swatch": "#c0588a",
+            "set": {
+              "colour": "#c0588a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxc7hu",
+            "name": "Shade 122",
+            "swatch": "#a65377",
+            "set": {
+              "colour": "#a65377",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxd3oc",
+            "name": "Shade 123",
+            "swatch": "#de4a93",
+            "set": {
+              "colour": "#de4a93",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxdef5",
+            "name": "Shade 124",
+            "swatch": "#de4a68",
+            "set": {
+              "colour": "#de4a68",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxdph1",
+            "name": "Shade 125",
+            "swatch": "#de4a76",
+            "set": {
+              "colour": "#de4a76",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxe0fr",
+            "name": "Shade 126",
+            "swatch": "#de4a4a",
+            "set": {
+              "colour": "#de4a4a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxejwg",
+            "name": "Shade 127",
+            "swatch": "#d42b55",
+            "set": {
+              "colour": "#d42b55",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxeuhf",
+            "name": "Shade 128",
+            "swatch": "#d42b6f",
+            "set": {
+              "colour": "#d42b6f",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxf9hp",
+            "name": "Shade 129",
+            "swatch": "#bd3d57",
+            "set": {
+              "colour": "#bd3d57",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxft5e",
+            "name": "Shade 130",
+            "swatch": "#c13e84",
+            "set": {
+              "colour": "#c13e84",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxg9yl",
+            "name": "Shade 131",
+            "swatch": "#c16e8b",
+            "set": {
+              "colour": "#c16e8b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxgl67",
+            "name": "Shade 132",
+            "swatch": "#bf6588",
+            "set": {
+              "colour": "#bf6588",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxgydb",
+            "name": "Shade 133",
+            "swatch": "#be6476",
+            "set": {
+              "colour": "#be6476",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxh9ut",
+            "name": "Shade 134",
+            "swatch": "#be6499",
+            "set": {
+              "colour": "#be6499",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxhjtr",
+            "name": "Shade 135",
+            "swatch": "#c06589",
+            "set": {
+              "colour": "#c06589",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxhyp0",
+            "name": "Shade 136",
+            "swatch": "#bc6182",
+            "set": {
+              "colour": "#bc6182",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxi9im",
+            "name": "Shade 137",
+            "swatch": "#a74a6a",
+            "set": {
+              "colour": "#a74a6a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxikbh",
+            "name": "Shade 138",
+            "swatch": "#a14361",
+            "set": {
+              "colour": "#a14361",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxj1fg",
+            "name": "Shade 139",
+            "swatch": "#d87494",
+            "set": {
+              "colour": "#d87494",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxkqd3",
+            "name": "Shade 140",
+            "swatch": "#d3668d",
+            "set": {
+              "colour": "#d3668d",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxlan5",
+            "name": "Shade 141",
+            "swatch": "#dc5e8e",
+            "set": {
+              "colour": "#dc5e8e",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxln2u",
+            "name": "Shade 142",
+            "swatch": "#d25987",
+            "set": {
+              "colour": "#d25987",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxmra3",
+            "name": "Shade 143",
+            "swatch": "#91719b",
+            "set": {
+              "colour": "#91719b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxn1l2",
+            "name": "Shade 144",
+            "swatch": "#866a8b",
+            "set": {
+              "colour": "#866a8b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxncw6",
+            "name": "Shade 145",
+            "swatch": "#9f77b8",
+            "set": {
+              "colour": "#9f77b8",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxnnr8",
+            "name": "Shade 146",
+            "swatch": "#723b96",
+            "set": {
+              "colour": "#723b96",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxo5pu",
+            "name": "Shade 147",
+            "swatch": "#d77ddf",
+            "set": {
+              "colour": "#d77ddf",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxouov",
+            "name": "Shade 148",
+            "swatch": "#9d30a9",
+            "set": {
+              "colour": "#9d30a9",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxpc7g",
+            "name": "Shade 149",
+            "swatch": "#862f88",
+            "set": {
+              "colour": "#862f88",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxppoe",
+            "name": "Shade 150",
+            "swatch": "#75327c",
+            "set": {
+              "colour": "#75327c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxqe6w",
+            "name": "Shade 151",
+            "swatch": "#84244b",
+            "set": {
+              "colour": "#84244b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxqtip",
+            "name": "Shade 152",
+            "swatch": "#5a1845",
+            "set": {
+              "colour": "#5a1845",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxrigt",
+            "name": "Shade 153",
+            "swatch": "#9b3179",
+            "set": {
+              "colour": "#9b3179",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxs6a3",
+            "name": "Shade 154",
+            "swatch": "#cf8c8c",
+            "set": {
+              "colour": "#cf8c8c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxsn99",
+            "name": "Shade 155",
+            "swatch": "#d9689f",
+            "set": {
+              "colour": "#d9689f",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxt7lq",
+            "name": "Shade 156",
+            "swatch": "#994d75",
+            "set": {
+              "colour": "#994d75",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxtr9h",
+            "name": "Shade 157",
+            "swatch": "#c66392",
+            "set": {
+              "colour": "#c66392",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxuw3b",
+            "name": "Shade 158",
+            "swatch": "#da912b",
+            "set": {
+              "colour": "#da912b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxvqkn",
+            "name": "Shade 159",
+            "swatch": "#bf7541",
+            "set": {
+              "colour": "#bf7541",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxw5oh",
+            "name": "Shade 160",
+            "swatch": "#b97a46",
+            "set": {
+              "colour": "#b97a46",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxwqwg",
+            "name": "Shade 161",
+            "swatch": "#996e58",
+            "set": {
+              "colour": "#996e58",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxx0hi",
+            "name": "Shade 162",
+            "swatch": "#925936",
+            "set": {
+              "colour": "#925936",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxxzz5",
+            "name": "Shade 163",
+            "swatch": "#83cbc2",
+            "set": {
+              "colour": "#83cbc2",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxydg6",
+            "name": "Shade 164",
+            "swatch": "#75caf3",
+            "set": {
+              "colour": "#75caf3",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxxyrn4",
+            "name": "Shade 165",
+            "swatch": "#3061b7",
+            "set": {
+              "colour": "#3061b7",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy08sq",
+            "name": "Shade 166",
+            "swatch": "#b14b66",
+            "set": {
+              "colour": "#b14b66",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy0ick",
+            "name": "Shade 167",
+            "swatch": "#ce807c",
+            "set": {
+              "colour": "#ce807c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy0wwn",
+            "name": "Shade 168",
+            "swatch": "#cf7d85",
+            "set": {
+              "colour": "#cf7d85",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy1hs2",
+            "name": "Shade 169",
+            "swatch": "#bc5b64",
+            "set": {
+              "colour": "#bc5b64",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy1rje",
+            "name": "Shade 170",
+            "swatch": "#cb506d",
+            "set": {
+              "colour": "#cb506d",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy22sm",
+            "name": "Shade 171",
+            "swatch": "#ba5c61",
+            "set": {
+              "colour": "#ba5c61",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy2fdq",
+            "name": "Shade 172",
+            "swatch": "#cb516a",
+            "set": {
+              "colour": "#cb516a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy2pwt",
+            "name": "Shade 173",
+            "swatch": "#c66f7f",
+            "set": {
+              "colour": "#c66f7f",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy2zdp",
+            "name": "Shade 174",
+            "swatch": "#a25758",
+            "set": {
+              "colour": "#a25758",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy3b5f",
+            "name": "Shade 175",
+            "swatch": "#bf7471",
+            "set": {
+              "colour": "#bf7471",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy3mmf",
+            "name": "Shade 176",
+            "swatch": "#c1827d",
+            "set": {
+              "colour": "#c1827d",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy3x19",
+            "name": "Shade 177",
+            "swatch": "#d73947",
+            "set": {
+              "colour": "#d73947",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy469y",
+            "name": "Shade 178",
+            "swatch": "#ba526f",
+            "set": {
+              "colour": "#ba526f",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy4vk0",
+            "name": "Shade 179",
+            "swatch": "#b6193c",
+            "set": {
+              "colour": "#b6193c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy54v6",
+            "name": "Shade 180",
+            "swatch": "#ad3060",
+            "set": {
+              "colour": "#ad3060",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy5f9q",
+            "name": "Shade 181",
+            "swatch": "#ac2f42",
+            "set": {
+              "colour": "#ac2f42",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy631s",
+            "name": "Shade 182",
+            "swatch": "#ab5568",
+            "set": {
+              "colour": "#ab5568",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy6ei6",
+            "name": "Shade 183",
+            "swatch": "#814638",
+            "set": {
+              "colour": "#814638",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy6wxo",
+            "name": "Shade 184",
+            "swatch": "#8a222e",
+            "set": {
+              "colour": "#8a222e",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy7h9v",
+            "name": "Shade 185",
+            "swatch": "#ae5343",
+            "set": {
+              "colour": "#ae5343",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy7qz6",
+            "name": "Shade 186",
+            "swatch": "#81242c",
+            "set": {
+              "colour": "#81242c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy8aks",
+            "name": "Shade 187",
+            "swatch": "#992f33",
+            "set": {
+              "colour": "#992f33",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy8r1f",
+            "name": "Shade 188",
+            "swatch": "#a43a4a",
+            "set": {
+              "colour": "#a43a4a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy9849",
+            "name": "Shade 189",
+            "swatch": "#873c3b",
+            "set": {
+              "colour": "#873c3b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxy9s3w",
+            "name": "Shade 190",
+            "swatch": "#b04d48",
+            "set": {
+              "colour": "#b04d48",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxya21x",
+            "name": "Shade 191",
+            "swatch": "#d6635c",
+            "set": {
+              "colour": "#d6635c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyacl4",
+            "name": "Shade 192",
+            "swatch": "#d67a7b",
+            "set": {
+              "colour": "#d67a7b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyapw6",
+            "name": "Shade 193",
+            "swatch": "#843a2f",
+            "set": {
+              "colour": "#843a2f",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxybaj7",
+            "name": "Shade 194",
+            "swatch": "#611c21",
+            "set": {
+              "colour": "#611c21",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxybla9",
+            "name": "Shade 195",
+            "swatch": "#a04a47",
+            "set": {
+              "colour": "#a04a47",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxycetp",
+            "name": "Shade 196",
+            "swatch": "#db9d90",
+            "set": {
+              "colour": "#db9d90",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxycs2b",
+            "name": "Shade 197",
+            "swatch": "#c3696a",
+            "set": {
+              "colour": "#c3696a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyd1e9",
+            "name": "Shade 198",
+            "swatch": "#a7434b",
+            "set": {
+              "colour": "#a7434b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyd9ui",
+            "name": "Shade 199",
+            "swatch": "#a11115",
+            "set": {
+              "colour": "#a11115",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxydj6b",
+            "name": "Shade 200",
+            "swatch": "#cc5d57",
+            "set": {
+              "colour": "#cc5d57",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxye0l5",
+            "name": "Shade 201",
+            "swatch": "#ca7465",
+            "set": {
+              "colour": "#ca7465",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyei1c",
+            "name": "Shade 202",
+            "swatch": "#c0746c",
+            "set": {
+              "colour": "#c0746c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyequ9",
+            "name": "Shade 203",
+            "swatch": "#b7645e",
+            "set": {
+              "colour": "#b7645e",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyezts",
+            "name": "Shade 204",
+            "swatch": "#a14541",
+            "set": {
+              "colour": "#a14541",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyf9eo",
+            "name": "Shade 205",
+            "swatch": "#a24740",
+            "set": {
+              "colour": "#a24740",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyj0wy",
+            "name": "Shade 206",
+            "swatch": "#bc2b25",
+            "set": {
+              "colour": "#bc2b25",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyjbyd",
+            "name": "Shade 207",
+            "swatch": "#d32351",
+            "set": {
+              "colour": "#d32351",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyjjsl",
+            "name": "Shade 208",
+            "swatch": "#e82e85",
+            "set": {
+              "colour": "#e82e85",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyjt91",
+            "name": "Shade 209",
+            "swatch": "#e4253c",
+            "set": {
+              "colour": "#e4253c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyk34i",
+            "name": "Shade 210",
+            "swatch": "#ef4a65",
+            "set": {
+              "colour": "#ef4a65",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxykg9j",
+            "name": "Shade 211",
+            "swatch": "#f6586c",
+            "set": {
+              "colour": "#f6586c",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxykpa3",
+            "name": "Shade 212",
+            "swatch": "#e93d31",
+            "set": {
+              "colour": "#e93d31",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxykzhz",
+            "name": "Shade 213",
+            "swatch": "#f28f86",
+            "set": {
+              "colour": "#f28f86",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyla9y",
+            "name": "Shade 214",
+            "swatch": "#e87f8d",
+            "set": {
+              "colour": "#e87f8d",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxylq48",
+            "name": "Shade 215",
+            "swatch": "#d4607a",
+            "set": {
+              "colour": "#d4607a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxymdxl",
+            "name": "Shade 216",
+            "swatch": "#e1356a",
+            "set": {
+              "colour": "#e1356a",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxymxyc",
+            "name": "Shade 217",
+            "swatch": "#bf4652",
+            "set": {
+              "colour": "#bf4652",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyn85k",
+            "name": "Shade 218",
+            "swatch": "#e86c93",
+            "set": {
+              "colour": "#e86c93",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxynq3q",
+            "name": "Shade 219",
+            "swatch": "#bd686d",
+            "set": {
+              "colour": "#bd686d",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyoe9t",
+            "name": "Shade 220",
+            "swatch": "#d79a94",
+            "set": {
+              "colour": "#d79a94",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyph7q",
+            "name": "Shade 221",
+            "swatch": "#ac3341",
+            "set": {
+              "colour": "#ac3341",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxypyc0",
+            "name": "Shade 222",
+            "swatch": "#f7201b",
+            "set": {
+              "colour": "#f7201b",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyqe90",
+            "name": "Shade 223",
+            "swatch": "#dc3b42",
+            "set": {
+              "colour": "#dc3b42",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyrkhj",
+            "name": "Shade 224",
+            "swatch": "#d71c42",
+            "set": {
+              "colour": "#d71c42",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyrwfb",
+            "name": "Shade 225",
+            "swatch": "#970f1d",
+            "set": {
+              "colour": "#970f1d",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxys9qb",
+            "name": "Shade 226",
+            "swatch": "#c91835",
+            "set": {
+              "colour": "#c91835",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxysrzl",
+            "name": "Shade 227",
+            "swatch": "#ab1224",
+            "set": {
+              "colour": "#ab1224",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyt9n7",
+            "name": "Shade 228",
+            "swatch": "#ab1621",
+            "set": {
+              "colour": "#ab1621",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxytl9t",
+            "name": "Shade 229",
+            "swatch": "#a8151e",
+            "set": {
+              "colour": "#a8151e",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyvcn8",
+            "name": "Shade 230",
+            "swatch": "#ed1e25",
+            "set": {
+              "colour": "#ed1e25",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyvlx3",
+            "name": "Shade 231",
+            "swatch": "#960f17",
+            "set": {
+              "colour": "#960f17",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyvxxw",
+            "name": "Shade 232",
+            "swatch": "#c91822",
+            "set": {
+              "colour": "#c91822",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxyw8w8",
+            "name": "Shade 233",
+            "swatch": "#800b00",
+            "set": {
+              "colour": "#800b00",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          },
+          {
+            "id": "lips-mtxywsuw",
+            "name": "Shade 234",
+            "swatch": "#b22223",
+            "set": {
+              "colour": "#b22223",
+              "opacity": 0.9,
+              "finish": "satin"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "lightingControls": {
+    "mode": "day",
+    "selfieLight": false,
+    "exposure": 0,
+    "warmth": 0,
+    "contrast": 0,
+    "denoise": 0
+  },
+  "mobileRenderer": {
+    "schema": "tryonstudio.mobile-renderer-profile.v1",
+    "lipPreviewMode": "native",
+    "persistPhonePreviewMode": true,
+    "useMacbookLipCameraPass": false,
+    "macbookLipCameraPass": {
+      "enabled": false,
+      "source": "live native camera frame clipped to adaptive lip mesh",
+      "outerExpansionScale": 1.012,
+      "outerExpansionPerFaceScale": 0.000045,
+      "cameraFilter": {
+        "blurPerFaceScale": 0.0024,
+        "blurMinimumPx": 0.7,
+        "saturate": 0.8,
+        "contrast": 0.92,
+        "brightness": 0.995
+      },
+      "innerCutout": {
+        "blurPerFaceScale": 0.0024,
+        "blurMinimumPx": 0.95
+      },
+      "lipTint": {
+        "sourceInAlpha": 0.075,
+        "colorModel": "macbookNaturalLipColor"
+      },
+      "grain": {
+        "assetSlot": null,
+        "size": 96,
+        "seed": 128137,
+        "valueRange": [
+          116,
+          143
+        ],
+        "softLightAlpha": 0.075,
+        "overlayAlpha": 0.032,
+        "xScrollFactor": -0.35,
+        "yScrollFactor": -0.22
+      },
+      "composite": {
+        "globalAlpha": 0.42,
+        "featherPerFaceScale": 0.0028,
+        "featherMinimumPx": 0.9
+      }
+    },
+    "nativeLipProfile": {
+      "linerSpread": "tight",
+      "linerSoftBlurScale": 0.52,
+      "linerBlendClamp": 0.58,
+      "linerMeltClamp": 0.62
+    }
+  },
+  "mesh": {
+    "lipsOuter": [
+      61,
+      185,
+      40,
+      39,
+      37,
+      0,
+      267,
+      269,
+      270,
+      409,
+      291,
+      375,
+      321,
+      405,
+      314,
+      17,
+      84,
+      181,
+      91,
+      146
+    ],
+    "lipsInner": [
+      78,
+      191,
+      80,
+      81,
+      82,
+      13,
+      312,
+      311,
+      310,
+      415,
+      308,
+      324,
+      318,
+      402,
+      317,
+      14,
+      87,
+      178,
+      88,
+      95
+    ],
+    "lipsUpperOuter": [
+      61,
+      185,
+      40,
+      39,
+      37,
+      0,
+      267,
+      269,
+      270,
+      409,
+      291
+    ],
+    "lipsUpperInner": [
+      78,
+      191,
+      80,
+      81,
+      82,
+      13,
+      312,
+      311,
+      310,
+      415,
+      308
+    ],
+    "lipsLowerOuter": [
+      61,
+      146,
+      91,
+      181,
+      84,
+      17,
+      314,
+      405,
+      321,
+      375,
+      291
+    ],
+    "lipsLowerInner": [
+      78,
+      95,
+      88,
+      178,
+      87,
+      14,
+      317,
+      402,
+      318,
+      324,
+      308
+    ],
+    "uv": {
+      "0": {
+        "x": 0.5,
+        "y": 0.16
+      },
+      "13": {
+        "x": 0.5,
+        "y": 0.34
+      },
+      "14": {
+        "x": 0.5,
+        "y": 0.66
+      },
+      "17": {
+        "x": 0.5,
+        "y": 0.84
+      },
+      "37": {
+        "x": 0.46,
+        "y": 0.17
+      },
+      "39": {
+        "x": 0.38,
+        "y": 0.2
+      },
+      "40": {
+        "x": 0.28,
+        "y": 0.27
+      },
+      "61": {
+        "x": 0.12,
+        "y": 0.5
+      },
+      "78": {
+        "x": 0.2,
+        "y": 0.5
+      },
+      "80": {
+        "x": 0.33,
+        "y": 0.39
+      },
+      "81": {
+        "x": 0.42,
+        "y": 0.36
+      },
+      "82": {
+        "x": 0.48,
+        "y": 0.35
+      },
+      "84": {
+        "x": 0.46,
+        "y": 0.82
+      },
+      "87": {
+        "x": 0.48,
+        "y": 0.65
+      },
+      "88": {
+        "x": 0.33,
+        "y": 0.61
+      },
+      "91": {
+        "x": 0.28,
+        "y": 0.72
+      },
+      "95": {
+        "x": 0.24,
+        "y": 0.57
+      },
+      "146": {
+        "x": 0.18,
+        "y": 0.63
+      },
+      "178": {
+        "x": 0.42,
+        "y": 0.64
+      },
+      "181": {
+        "x": 0.38,
+        "y": 0.78
+      },
+      "185": {
+        "x": 0.18,
+        "y": 0.36
+      },
+      "191": {
+        "x": 0.24,
+        "y": 0.43
+      },
+      "267": {
+        "x": 0.54,
+        "y": 0.17
+      },
+      "269": {
+        "x": 0.62,
+        "y": 0.2
+      },
+      "270": {
+        "x": 0.72,
+        "y": 0.27
+      },
+      "291": {
+        "x": 0.88,
+        "y": 0.5
+      },
+      "308": {
+        "x": 0.8,
+        "y": 0.5
+      },
+      "310": {
+        "x": 0.67,
+        "y": 0.39
+      },
+      "311": {
+        "x": 0.58,
+        "y": 0.36
+      },
+      "312": {
+        "x": 0.52,
+        "y": 0.35
+      },
+      "314": {
+        "x": 0.54,
+        "y": 0.82
+      },
+      "317": {
+        "x": 0.52,
+        "y": 0.65
+      },
+      "318": {
+        "x": 0.67,
+        "y": 0.61
+      },
+      "321": {
+        "x": 0.72,
+        "y": 0.72
+      },
+      "324": {
+        "x": 0.76,
+        "y": 0.57
+      },
+      "375": {
+        "x": 0.82,
+        "y": 0.63
+      },
+      "402": {
+        "x": 0.58,
+        "y": 0.64
+      },
+      "405": {
+        "x": 0.62,
+        "y": 0.78
+      },
+      "409": {
+        "x": 0.82,
+        "y": 0.36
+      },
+      "415": {
+        "x": 0.76,
+        "y": 0.43
+      }
+    },
+    "triangles": [
+      [
+        61,
+        185,
+        191
+      ],
+      [
+        61,
+        191,
+        78
+      ],
+      [
+        185,
+        40,
+        80
+      ],
+      [
+        185,
+        80,
+        191
+      ],
+      [
+        40,
+        39,
+        81
+      ],
+      [
+        40,
+        81,
+        80
+      ],
+      [
+        39,
+        37,
+        82
+      ],
+      [
+        39,
+        82,
+        81
+      ],
+      [
+        37,
+        0,
+        13
+      ],
+      [
+        37,
+        13,
+        82
+      ],
+      [
+        0,
+        267,
+        312
+      ],
+      [
+        0,
+        312,
+        13
+      ],
+      [
+        267,
+        269,
+        311
+      ],
+      [
+        267,
+        311,
+        312
+      ],
+      [
+        269,
+        270,
+        310
+      ],
+      [
+        269,
+        310,
+        311
+      ],
+      [
+        270,
+        409,
+        415
+      ],
+      [
+        270,
+        415,
+        310
+      ],
+      [
+        409,
+        291,
+        308
+      ],
+      [
+        409,
+        308,
+        415
+      ],
+      [
+        61,
+        146,
+        95
+      ],
+      [
+        61,
+        95,
+        78
+      ],
+      [
+        146,
+        91,
+        88
+      ],
+      [
+        146,
+        88,
+        95
+      ],
+      [
+        91,
+        181,
+        178
+      ],
+      [
+        91,
+        178,
+        88
+      ],
+      [
+        181,
+        84,
+        87
+      ],
+      [
+        181,
+        87,
+        178
+      ],
+      [
+        84,
+        17,
+        14
+      ],
+      [
+        84,
+        14,
+        87
+      ],
+      [
+        17,
+        314,
+        317
+      ],
+      [
+        17,
+        317,
+        14
+      ],
+      [
+        314,
+        405,
+        402
+      ],
+      [
+        314,
+        402,
+        317
+      ],
+      [
+        405,
+        321,
+        318
+      ],
+      [
+        405,
+        318,
+        402
+      ],
+      [
+        321,
+        375,
+        324
+      ],
+      [
+        321,
+        324,
+        318
+      ],
+      [
+        375,
+        291,
+        308
+      ],
+      [
+        375,
+        308,
+        324
+      ]
+    ]
+  },
+  "assets": [
+    {
+      "region": "lips",
+      "slot": "lips",
+      "src": "/assets/effect-house/textures-subtlewhitelipscolor-png.png",
+      "filename": "textures-subtlewhitelipscolor-png.png",
+      "mimeType": "image/png",
+      "dataUrl": "data:image/png;base64,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",
+      "blendMode": "mesh-multiply-with-tint"
+    }
+  ],
+  "appRuntime": {
+    "schema": "tryonstudio.runtime-contract.v1",
+    "rendererId": "tryonstudio-mobile-renderer",
+    "minimumRendererVersion": "1.0.0",
+    "deepARCompatible": false,
+    "trackerRequired": {
+      "type": "468-point face mesh",
+      "coordinateSpace": "normalized mirrored selfie landmarks",
+      "preferred": "MediaPipe Face Landmarker"
+    },
+    "renderInputs": [
+      "native camera frame",
+      "468 tracked face landmarks",
+      "filter.look.palette",
+      "filter.layers",
+      "filter.lipControls",
+      "filter.eyeControls",
+      "filter.browControls",
+      "filter.cheekControls",
+      "filter.bronzerControls",
+      "filter.contourControls",
+      "filter.blurControls",
+      "filter.lensControls",
+      "filter.guide",
+      "filter.mobileRenderer",
+      "filter.mesh.uv",
+      "filter.mesh.triangles",
+      "filter.assets"
+    ],
+    "loadRules": [
+      "Do not pass .tryonfilter or .tryonplugin.zip files to DeepAR switchEffect or switchEffectWithSlot.",
+      "Decode the filter JSON first, then draw the texture mesh over the native camera frame.",
+      "Render custom lip layerOrder as lipstick, optional shimmer, lip liner, then final gloss; gloss uses the centred gloss UV remap.",
+      "Use .deepar only for compiled DeepAR effects; use TryOn Studio runtime for these saved looks.",
+      "To play a look one layer at a time (a guide), walk filter.guide.steps in order. Each step is one product in the order it would be applied. Apply step.layers together with step.blur, step.bronzer and step.lens to build the look up to that point; apply step.only with the same three flags to show that one layer by itself. The final step reproduces the whole look.",
+      "Do not derive an order from filter.layers - it is an unordered map of booleans. filter.guide.steps is the only ordering in the file, and it already omits layers this look does not use."
+    ]
+  },
+  "iosRuntime": {
+    "decode": "Parse JSON, decode each assets[].dataUrl to UIImage/CGImage, then render texture triangles using mesh.uv and mesh.triangles over the tracked face landmarks.",
+    "colour": "Use look.palette.lips and look.palette.lipliner as tint colours, lipControls.shimmerColor for pearl shimmer, and lipControls.blend, lipControls.textureDetail, lipControls.shimmer, lipControls.gloss and lipControls.sheer controlling opacity. Use eyeControls for eyeshadow style, shade count, custom colours, liner shape, lash style, and optional iris colour. If lipControls.lipColourMode is 'independent', render liner as a rim/inward blend only and do not tint the lipstick base with the liner texture. If it is 'blended', the liner may softly tint the lip surface.",
+    "mobileLipQuality": "Read mobileRenderer.lipPreviewMode. If it is 'macbook', run mobileRenderer.macbookLipCameraPass before drawing lip colour, shimmer, liner and gloss. This is the saved phone preview look.",
+    "fileExtension": ".tryonfilter"
+  }
+}

@@ -33,7 +33,6 @@ dependencies:
   webview_flutter: ^4.8.0
   camera: ^0.11.0+2
   path_provider: ^2.1.4
-  deepar_flutter_plus: ^0.2.1
   permission_handler: ^11.3.1
 
   # The following adds the Cupertino Icons font to your application.
@@ -66,41 +65,18 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - effects/Datenight/
-    - effects/Golden_ombre/
-    - effects/Pink_liner/
-    - effects/babypinkglam/
-    - effects/brownombre/
-    - effects/catbrown/
-    - effects/classicombre/
-    - effects/electricblue/
-    - effects/eyelashes/
-    - effects/eyeliner/
-    - effects/eyeshadows/
-    - effects/featherblack/
-    - effects/filters/
-    - effects/glitterchampagne/
-    - effects/goldglitter/
-    - effects/jetblack/
-    - effects/look_bronzed/
-    - effects/look_glam/
-    - effects/look_natural/
-    - effects/look_soft_pink/
-    - effects/matteblack/
-    - effects/olive/
-    - effects/ombre_glitter/
-    - effects/peach/
-    - effects/softblueparty/
-    - effects/softchampagne/
-    - effects/softgold/
-    - effects/whitesnow/
+    # DeepAR effects are no longer bundled: Try On and Mix & Match both render
+    # through the TryOn Studio engine. The files remain in effects/ - re-add
+    # those entries here alongside _showStudioLooks to bring them back.
     - assets/tryonstudio_native/
     - assets/tryonstudio_catalog.json
     - assets/tryonstudio_filters/tog/
     - assets/tryonstudio_filters/brands/
     - assets/tryonstudio_filters/swatches/
+    - assets/tryonstudio_filters/eyes/
     - assets/tryonstudio_renderer/
     - assets/tryonstudio_renderer/assets/
+    - assets/tryonstudio_renderer/faces/
     - assets/tryonstudio_renderer/assets/blur/
     - assets/tryonstudio_renderer/assets/effect-house/
     - assets/tryonstudio_renderer/assets/lens/

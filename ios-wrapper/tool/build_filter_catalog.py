@@ -171,6 +171,14 @@ SWATCH_PACKS = [
     ("blush-swatches.tryonfilter", "blush_swatches", "Blush Shades", "Swatches", "cheeks"),
 ]
 
+# Single looks with no shade palette, imported one entry each.
+SINGLE_FILTERS = [
+    # source file, folder, group key, display name
+    ("smallwinglinersingle.tryonfilter", "Eyes", "eye_liners", "Small Wing Liner"),
+    ("thickcateyelinersingle.tryonfilter", "Eyes", "eye_liners", "Thick Cat Eye Liner"),
+    ("orangeblushsummerrockmelon.tryonfilter", "Eyes", "blush_looks", "Rockmelon Blush"),
+]
+
 # Not a filter package - the zip only holds two loose PNG textures.
 SKIP_PACKAGES = {"liplinerbasesingle"}
 
@@ -182,11 +190,101 @@ GROUPS = [
     # key, label, section, category dir
     ("lip_swatches", "Lipstick Shades", "Swatches", "swatches"),
     ("blush_swatches", "Blush Shades", "Swatches", "swatches"),
+    ("blush_looks", "Blush Looks", "Swatches", "eyes"),
+    ("eye_liners", "Eyeliner & Lashes", "Eyes", "eyes"),
     ("full_face", "Full Face Looks", "Full Face", "tog"),
     ("tog_combos", "TOG Signature Combos", "TOG", "tog"),
     ("tog_shades", "TOG Lip Shades", "TOG", "tog"),
     ("tog_liners", "TOG Lip Liners", "TOG", "tog"),
 ] + [(k, BRAND_LABELS[k], "Brands", "brands") for k in BRAND_ORDER]
+
+
+# Studio exports shades as "Shade 1..234" and blush as "Lipstick swatches N",
+# which tells a user nothing. Until the exporter emits real names, derive a
+# readable one from the colour itself.
+SHADE_FAMILIES = [
+    (345, 15, "Red"), (15, 45, "Coral"), (45, 70, "Amber"), (70, 150, "Olive"),
+    (150, 200, "Jade"), (200, 250, "Blue"), (250, 290, "Violet"),
+    (290, 330, "Plum"), (330, 345, "Berry"),
+]
+
+
+# Shoppers browse by colour family, not by a 234-long list, so each shade is
+# tagged and the catalog is ordered Pinks, Reds, Nudes, Purples first.
+FAMILY_ORDER = ["Pinks", "Reds", "Nudes", "Browns", "Purples"]
+
+# Corals live inside Nudes rather than as their own chip, but they lead that
+# list - they are the warmest end of it and read as a natural starting point.
+CORAL_SOURCE = "Corals"
+
+
+def shade_family(hex_colour):
+    """Group a shade the way a shopper would.
+
+    Almost every lipstick sits in the 330-15 degree red/pink continuum, so hue
+    alone puts everything in one bucket. Lightness and saturation do the real
+    separating: washed-out reads as nude, dark reads as red, light reads pink.
+    """
+    import colorsys
+    try:
+        raw = hex_colour.lstrip("#")
+        r, g, b = (int(raw[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    except Exception:
+        return "Nudes"
+    h, l, sat = colorsys.rgb_to_hls(r, g, b)
+    deg = h * 360
+
+    if sat < 0.30:
+        return "Nudes"
+    if 250 <= deg < 330:
+        return "Purples"
+    if 45 <= deg < 250:
+        return "Purples" if deg >= 180 else "Corals"
+    if 12 <= deg < 45:
+        return "Browns" if l < 0.46 else "Corals"
+    # the red/pink continuum
+    if l >= 0.62:
+        return "Nudes" if sat < 0.55 else "Pinks"
+    if l >= 0.50:
+        return "Pinks"
+    if 322 <= deg < 350:
+        return "Pinks" if l >= 0.42 else "Purples"
+    return "Reds"
+
+
+def _merged_family(raw):
+    """Corals are shown as part of Nudes."""
+    return "Nudes" if raw == CORAL_SOURCE else raw
+
+
+def shade_name(hex_colour, index, fallback):
+    import colorsys
+    try:
+        raw = hex_colour.lstrip("#")
+        r, g, b = (int(raw[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    except Exception:
+        return fallback
+    h, l, sat = colorsys.rgb_to_hls(r, g, b)
+    deg = h * 360
+    if sat < 0.12:
+        family = "Taupe" if l < 0.6 else "Bare"
+    else:
+        family = next(
+            (name for lo, hi, name in SHADE_FAMILIES
+             if (lo <= deg < hi) or (lo > hi and (deg >= lo or deg < hi))),
+            "Rose",
+        )
+    if l < 0.28:
+        tone = "Deep"
+    elif l < 0.45:
+        tone = "Rich"
+    elif l < 0.62:
+        tone = "True"
+    elif l < 0.78:
+        tone = "Soft"
+    else:
+        tone = "Light"
+    return "%s %s %02d" % (tone, family, index + 1)
 
 
 def slugify(value):
@@ -251,7 +349,7 @@ def read_filter(archive_path):
 def main():
     if os.path.isdir(FILTER_ROOT):
         shutil.rmtree(FILTER_ROOT)
-    for category in ("tog", "brands", "swatches"):
+    for category in ("tog", "brands", "swatches", "eyes"):
         os.makedirs(os.path.join(FILTER_ROOT, category), exist_ok=True)
 
     mapping = []
@@ -381,7 +479,9 @@ def main():
             items.append(
                 {
                     "id": "%s-%s" % (slug, shade.get("id") or index),
-                    "name": shade.get("name") or "Shade %d" % (index + 1),
+                    "name": shade_name(
+                        colour, index, shade.get("name") or "Shade %d" % (index + 1)
+                    ),
                     "group": group,
                     "asset": asset_path,
                     "lipColor": shade.get("swatch") or colour,
@@ -392,6 +492,10 @@ def main():
                     "hasShimmer": False,
                     "regions": [region],
                     "extraLayers": [],
+                    "family": _merged_family(shade_family(colour)),
+                    "familyRank": 0
+                    if shade_family(colour) == CORAL_SOURCE
+                    else 1,
                     "shade": {
                         "region": region,
                         "colour": colour,
@@ -401,11 +505,59 @@ def main():
                 }
             )
 
+    # Single-look eye filters
+    for source, folder, group, name in SINGLE_FILTERS:
+        with open(os.path.join(SRC, folder, source)) as handle:
+            data = json.load(handle)
+        for asset in data.get("assets", []):
+            url = asset.get("dataUrl")
+            if isinstance(url, str) and url.startswith("data:"):
+                new_url, before, after = shrink_data_url(url)
+                asset["dataUrl"] = new_url
+                before_total += before
+                after_total += after
+        slug = slugify(os.path.splitext(source)[0])
+        data["name"] = name
+        data.setdefault("look", {})["name"] = name
+        with open(os.path.join(FILTER_ROOT, "eyes", slug + ".tryonfilter"), "w") as handle:
+            json.dump(data, handle, separators=(",", ":"))
+        look = data.get("look", {})
+        palette = look.get("palette", {})
+        layers = data.get("layers", {})
+        items.append(
+            {
+                "id": slug,
+                "name": name,
+                "group": group,
+                "asset": "assets/tryonstudio_filters/eyes/%s.tryonfilter" % slug,
+                "lipColor": palette.get(
+                    "cheeks" if layers.get("cheeks") else "liner", "#1b1715"
+                ),
+                "linerColor": palette.get("lashes", "#111111"),
+                "finish": "matte",
+                "hasLiner": False,
+                "hasGloss": False,
+                "hasShimmer": bool(layers.get("glitter")),
+                "regions": [a.get("region") for a in data.get("assets", []) if a.get("region")],
+                "extraLayers": [k for k, v in layers.items() if v],
+            }
+        )
+
     order = {key: index for index, (key, _, _, _) in enumerate(GROUPS)}
+    def _unused_family_rank(item):
+        fam = item.get("family")
+        return FAMILY_ORDER.index(fam) if fam in FAMILY_ORDER else len(FAMILY_ORDER)
+
+    def family_rank(item):
+        fam = item.get("family")
+        return FAMILY_ORDER.index(fam) if fam in FAMILY_ORDER else len(FAMILY_ORDER)
+
     items.sort(
         key=lambda item: (
             order[item["group"]],
             0 if item.get("shade") else 1,
+            family_rank(item),
+            item.get("familyRank", 1),
             "" if item.get("shade") else item["name"].lower(),
         )
     )
