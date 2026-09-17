@@ -111,8 +111,30 @@ async function shrinkDataUrl(imageUrl: string): Promise<string> {
   }
 }
 
+/**
+ * Uploads a picked photo to Storage and returns its download URL, so the user
+ * document holds a link rather than the image bytes.
+ */
+async function uploadAvatar(dataUrl: string, uid: string): Promise<string> {
+  const { ref, uploadString, getDownloadURL } = await import('firebase/storage');
+  const { storage } = await import('../firebase');
+  const avatarRef = ref(storage, `users/${uid}/avatar.jpg`);
+  await uploadString(avatarRef, dataUrl, 'data_url');
+  return getDownloadURL(avatarRef);
+}
+
 export async function saveCustomAvatar(rawImageUrl: string, user?: FirebaseUser | null): Promise<void> {
-  const imageUrl = await shrinkDataUrl(rawImageUrl);
+  const currentUserEarly = user || auth.currentUser;
+  let imageUrl = await shrinkDataUrl(rawImageUrl);
+
+  // Store the picture in Storage and keep only its URL on the user document.
+  if (imageUrl.startsWith('data:') && currentUserEarly?.uid) {
+    try {
+      imageUrl = await uploadAvatar(imageUrl, currentUserEarly.uid);
+    } catch (e) {
+      console.error('Avatar upload failed, keeping inline image:', e);
+    }
+  }
 
   // 1. Immediately store in localStorage so UI is instantaneous
   try {

@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 import { initializeFirestore, collection, getDocs, addDoc, updateDoc, doc, increment, arrayUnion, query, orderBy, limit, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -14,6 +15,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export const storage = getStorage(app);
 
 // Initialize Firestore with custom database ID as the third argument
 export const db = initializeFirestore(app, {}, "ai-studio-tryonbeautylookl-ab92ce94-89bf-43fe-8f79-10fcc718998b");

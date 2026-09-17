@@ -13,6 +13,9 @@ type NativeLookPayload = {
   source?: string;
   /** 'private' keeps the look in the user's account only. */
   visibility?: 'public' | 'private';
+  /** Which saved bucket this belongs in. */
+  savedFrom?: 'mixnmatch' | 'tryon' | 'gallery';
+  shades?: Array<{ region?: string; id?: string; name?: string; swatch?: string }>;
   makeupConfig?: {
     eyes?: string;
     liner?: string;
@@ -95,7 +98,23 @@ const postNativeStatus = (type: NativeBridgeType, ok: boolean, message: string) 
   window.TryOnBeautyBridge?.postMessage(payloadStr);
 };
 
-const writeUserMirror = async (section: 'built_looks' | 'submissions', id: string, data: Record<string, unknown>) => {
+type SavedSection =
+  | 'built_looks'
+  | 'submissions'
+  | 'saved_mixnmatch'
+  | 'saved_tryon'
+  | 'saved_gallery';
+
+/** Where a look belongs, based on how it was made. */
+const savedSectionFor = (payload?: NativeLookPayload): SavedSection => {
+  if (payload?.savedFrom === 'gallery') return 'saved_gallery';
+  if (payload?.savedFrom === 'tryon') return 'saved_tryon';
+  if (payload?.savedFrom === 'mixnmatch') return 'saved_mixnmatch';
+  // Fall back on shape: more than one shade means it was mixed.
+  return (payload?.shades?.length ?? 0) > 1 ? 'saved_mixnmatch' : 'saved_tryon';
+};
+
+const writeUserMirror = async (section: SavedSection, id: string, data: Record<string, unknown>) => {
   const user = auth.currentUser;
   if (!user) return;
 
@@ -138,11 +157,17 @@ const saveNativeBuiltLook = async (payload?: NativeLookPayload) => {
       handleFirestoreError(error, OperationType.CREATE, `built_looks/${id}`);
     });
   }
-  await writeUserMirror('built_looks', id, {
+  const record = {
     ...builtLook,
     visibility: payload?.visibility ?? 'public',
+    shades: payload?.shades ?? [],
+    savedAt: Date.now(),
     nativePayload: payload || null
-  });
+  };
+  // Written twice on purpose: built_looks keeps the existing behaviour, and
+  // the saved_* collection is what the profile's Saved tab reads.
+  await writeUserMirror('built_looks', id, record);
+  await writeUserMirror(savedSectionFor(payload), id, record);
 };
 
 const submitNativeChallenge = async (payload?: NativeLookPayload) => {

@@ -173,7 +173,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
   // Saved / Favorited Looks & Created Looks
   const [savedLooks, setSavedLooks] = useState<ExtendedBuiltLook[]>([]);
   const [savedLooksLoading, setSavedLooksLoading] = useState<boolean>(false);
-  const [accountSavedLooks, setAccountSavedLooks] = useState<ExtendedBuiltLook[]>([]);
+  const [savedBuckets, setSavedBuckets] = useState<Record<string, ExtendedBuiltLook[]>>({
+    saved_mixnmatch: [],
+    saved_tryon: [],
+    saved_gallery: [],
+  });
   const [openSavedGroups, setOpenSavedGroups] = useState<Record<string, boolean>>({
     mix: true,
     tryon: true,
@@ -280,25 +284,33 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
       // Looks saved from the app live under the signed-in user, so read those
       // first. Without this the section only ever showed local favourites and
       // anything saved on the phone was invisible here.
-      const accountLooks: ExtendedBuiltLook[] = [];
       const uid = auth.currentUser?.uid;
+      const buckets: Record<string, ExtendedBuiltLook[]> = {
+        saved_mixnmatch: [],
+        saved_tryon: [],
+        saved_gallery: [],
+      };
       if (uid) {
-        try {
-          const snap = await getDocs(collection(db, 'users', uid, 'built_looks'));
-          snap.forEach((docSnap) => {
-            const data = docSnap.data() as Record<string, any>;
-            accountLooks.push({
-              ...(data as ExtendedBuiltLook),
-              id: docSnap.id,
-              name: data.name || 'Saved look',
-              description: data.description || '',
-            });
-          });
-        } catch (err) {
-          console.error('Could not read saved looks from your account:', err);
-        }
+        await Promise.all(
+          Object.keys(buckets).map(async (section) => {
+            try {
+              const snap = await getDocs(collection(db, 'users', uid, section));
+              snap.forEach((docSnap) => {
+                const data = docSnap.data() as Record<string, any>;
+                buckets[section].push({
+                  ...(data as ExtendedBuiltLook),
+                  id: docSnap.id,
+                  name: data.name || 'Saved look',
+                  description: data.description || '',
+                });
+              });
+            } catch (err) {
+              console.error(`Could not read ${section} from your account:`, err);
+            }
+          })
+        );
       }
-      setAccountSavedLooks(accountLooks);
+      setSavedBuckets(buckets);
 
       const allPresets = await seedBuiltLooksIfEmpty();
       let favIds: string[] = [];
@@ -322,36 +334,42 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
     }
   };
 
-  /** Saved looks split into the three places they can come from. */
-  const savedLookGroups = React.useMemo(() => {
-    const isMix = (l: any) =>
-      l?.nativePayload?.shades?.length > 1 ||
-      (l?.nativePayload?.makeupConfig && l?.nativePayload?.shades?.length !== 1);
-    const fromApp = accountSavedLooks.filter((l: any) => l?.nativePayload);
-    return [
-      {
-        key: 'mix',
-        title: 'Mix & Match',
-        subtitle: 'Looks you built from multiple shades',
-        looks: fromApp.filter(isMix),
-      },
-      {
-        key: 'tryon',
-        title: 'Try On shades',
-        subtitle: 'Single shades saved while trying on',
-        looks: fromApp.filter((l: any) => !isMix(l)),
-      },
-      {
-        key: 'catalogue',
-        title: 'Catalogue looks',
-        subtitle: 'Presets you favourited',
-        looks: savedLooks,
-      },
-    ].filter((group) => group.looks.length > 0);
-  }, [accountSavedLooks, savedLooks]);
+  /** Saved looks, one group per collection they were written to. */
+  const savedLookGroups = React.useMemo(
+    () =>
+      [
+        {
+          key: 'mix',
+          title: 'Mix & Match',
+          subtitle: 'Looks you built from multiple shades',
+          looks: savedBuckets.saved_mixnmatch || [],
+        },
+        {
+          key: 'tryon',
+          title: 'Try On shades',
+          subtitle: 'Shades saved while trying on',
+          looks: savedBuckets.saved_tryon || [],
+        },
+        {
+          key: 'gallery',
+          title: 'From the community',
+          subtitle: 'Looks you saved from the gallery',
+          looks: savedBuckets.saved_gallery || [],
+        },
+        {
+          key: 'catalogue',
+          title: 'Catalogue looks',
+          subtitle: 'Presets you favourited',
+          looks: savedLooks,
+        },
+      ].filter((group) => group.looks.length > 0),
+    [savedBuckets, savedLooks]
+  );
 
-  const totalSavedLooks =
-    savedLookGroups.reduce((sum, g) => sum + g.looks.length, 0);
+  const totalSavedLooks = savedLookGroups.reduce(
+    (sum, g) => sum + g.looks.length,
+    0
+  );
 
   const handleRemoveSavedLook = (lookId: string) => {
     try {
@@ -559,7 +577,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
       // as still being signed in.
       setUserSubmissions([]);
       setSavedLooks([]);
-      setAccountSavedLooks([]);
+      setSavedBuckets({ saved_mixnmatch: [], saved_tryon: [], saved_gallery: [] });
       setActiveCategory(null);
       setEmail('');
       setPassword('');

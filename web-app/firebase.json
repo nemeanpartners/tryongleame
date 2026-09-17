@@ -1,0 +1,9 @@
+{
+  "firestore": {
+    "database": "ai-studio-tryonbeautylookl-ab92ce94-89bf-43fe-8f79-10fcc718998b",
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}

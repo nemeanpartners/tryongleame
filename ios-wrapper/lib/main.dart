@@ -1163,6 +1163,8 @@ class _LookLabPageState extends State<LookLabPage> {
           ? 'Built in the Gleame iOS try-on app.'
           : description,
       'visibility': shared ? 'public' : 'private',
+      // Tells the web which saved_* collection this belongs in.
+      'savedFrom': _tab == LabTab.build ? 'mixnmatch' : 'tryon',
       'category': 'built',
       'source': 'gleame-ios-wrapper',
       'shades': shades,
