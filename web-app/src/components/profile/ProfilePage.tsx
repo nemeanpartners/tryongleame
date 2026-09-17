@@ -285,30 +285,35 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
       // first. Without this the section only ever showed local favourites and
       // anything saved on the phone was invisible here.
       const uid = auth.currentUser?.uid;
+      // One collection, grouped by the savedFrom field. Separate collections
+      // per category needed rules that keep getting overwritten by other
+      // deploys; saved_looks is the name the deployed rules allow.
       const buckets: Record<string, ExtendedBuiltLook[]> = {
         saved_mixnmatch: [],
         saved_tryon: [],
         saved_gallery: [],
       };
       if (uid) {
-        await Promise.all(
-          Object.keys(buckets).map(async (section) => {
-            try {
-              const snap = await getDocs(collection(db, 'users', uid, section));
-              snap.forEach((docSnap) => {
-                const data = docSnap.data() as Record<string, any>;
-                buckets[section].push({
-                  ...(data as ExtendedBuiltLook),
-                  id: docSnap.id,
-                  name: data.name || 'Saved look',
-                  description: data.description || '',
-                });
-              });
-            } catch (err) {
-              console.error(`Could not read ${section} from your account:`, err);
-            }
-          })
-        );
+        try {
+          const snap = await getDocs(collection(db, 'users', uid, 'saved_looks'));
+          snap.forEach((docSnap) => {
+            const data = docSnap.data() as Record<string, any>;
+            const key =
+              data.savedFrom === 'gallery'
+                ? 'saved_gallery'
+                : data.savedFrom === 'mixnmatch'
+                  ? 'saved_mixnmatch'
+                  : 'saved_tryon';
+            buckets[key].push({
+              ...(data as ExtendedBuiltLook),
+              id: docSnap.id,
+              name: data.name || 'Saved look',
+              description: data.description || '',
+            });
+          });
+        } catch (err) {
+          console.error('Could not read saved_looks from your account:', err);
+        }
       }
       setSavedBuckets(buckets);
 

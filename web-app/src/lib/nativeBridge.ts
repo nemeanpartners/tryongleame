@@ -103,17 +103,11 @@ const postNativeStatus = (type: NativeBridgeType, ok: boolean, message: string) 
 type SavedSection =
   | 'built_looks'
   | 'submissions'
-  | 'saved_mixnmatch'
-  | 'saved_tryon'
-  | 'saved_gallery';
+  | 'saved_looks';
 
 /** Where a look belongs, based on how it was made. */
 const savedSectionFor = (payload?: NativeLookPayload): SavedSection => {
-  if (payload?.savedFrom === 'gallery') return 'saved_gallery';
-  if (payload?.savedFrom === 'tryon') return 'saved_tryon';
-  if (payload?.savedFrom === 'mixnmatch') return 'saved_mixnmatch';
-  // Fall back on shape: more than one shade means it was mixed.
-  return (payload?.shades?.length ?? 0) > 1 ? 'saved_mixnmatch' : 'saved_tryon';
+  return 'saved_looks';
 };
 
 const writeUserMirror = async (section: SavedSection, id: string, data: Record<string, unknown>) => {

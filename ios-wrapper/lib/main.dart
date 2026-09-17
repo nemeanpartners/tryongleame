@@ -938,7 +938,7 @@ class _LookLabPageState extends State<LookLabPage> {
                 '${name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_')}'
             .replaceAll(RegExp(r'_+$'), '');
     final ok = await _writeLookToFirestore(
-      collection: 'saved_tryon',
+      collection: 'saved_looks',
       docId: _pendingLookId,
       look: {
         'name': name,
@@ -1196,7 +1196,7 @@ class _LookLabPageState extends State<LookLabPage> {
     // notified so the community copy and challenge entry can be made, but the
     // account save no longer depends on it.
     final ok = await _writeLookToFirestore(
-      collection: _tab == LabTab.build ? 'saved_mixnmatch' : 'saved_tryon',
+      collection: 'saved_looks',
       docId: _pendingLookId,
       look: {
         'name': name,
