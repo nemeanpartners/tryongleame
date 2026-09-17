@@ -247,6 +247,13 @@ class _LookLabPageState extends State<LookLabPage> {
   }) {
     controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      // Google refuses OAuth from a user agent it recognises as an embedded
+      // WebView, which is why "Continue with Google" appeared to do nothing.
+      ..setUserAgent(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) '
+        'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 '
+        'Mobile/15E148 Safari/604.1',
+      )
       ..addJavaScriptChannel(
         'GleameBridge',
         onMessageReceived: (message) {
