@@ -878,11 +878,19 @@ class _LookLabPageState extends State<LookLabPage> {
     });
   }
 
+  /// Hearting a shade saves it to the account, not just this phone. It used
+  /// to write only to SharedPreferences, which is why nothing reached
+  /// Firestore or the web profile.
   Future<void> _toggleFavoritePreset() async {
-    final name = _currentLook.name;
+    final look = _currentLook;
+    final name = look.name;
+    final nowSaved = !_favoritePresetNames.contains(name);
+
     setState(() {
-      if (!_favoritePresetNames.remove(name)) {
+      if (nowSaved) {
         _favoritePresetNames.add(name);
+      } else {
+        _favoritePresetNames.remove(name);
       }
     });
 
@@ -891,8 +899,22 @@ class _LookLabPageState extends State<LookLabPage> {
       'favorite_presets',
       _favoritePresetNames.toList()..sort(),
     );
-    _snack(
-      _favoritePresetNames.contains(name) ? 'Saved $name' : 'Removed $name',
+
+    if (!nowSaved) {
+      _snack('Removed $name');
+      return;
+    }
+
+    _pendingLookId =
+        'ios_${DateTime.now().millisecondsSinceEpoch}_'
+                '${name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_')}'
+            .replaceAll(RegExp(r'_+$'), '');
+    await _sendBuildLookToWeb(
+      'gleame:save-built-look',
+      name: name,
+      description: 'Saved while trying on in the Gleame app.',
+      shared: false,
+      shade: look,
     );
   }
 
@@ -1162,16 +1184,26 @@ class _LookLabPageState extends State<LookLabPage> {
     String? name,
     String? description,
     bool shared = false,
+    LookItem? shade,
   }) {
     final shades = <Map<String, String?>>[];
-    for (final entry in _mixSlots.entries) {
-      final item = entry.value;
+    if (shade != null) {
       shades.add({
-        'region': entry.key,
-        'id': item.id,
-        'name': item.name,
-        'swatch': _hex(item.lipColor),
+        'region': shade.shade?['region'] as String? ?? 'lips',
+        'id': shade.id,
+        'name': shade.name,
+        'swatch': _hex(shade.lipColor),
       });
+    } else {
+      for (final entry in _mixSlots.entries) {
+        final item = entry.value;
+        shades.add({
+          'region': entry.key,
+          'id': item.id,
+          'name': item.name,
+          'swatch': _hex(item.lipColor),
+        });
+      }
     }
 
     return {
@@ -1181,14 +1213,14 @@ class _LookLabPageState extends State<LookLabPage> {
           : description,
       'visibility': shared ? 'public' : 'private',
       // Tells the web which saved_* collection this belongs in.
-      'savedFrom': _tab == LabTab.build ? 'mixnmatch' : 'tryon',
+      'savedFrom': shade != null || _tab != LabTab.build ? 'tryon' : 'mixnmatch',
       // Stable id so delivering to both web views writes one document.
       'lookId': _pendingLookId,
       'category': 'built',
       'source': 'gleame-ios-wrapper',
       'shades': shades,
       'makeupConfig': {
-        'lipColor': _hex(_mixSlots['lips']?.lipColor),
+        'lipColor': _hex(shade?.lipColor ?? _mixSlots['lips']?.lipColor),
         'blushColor': _hex(_mixSlots['cheeks']?.lipColor),
         'eyeshadowColor': _hex(_mixSlots['eyes']?.lipColor),
         'preset': _tab == LabTab.tryLooks ? _currentLook.name : null,
@@ -1204,6 +1236,7 @@ class _LookLabPageState extends State<LookLabPage> {
     String? name,
     String? description,
     bool shared = false,
+    LookItem? shade,
   }) async {
     final message = <String, Object?>{
       'source': 'gleame-ios-wrapper',
@@ -1212,6 +1245,7 @@ class _LookLabPageState extends State<LookLabPage> {
         name: name,
         description: description,
         shared: shared,
+        shade: shade,
       ),
     };
     final script =
@@ -1223,12 +1257,13 @@ class _LookLabPageState extends State<LookLabPage> {
     final target = await _signedInWebController();
     if (target == null) {
       if (mounted) {
-        _snack('Open the Home tab and sign in, then save again.');
+        _snack('Open Home and sign in, then save again.');
       }
       return;
     }
     try {
       await target.runJavaScript(script);
+      log('Save delivered to signed-in web view');
       return;
     } catch (e, st) {
       log('Targeted bridge send failed: \$e', stackTrace: st);
