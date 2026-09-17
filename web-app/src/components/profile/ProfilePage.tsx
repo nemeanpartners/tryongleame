@@ -476,6 +476,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
     setLoadingAction(true);
     try {
       const provider = new GoogleAuthProvider();
+      // Without this Google reuses whichever account is already signed in to
+      // the browser, so no chooser appears and you cannot switch accounts.
+      provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithPopup(auth, provider);
       setSuccessMsg('Successfully signed in with Google!');
       setShowAuthModal(false);
@@ -525,12 +528,23 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
     setShowLogoutModal(false);
     try {
       await signOut(auth);
-      setSuccessMsg('Signed out successfully.');
+      // Clear anything tied to the old session, then show the sign-in screen.
+      // Previously it only set a message and stayed on the profile, which read
+      // as still being signed in.
       setUserSubmissions([]);
+      setSavedLooks([]);
+      setAccountSavedLooks([]);
       setActiveCategory(null);
-      setTimeout(() => setSuccessMsg(''), 3000);
+      setEmail('');
+      setPassword('');
+      clearMessages();
+      setShowAuthModal(true);
+      if (window.location.pathname !== '/login') {
+        window.history.pushState(null, '', '/login');
+      }
     } catch (err) {
       console.error('Sign out error: ', err);
+      setErrorMsg('Could not sign out. Please try again.');
     }
   };
 
