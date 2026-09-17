@@ -518,20 +518,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
     }
   };
 
-  // Finish a redirect sign-in when the page comes back from Google.
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          setSuccessMsg('Successfully signed in with Google!');
-          setShowAuthModal(false);
-        }
-      })
-      .catch((err) => {
-        console.error('Google redirect sign-in failed:', err);
-        setErrorMsg(err?.message || 'Google sign-in did not complete.');
-      });
-  }, []);
 
   // Password Reset
   const handlePasswordReset = async () => {

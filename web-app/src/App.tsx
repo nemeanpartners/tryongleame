@@ -224,6 +224,39 @@ export default function App() {
 
   useEffect(() => { installPresetBridge(); }, []);
 
+  // A Google redirect can land on any route, so completing it has to happen at
+  // app level. Doing it inside the profile page meant the pending credential
+  // was never consumed unless that page happened to be mounted, and the user
+  // came back still signed out.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { auth } = await import('./firebase');
+        const {
+          getRedirectResult,
+          setPersistence,
+          browserLocalPersistence,
+          indexedDBLocalPersistence,
+        } = await import('firebase/auth');
+        // WKWebView can refuse IndexedDB; falling back to localStorage keeps
+        // the session across the redirect instead of dropping to memory.
+        await setPersistence(auth, indexedDBLocalPersistence).catch(() =>
+          setPersistence(auth, browserLocalPersistence)
+        );
+        const result = await getRedirectResult(auth);
+        if (!cancelled && result?.user) {
+          console.info('Signed in via redirect:', result.user.uid);
+        }
+      } catch (err) {
+        console.error('Google redirect sign-in failed:', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'home' | LabNavTarget>(() => {
     return getTabFromPath(window.location.pathname);
   });
