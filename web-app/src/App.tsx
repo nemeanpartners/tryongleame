@@ -49,6 +49,43 @@ import { getEffectiveAvatar, loadUserProfileFromFirestore } from './lib/userProf
 
 type LabNavTarget = 'sandbox' | 'gallery' | 'gallery-looks' | 'gallery-challenges' | 'gallery-inspiration' | 'gallery-wanted' | 'wanted-list' | 'wanted-scrollfeed' | 'hall-of-fame' | 'trending' | 'built-looks' | 'votes' | 'profile' | 'looks' | 'tiktok-effects' | 'inspiration-wall' | 'inspirationlooks-scrollfeed' | 'shade-edit' | 'admin';
 
+/**
+ * In the iOS wrapper the Try On and Create dock tabs open the app's own native
+ * filter pages. Returns true when the tap was handed to native, false in a
+ * plain browser so the normal web route is used.
+ */
+const NATIVE_FILTER_TABS: Record<string, string> = { looks: 'try', sandbox: 'build' };
+
+function openNativeFilterPage(tabId: string): boolean {
+  const target = NATIVE_FILTER_TABS[tabId];
+  const bridge = (window as any).GleameBridge || (window as any).TryOnBeautyBridge;
+  if (!target || !bridge?.postMessage) return false;
+  bridge.postMessage(
+    JSON.stringify({ source: 'tryon-beauty-web', type: 'gleame:navigate-native', target })
+  );
+  return true;
+}
+
+/**
+ * The iOS app shows the same saved looks as the web Create page, so they are
+ * maintained in one place. The wrapper calls this once the page has loaded.
+ */
+function installPresetBridge() {
+  const bridge = (window as any).GleameBridge || (window as any).TryOnBeautyBridge;
+  if (!bridge?.postMessage) return;
+  (window as any).__gleameSendPresets = async () => {
+    try {
+      const { seedBuiltLooksIfEmpty } = await import('./lib/looksService');
+      const looks = await seedBuiltLooksIfEmpty();
+      bridge.postMessage(
+        JSON.stringify({ source: 'tryon-beauty-web', type: 'gleame:presets', presets: looks || [] })
+      );
+    } catch (err) {
+      console.error('preset bridge failed', err);
+    }
+  };
+}
+
 export default function App() {
   // Path helper mapping
   const getTabFromPath = (path: string): 'home' | LabNavTarget => {
@@ -184,6 +221,8 @@ export default function App() {
         return '/home';
     }
   };
+
+  useEffect(() => { installPresetBridge(); }, []);
 
   const [activeTab, setActiveTab] = useState<'home' | LabNavTarget>(() => {
     return getTabFromPath(window.location.pathname);
@@ -753,7 +792,10 @@ export default function App() {
               
               {/* Card 1: Try Looks */}
               <div 
-                onClick={() => handleNavigate('built-looks')}
+                onClick={() => {
+                  if (openNativeFilterPage('looks')) return;
+                  handleNavigate('built-looks');
+                }}
                 className="group relative overflow-hidden rounded-3xl border border-[#EDE7E3] bg-white hover:border-[#B8887A] p-5 sm:p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md cursor-pointer text-left flex flex-col justify-between min-h-[210px] sm:h-64"
               >
                 <div className="space-y-3">
@@ -776,7 +818,10 @@ export default function App() {
 
               {/* Card 2: Build Mode */}
               <div 
-                onClick={() => handleNavigate('sandbox')}
+                onClick={() => {
+                  if (openNativeFilterPage('sandbox')) return;
+                  handleNavigate('sandbox');
+                }}
                 className="group relative overflow-hidden rounded-3xl border border-[#EDE7E3] bg-white hover:border-[#B8887A] p-5 sm:p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md cursor-pointer text-left flex flex-col justify-between min-h-[210px] sm:h-64"
               >
                 <div className="space-y-3">
@@ -974,6 +1019,13 @@ export default function App() {
                   <button
                     key={tab.id}
                     onClick={() => {
+                      // Inside the iOS wrapper, Try On and Create are native
+                      // filter pages rather than web routes. In a browser this
+                      // is a no-op and the normal web route runs.
+                      if (openNativeFilterPage(tab.id)) {
+                        setActiveLabMenu(false);
+                        return;
+                      }
                       handleNavigate(tab.id as any);
                       setActiveLabMenu(false);
                     }}

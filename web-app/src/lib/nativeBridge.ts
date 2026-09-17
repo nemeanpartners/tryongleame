@@ -11,6 +11,8 @@ type NativeLookPayload = {
   description?: string;
   category?: string;
   source?: string;
+  /** 'private' keeps the look in the user's account only. */
+  visibility?: 'public' | 'private';
   makeupConfig?: {
     eyes?: string;
     liner?: string;
@@ -129,10 +131,18 @@ const saveNativeBuiltLook = async (payload?: NativeLookPayload) => {
     isCustom: true
   };
 
-  await setDoc(doc(db, 'built_looks', id), builtLook).catch((error) => {
-    handleFirestoreError(error, OperationType.CREATE, `built_looks/${id}`);
+  // A private look lives only under the signed-in user. Only shared looks are
+  // written to the community collection.
+  if (payload?.visibility !== 'private') {
+    await setDoc(doc(db, 'built_looks', id), builtLook).catch((error) => {
+      handleFirestoreError(error, OperationType.CREATE, `built_looks/${id}`);
+    });
+  }
+  await writeUserMirror('built_looks', id, {
+    ...builtLook,
+    visibility: payload?.visibility ?? 'public',
+    nativePayload: payload || null
   });
-  await writeUserMirror('built_looks', id, { ...builtLook, nativePayload: payload || null });
 };
 
 const submitNativeChallenge = async (payload?: NativeLookPayload) => {

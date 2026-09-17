@@ -83,7 +83,37 @@ export async function loadUserProfileFromFirestore(userId: string): Promise<{ av
 /**
  * Saves a new custom profile photo to Firestore user doc (as URL) and local cache.
  */
-export async function saveCustomAvatar(imageUrl: string, user?: FirebaseUser | null): Promise<void> {
+/**
+ * Firestore caps a document at 1 MiB. A picked photo stored as a data URL blows
+ * straight past that, the write fails, and because the failure was only warned
+ * about the avatar looked saved but never persisted. Shrinking it first keeps
+ * the whole document well inside the limit.
+ */
+const AVATAR_MAX_PX = 256;
+
+async function shrinkDataUrl(imageUrl: string): Promise<string> {
+  if (!imageUrl.startsWith('data:')) return imageUrl;
+  try {
+    const img = new Image();
+    img.src = imageUrl;
+    await img.decode();
+    const scale = Math.min(1, AVATAR_MAX_PX / Math.max(img.width, img.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.width * scale));
+    canvas.height = Math.max(1, Math.round(img.height * scale));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return imageUrl;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const shrunk = canvas.toDataURL('image/jpeg', 0.82);
+    return shrunk.length < imageUrl.length ? shrunk : imageUrl;
+  } catch {
+    return imageUrl;
+  }
+}
+
+export async function saveCustomAvatar(rawImageUrl: string, user?: FirebaseUser | null): Promise<void> {
+  const imageUrl = await shrinkDataUrl(rawImageUrl);
+
   // 1. Immediately store in localStorage so UI is instantaneous
   try {
     localStorage.setItem(STORAGE_AVATAR_KEY, imageUrl);
@@ -111,7 +141,12 @@ export async function saveCustomAvatar(imageUrl: string, user?: FirebaseUser | n
 
       await Promise.race([savePromise, timeoutPromise]);
     } catch (e) {
-      console.warn('Could not persist avatar to Firestore document:', e);
+      // Surface it: a silent failure here is what made avatars look saved
+      // while never actually persisting.
+      console.error('Could not persist avatar to Firestore document:', e);
+      throw new Error(
+        'Your photo could not be saved to your account. Please try a smaller image.'
+      );
     }
   }
 
