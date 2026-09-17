@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
@@ -59,6 +60,18 @@ class _LookLabPageState extends State<LookLabPage> {
   static const _line = Color(0xffede7e3);
   static const _sfSymbolsChannel = MethodChannel('gleame/sf_symbols');
   static const _googleSignInChannel = MethodChannel('gleame/google_signin');
+
+  // Saved looks are written straight to Firestore over REST. Routing them
+  // through the web bridge depended on which WebView held the session, which
+  // is what kept the saves from landing.
+  static const _firebaseApiKey = 'AIzaSyBdKGptmjaFKURh0vMkyNyA-y-WhP9ozKo';
+  static const _firestoreProject = 'kobella-39c79';
+  static const _firestoreDatabase =
+      'ai-studio-tryonbeautylookl-ab92ce94-89bf-43fe-8f79-10fcc718998b';
+  String? _firebaseIdToken;
+  String? _firebaseUid;
+  String? _firebaseRefreshToken;
+  DateTime? _tokenExpiry;
   // Cloud Run service we control, so the web side can be redeployed alongside
   // the app. The AI Studio URL still serves the same app if it is preferred.
   static const _liveWebBaseUrl =
@@ -186,6 +199,7 @@ class _LookLabPageState extends State<LookLabPage> {
     unawaited(_loadSavedState());
     unawaited(_loadFilterCatalog());
     unawaited(_loadSavedLooks());
+    unawaited(_restoreFirebaseSession());
   }
 
   Future<void> _loadSfSymbols() async {
@@ -923,13 +937,27 @@ class _LookLabPageState extends State<LookLabPage> {
         'ios_${DateTime.now().millisecondsSinceEpoch}_'
                 '${name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_')}'
             .replaceAll(RegExp(r'_+$'), '');
-    await _sendBuildLookToWeb(
-      'gleame:save-built-look',
-      name: name,
-      description: 'Saved while trying on in the Gleame app.',
-      shared: false,
-      shade: look,
+    final ok = await _writeLookToFirestore(
+      collection: 'saved_tryon',
+      docId: _pendingLookId,
+      look: {
+        'name': name,
+        'description': 'Saved while trying on in the Gleame app.',
+        'visibility': 'private',
+        'savedFrom': 'tryon',
+        'savedAt': DateTime.now().millisecondsSinceEpoch,
+        'shades': [
+          {
+            'region': look.shade?['region'] ?? 'lips',
+            'id': look.id,
+            'name': look.name,
+            'swatch': _hex(look.lipColor),
+          },
+        ],
+        'lipColor': _hex(look.lipColor),
+      },
     );
+    _snack(ok ? 'Saved $name to your account' : 'Could not save $name');
   }
 
   /// Saved looks are stored as the shade ids behind them, so reopening one
@@ -1164,14 +1192,39 @@ class _LookLabPageState extends State<LookLabPage> {
             .toList(),
       );
     }
-    // Always save it to the account. Sharing is an extra step on top, not a
-    // replacement - sending only submit-challenge meant shared looks never
-    // reached the user's saved collections.
-    await _sendBuildLookToWeb(
-      'gleame:save-built-look',
-      name: name,
-      description: description,
-      shared: share,
+    // Written straight to Firestore by the app. The web bridge is still
+    // notified so the community copy and challenge entry can be made, but the
+    // account save no longer depends on it.
+    final ok = await _writeLookToFirestore(
+      collection: _tab == LabTab.build ? 'saved_mixnmatch' : 'saved_tryon',
+      docId: _pendingLookId,
+      look: {
+        'name': name,
+        'description': description,
+        'visibility': share ? 'public' : 'private',
+        'savedFrom': _tab == LabTab.build ? 'mixnmatch' : 'tryon',
+        'savedAt': DateTime.now().millisecondsSinceEpoch,
+        'shades': [
+          for (final e in _mixSlots.entries)
+            {
+              'region': e.key,
+              'id': e.value.id,
+              'name': e.value.name,
+              'swatch': _hex(e.value.lipColor),
+            },
+        ],
+        'lipColor': _hex(_mixSlots['lips']?.lipColor),
+        'blushColor': _hex(_mixSlots['cheeks']?.lipColor),
+      },
+    );
+    if (!ok) return;
+    unawaited(
+      _sendBuildLookToWeb(
+        'gleame:save-built-look',
+        name: name,
+        description: description,
+        shared: share,
+      ),
     );
     if (share) {
       unawaited(
@@ -1183,7 +1236,7 @@ class _LookLabPageState extends State<LookLabPage> {
         ),
       );
     }
-    _snack(share ? 'Shared to the community' : 'Saved privately');
+    _snack(share ? 'Shared to the community' : 'Saved to your account');
   }
 
   String _buildLookName() {
@@ -1493,6 +1546,7 @@ class _LookLabPageState extends State<LookLabPage> {
         if (mounted) _snack('Google sign-in was cancelled.');
         return;
       }
+        await _exchangeGoogleToken(idToken);
       final script =
           'window.__gleameGoogleCredential && '
           'window.__gleameGoogleCredential(${jsonEncode(idToken)});';
@@ -1510,6 +1564,163 @@ class _LookLabPageState extends State<LookLabPage> {
     } catch (e, st) {
       log('Native Google sign-in error: \$e', stackTrace: st);
       if (mounted) _snack('Google sign-in failed.');
+    }
+  }
+
+  Future<Map<String, dynamic>?> _postJson(
+    Uri url,
+    Map<String, dynamic> body, {
+    String? bearer,
+    String method = 'POST',
+  }) async {
+    final client = HttpClient();
+    try {
+      final request = await client.openUrl(method, url);
+      request.headers.contentType = ContentType.json;
+      if (bearer != null) {
+        request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $bearer');
+      }
+      request.add(utf8.encode(jsonEncode(body)));
+      final response = await request.close();
+      final text = await response.transform(utf8.decoder).join();
+      final decoded = text.isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(text) as Map<String, dynamic>;
+      if (response.statusCode >= 400) {
+        final message =
+            (decoded['error'] as Map?)?['message']?.toString() ?? text;
+        throw StateError('${response.statusCode}: $message');
+      }
+      return decoded;
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Trades Google's ID token for a Firebase session the app can use directly.
+  Future<void> _exchangeGoogleToken(String googleIdToken) async {
+    try {
+      final data = await _postJson(
+        Uri.parse(
+          'https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp'
+          '?key=$_firebaseApiKey',
+        ),
+        {
+          'postBody': 'id_token=$googleIdToken&providerId=google.com',
+          'requestUri': 'https://$_firestoreProject.firebaseapp.com',
+          'returnSecureToken': true,
+        },
+      );
+      if (data == null) return;
+      _firebaseIdToken = data['idToken'] as String?;
+      _firebaseUid = data['localId'] as String?;
+      _firebaseRefreshToken = data['refreshToken'] as String?;
+      _tokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('fb_refresh', _firebaseRefreshToken ?? '');
+      await prefs.setString('fb_uid', _firebaseUid ?? '');
+      log('Firebase session ready for $_firebaseUid');
+    } catch (e, st) {
+      log('Token exchange failed: $e', stackTrace: st);
+      if (mounted) _snack('Sign-in could not be completed: $e');
+    }
+  }
+
+  /// Restores the Firebase session from the stored refresh token.
+  Future<void> _restoreFirebaseSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final refresh = prefs.getString('fb_refresh');
+    final uid = prefs.getString('fb_uid');
+    if (refresh == null || refresh.isEmpty || uid == null || uid.isEmpty) return;
+    _firebaseRefreshToken = refresh;
+    _firebaseUid = uid;
+    _tokenExpiry = DateTime.fromMillisecondsSinceEpoch(0);
+    _firebaseIdToken = '';
+    await _validToken();
+  }
+
+  Future<String?> _validToken() async {
+    if (_tokenExpiry != null &&
+        DateTime.now().isBefore(_tokenExpiry!) &&
+        (_firebaseIdToken ?? '').isNotEmpty) {
+      return _firebaseIdToken;
+    }
+    final refresh = _firebaseRefreshToken;
+    if (refresh == null || refresh.isEmpty) {
+      return (_firebaseIdToken ?? '').isEmpty ? null : _firebaseIdToken;
+    }
+    try {
+      final data = await _postJson(
+        Uri.parse(
+          'https://securetoken.googleapis.com/v1/token?key=$_firebaseApiKey',
+        ),
+        {'grant_type': 'refresh_token', 'refresh_token': refresh},
+      );
+      _firebaseIdToken = data?['id_token'] as String? ?? _firebaseIdToken;
+      _firebaseRefreshToken = data?['refresh_token'] as String? ?? refresh;
+      _firebaseUid = data?['user_id'] as String? ?? _firebaseUid;
+      _tokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+    } catch (e) {
+      log('Token refresh failed: $e');
+    }
+    return (_firebaseIdToken ?? '').isEmpty ? null : _firebaseIdToken;
+  }
+
+  Map<String, dynamic> _firestoreValue(Object? value) {
+    if (value == null) return {'nullValue': null};
+    if (value is bool) return {'booleanValue': value};
+    if (value is int) return {'integerValue': '$value'};
+    if (value is double) return {'doubleValue': value};
+    if (value is List) {
+      return {
+        'arrayValue': {'values': value.map(_firestoreValue).toList()},
+      };
+    }
+    if (value is Map) {
+      return {
+        'mapValue': {
+          'fields': {
+            for (final e in value.entries) '${e.key}': _firestoreValue(e.value),
+          },
+        },
+      };
+    }
+    return {'stringValue': value.toString()};
+  }
+
+  /// Writes a saved look to Firestore as the signed-in user.
+  Future<bool> _writeLookToFirestore({
+    required String collection,
+    required String docId,
+    required Map<String, Object?> look,
+  }) async {
+    final token = await _validToken();
+    final uid = _firebaseUid;
+    if (token == null || uid == null || uid.isEmpty) {
+      if (mounted) _snack('Sign in with Google first, then save.');
+      return false;
+    }
+    final url = Uri.parse(
+      'https://firestore.googleapis.com/v1/projects/$_firestoreProject'
+      '/databases/$_firestoreDatabase/documents/users/$uid/$collection/$docId',
+    );
+    try {
+      await _postJson(
+        url,
+        {
+          'fields': {
+            for (final e in look.entries) e.key: _firestoreValue(e.value),
+          },
+        },
+        bearer: token,
+        method: 'PATCH',
+      );
+      log('Saved to users/$uid/$collection/$docId');
+      return true;
+    } catch (e, st) {
+      log('Firestore write failed: $e', stackTrace: st);
+      if (mounted) _snack('Save failed: $e');
+      return false;
     }
   }
 
