@@ -298,10 +298,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
           const snap = await getDocs(collection(db, 'users', uid, 'saved_looks'));
           snap.forEach((docSnap) => {
             const data = docSnap.data() as Record<string, any>;
+            // Older documents predate savedFrom, so fall back on shape:
+            // more than one shade means it was mixed.
+            const shadeCount = Array.isArray(data.shades) ? data.shades.length : 0;
             const key =
               data.savedFrom === 'gallery'
                 ? 'saved_gallery'
-                : data.savedFrom === 'mixnmatch'
+                : data.savedFrom === 'mixnmatch' || (!data.savedFrom && shadeCount > 1)
                   ? 'saved_mixnmatch'
                   : 'saved_tryon';
             buckets[key].push({
@@ -311,8 +314,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
               description: data.description || '',
             });
           });
-        } catch (err) {
+        } catch (err: any) {
           console.error('Could not read saved_looks from your account:', err);
+          setErrorMsg(
+            `Could not load saved looks: ${err?.code || err?.message || err}`
+          );
         }
       }
       setSavedBuckets(buckets);
@@ -384,6 +390,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
       console.error('Error removing look from favorites:', e);
     }
   };
+
+  // Re-read on entering Saved, so a look saved from the app shows without
+  // needing a sign-out or reload.
+  useEffect(() => {
+    if (activeCategory === 'saved') {
+      loadSavedLooks();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCategory]);
 
   // Listen to auth state
   useEffect(() => {
