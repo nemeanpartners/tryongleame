@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Heart, RefreshCw, Trophy, ExternalLink, Filter, Grid, List, Sparkles, Sparkle, Search, X, Upload, Plus, SquarePlus, ArrowLeft, Share2, ChevronUp, ChevronDown, MessageSquare, LayoutGrid, SlidersHorizontal, Bookmark, Play, ArrowRight, Eye, ChevronRight, Check, Crown, Video, Flame, Award, Wand2, Lock } from 'lucide-react';
+import { auth } from '../../firebase';
+import { saveLookToAccount, removeLookFromAccount } from '../../lib/nativeLooks';
 import { db, collection, getDocs, updateDoc, doc, increment, addDoc, handleFirestoreError, OperationType } from '../../firebase';
 import { ChallengeSubmission, PresetLook } from '../../types';
 import { InspirationWall } from '../inspiration/InspirationWall';
@@ -306,15 +308,61 @@ export const GalleryPage: React.FC<GalleryPageProps> = ({
   });
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState<boolean>(false);
 
-  const toggleBookmark = (id: string, e?: React.MouseEvent) => {
+  /** Confirmation for a save, shown as a small tick rather than a message. */
+  const [saveToast, setSaveToast] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const flashSaveToast = (ok: boolean, text: string) => {
+    setSaveToast({ ok, text });
+    window.setTimeout(() => setSaveToast(null), 2200);
+  };
+
+  /**
+   * A saved look belongs to the account, not to this browser, so it is written
+   * to the user's saved looks as well as remembered locally. It lands in the
+   * Discover bucket of the Saved page in Settings.
+   */
+  const toggleBookmark = (id: string, e?: React.MouseEvent, look?: GalleryIconicLook) => {
     if (e) {
       e.stopPropagation();
     }
-    const newBookmarked = bookmarkedSubIds.includes(id)
+    const wasBookmarked = bookmarkedSubIds.includes(id);
+    const newBookmarked = wasBookmarked
       ? bookmarkedSubIds.filter(bId => bId !== id)
       : [...bookmarkedSubIds, id];
     setBookmarkedSubIds(newBookmarked);
     localStorage.setItem('tryon_beauty_bookmarked_looks', JSON.stringify(newBookmarked));
+
+    if (!auth.currentUser) {
+      flashSaveToast(false, 'Sign in to save looks to your account');
+      return;
+    }
+
+    const request = wasBookmarked
+      ? removeLookFromAccount(id)
+      : saveLookToAccount(
+          {
+            id,
+            name: look?.name || 'Saved look',
+            description: look?.tagline || 'Saved from Discover.',
+            image: look?.image,
+            filterId: (look as any)?.filterId,
+            lipColor: look?.config?.lipColor,
+            blushColor: look?.config?.blushColor,
+            eyeshadowColor: look?.config?.eyeshadowColor,
+            eyelinerColor: look?.config?.eyelinerColor,
+            lipGloss: look?.config?.lipGloss,
+            lashesStyle: look?.config?.lashesStyle,
+            glitterLevel: look?.config?.glitterLevel
+          },
+          'discover'
+        );
+
+    request
+      .then(() => flashSaveToast(true, wasBookmarked ? 'Removed' : 'Saved'))
+      .catch((err) => {
+        console.error('Could not sync the saved look:', err);
+        flashSaveToast(false, 'Could not save that look');
+      });
   };
 
   // Instagram Reels State
@@ -759,6 +807,17 @@ export const GalleryPage: React.FC<GalleryPageProps> = ({
   return (
     <div id="gallery-page" className="relative space-y-4 sm:space-y-6 animate-in fade-in duration-300 text-stone-800 -mt-1 sm:-mt-2">
       
+      {saveToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] bg-white border border-stone-200 text-stone-900 px-4 py-2.5 rounded-full text-xs font-bold shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {saveToast.ok ? (
+            <Check className="w-4 h-4 text-emerald-600" />
+          ) : (
+            <X className="w-4 h-4 text-rose-500" />
+          )}
+          <span>{saveToast.text}</span>
+        </div>
+      )}
+
       {/* Soft Luminous Warm Background Ambient Glow */}
       <div className="absolute top-12 left-10 w-96 h-96 bg-[#F7F2EF] rounded-full blur-3xl pointer-events-none z-0" />
       <div className="absolute top-64 right-10 w-96 h-96 bg-pink-100/30 rounded-full blur-3xl pointer-events-none z-0" />
@@ -1276,7 +1335,7 @@ export const GalleryPage: React.FC<GalleryPageProps> = ({
 
                           <button
                             type="button"
-                            onClick={(e) => toggleBookmark(look.id, e)}
+                            onClick={(e) => toggleBookmark(look.id, e, look)}
                             className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full backdrop-blur-md flex items-center justify-center transition-colors shadow-xs shrink-0 cursor-pointer ${
                               isBookmarked 
                                 ? 'bg-[#ff4e7e] text-white' 
@@ -1417,7 +1476,7 @@ export const GalleryPage: React.FC<GalleryPageProps> = ({
 
                             <button
                               type="button"
-                              onClick={(e) => toggleBookmark(look.id, e)}
+                              onClick={(e) => toggleBookmark(look.id, e, look)}
                               className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full backdrop-blur-md flex items-center justify-center transition-colors shadow-xs shrink-0 cursor-pointer ${
                                 isBookmarked 
                                 ? 'bg-[#ff4e7e] text-white' 

@@ -83,6 +83,12 @@ export interface PresetLook {
   requestedBy?: string; // Attach original winning username if community preset
   isLocked?: boolean;
   tier?: 'free' | 'pro';
+  /** Catalog id of the AR filter this look is, when it is one the app ships. */
+  filterId?: string;
+  /** The filter behind each region, for a look built from several shades. */
+  filterIds?: Record<string, string>;
+  /** Picture of the look, captured when it was saved. */
+  coverImage?: string;
 }
 
 export interface ShadeProduct {

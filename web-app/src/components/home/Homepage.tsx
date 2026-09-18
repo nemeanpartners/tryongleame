@@ -24,6 +24,12 @@ import {
   Users,
   ChevronRight
 } from 'lucide-react';
+import { auth } from '../../firebase';
+import { saveLookToAccount, removeLookFromAccount } from '../../lib/nativeLooks';
+
+/** The hero look's picture, shared by the card and the saved copy. */
+const HERO_LOOK_IMAGE =
+  'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=85&w=1200';
 import { PresetLook, ShadeProduct } from '../../types';
 import { FEATURED_EXPLORE_SHADE_PRODUCTS } from '../../data/shadeProducts';
 import { ShadeInterestModal } from '../shade-edit/ShadeInterestModal';
@@ -415,6 +421,30 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate, onLoadPreset, us
       console.error(err);
     }
 
+    // The account copy is what the Saved page in Settings reads, so the look
+    // follows the user rather than staying in this browser.
+    if (auth.currentUser) {
+      const request = nextSaved
+        ? saveLookToAccount(
+            {
+              id: 'golden_hour_velvet',
+              name: 'Golden Hour Velvet',
+              description: 'Soft gold eyes • nude gloss • warm blush',
+              image: HERO_LOOK_IMAGE,
+              eyeshadowColor: '#d4af37',
+              eyelinerColor: '#3a2518',
+              blushColor: '#e07a5f',
+              lipColor: '#a75d5d',
+              lipGloss: true,
+              lashesStyle: 'natural',
+              glitterLevel: 15
+            },
+            'home'
+          )
+        : removeLookFromAccount('golden_hour_velvet');
+      request.catch((err) => console.error('Could not sync the saved look:', err));
+    }
+
     if (nextSaved) {
       setSavedLookNameForModal('Golden Hour Velvet');
       setIsPostSaveModalOpen(true);
@@ -504,7 +534,7 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate, onLoadPreset, us
         >
           {/* Big Beautiful Editorial Makeup Look Photo */}
           <img 
-            src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=85&w=1200" 
+            src={HERO_LOOK_IMAGE} 
             alt="Golden Hour Velvet Makeup Look" 
             className="absolute inset-0 w-full h-full object-cover object-[70%_25%] transition-transform duration-700 group-hover:scale-105"
             referrerPolicy="no-referrer"

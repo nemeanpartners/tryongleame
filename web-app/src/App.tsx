@@ -46,6 +46,7 @@ import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { installGleameNativeBridge } from './lib/nativeBridge';
 import { trackDwellTime } from './lib/analytics';
 import { getEffectiveAvatar, loadUserProfileFromFirestore } from './lib/userProfileService';
+import { openLookInNative, isNativeApp } from './lib/nativeLooks';
 
 type LabNavTarget = 'sandbox' | 'gallery' | 'gallery-looks' | 'gallery-challenges' | 'gallery-inspiration' | 'gallery-wanted' | 'wanted-list' | 'wanted-scrollfeed' | 'hall-of-fame' | 'trending' | 'built-looks' | 'votes' | 'profile' | 'looks' | 'tiktok-effects' | 'inspiration-wall' | 'inspirationlooks-scrollfeed' | 'shade-edit' | 'admin';
 
@@ -363,7 +364,16 @@ export default function App() {
     }
   };
 
+  /**
+   * Try On and Create are native pages inside the app. A card that has just
+   * handed its look to the app must not then route the web view to the page
+   * behind them: it would show the web try-on underneath, and switching to
+   * Create would clear the look that was just applied.
+   */
+  const NATIVE_ONLY_TABS = new Set(['sandbox', 'built-looks', 'looks']);
+
   const handleNavigate = (tab: 'home' | LabNavTarget, extraParam?: string | { mood?: string; lookId?: string; reqId?: string }) => {
+    if (isNativeApp() && NATIVE_ONLY_TABS.has(tab)) return;
     if (typeof extraParam === 'string') {
       setSelectedInspirationLookId(extraParam);
     } else if (extraParam && typeof extraParam === 'object') {
@@ -389,6 +399,26 @@ export default function App() {
   };
 
   const handleSelectPresetForTryOn = (preset: PresetLook) => {
+    // Inside the app, tapping a look card puts the look on the face there and
+    // then. Every card in the web app routes through here, so none of them
+    // leave the user on a page they have to tap again to start the filter.
+    const handledNatively = openLookInNative({
+      id: preset.id,
+      name: preset.name,
+      filterId: preset.filterId,
+      filterIds: preset.filterIds,
+      description: preset.description,
+      image: preset.coverImage,
+      lipColor: preset.lipColor,
+      blushColor: preset.blushColor,
+      eyeshadowColor: preset.eyeshadowColor,
+      eyelinerColor: preset.eyelinerColor,
+      lipGloss: preset.lipGloss,
+      lashesStyle: preset.lashesStyle,
+      glitterLevel: preset.glitterLevel
+    });
+    if (handledNatively) return;
+
     setActivePreset(preset);
     handleNavigate('sandbox');
     

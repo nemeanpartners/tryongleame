@@ -81,6 +81,7 @@ import {
 } from './SettingsCategoryViews';
 import { PhotoUploadModal } from './PhotoUploadModal';
 import { getEffectiveAvatar, getEffectiveCover, clearCachedProfileMedia } from '../../lib/userProfileService';
+import { lookCoverImage } from '../../lib/lookImage';
 
 interface ProfilePageProps {
   onLoadPreset?: (preset: any) => void;
@@ -177,6 +178,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
     saved_mixnmatch: [],
     saved_tryon: [],
     saved_gallery: [],
+    saved_discover: [],
   });
   const [openSavedGroups, setOpenSavedGroups] = useState<Record<string, boolean>>({
     mix: true,
@@ -292,6 +294,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
         saved_mixnmatch: [],
         saved_tryon: [],
         saved_gallery: [],
+        saved_discover: [],
       };
       if (uid) {
         try {
@@ -302,11 +305,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
             // more than one shade means it was mixed.
             const shadeCount = Array.isArray(data.shades) ? data.shades.length : 0;
             const key =
-              data.savedFrom === 'gallery'
-                ? 'saved_gallery'
-                : data.savedFrom === 'mixnmatch' || (!data.savedFrom && shadeCount > 1)
-                  ? 'saved_mixnmatch'
-                  : 'saved_tryon';
+              data.savedFrom === 'discover' || data.savedFrom === 'home'
+                ? 'saved_discover'
+                : data.savedFrom === 'gallery'
+                  ? 'saved_gallery'
+                  : data.savedFrom === 'mixnmatch' || (!data.savedFrom && shadeCount > 1)
+                    ? 'saved_mixnmatch'
+                    : 'saved_tryon';
             buckets[key].push({
               ...(data as ExtendedBuiltLook),
               id: docSnap.id,
@@ -355,6 +360,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
           title: 'Try On shades',
           subtitle: 'Shades saved while trying on',
           looks: savedBuckets.saved_tryon || [],
+        },
+        {
+          key: 'discover',
+          title: 'Discovered',
+          subtitle: 'Looks you saved from Home and Discover',
+          looks: savedBuckets.saved_discover || [],
         },
         {
           key: 'gallery',
@@ -608,7 +619,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
       // as still being signed in.
       setUserSubmissions([]);
       setSavedLooks([]);
-      setSavedBuckets({ saved_mixnmatch: [], saved_tryon: [], saved_gallery: [] });
+      setSavedBuckets({
+        saved_mixnmatch: [],
+        saved_tryon: [],
+        saved_gallery: [],
+        saved_discover: [],
+      });
       setActiveCategory(null);
       setEmail('');
       setPassword('');
@@ -812,7 +828,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs shrink-0" />
               </div>
               <p className="text-[11px] text-stone-500 font-medium truncate">
-                Studio Resident · {savedLooks.length} saved formulas
+                Studio Resident · {totalSavedLooks} saved looks
               </p>
             </div>
             <button
@@ -1388,10 +1404,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                         className="bg-[#ede9e4]/80 rounded-2xl border border-white/70 shadow-[3px_3px_8px_rgba(0,0,0,0.04),-3px_-3px_8px_rgba(255,255,255,0.85)] p-3.5 flex flex-col justify-between space-y-3 group hover:scale-[1.01] transition-all"
                       >
                         <div className="space-y-2">
-                          {look.coverImage && (
+                          {/* Saved from the app: the camera frame it was saved
+                              from. Otherwise the card's photo, or the makeup
+                              itself drawn from the shades it wears. */}
+                          {(
                             <div className="w-full h-32 rounded-xl overflow-hidden relative bg-stone-200 shadow-inner">
                               <img
-                                src={look.coverImage}
+                                src={lookCoverImage(look as any)}
                                 alt={look.name}
                                 referrerPolicy="no-referrer"
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

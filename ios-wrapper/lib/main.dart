@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:developer';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -66,6 +67,7 @@ class _LookLabPageState extends State<LookLabPage> {
   // is what kept the saves from landing.
   static const _firebaseApiKey = 'AIzaSyBdKGptmjaFKURh0vMkyNyA-y-WhP9ozKo';
   static const _firestoreProject = 'kobella-39c79';
+  static const _firebaseStorageBucket = 'kobella-39c79.firebasestorage.app';
   static const _firestoreDatabase =
       'ai-studio-tryonbeautylookl-ab92ce94-89bf-43fe-8f79-10fcc718998b';
   String? _firebaseIdToken;
@@ -301,6 +303,12 @@ class _LookLabPageState extends State<LookLabPage> {
                 return;
               }
             }
+            // Any look card in the web app: open it on a live face here
+            // rather than handing the user a page they have to tap again.
+            if (type == 'gleame:apply-look') {
+              unawaited(_applyWebLook(decoded));
+              return;
+            }
             if (type == 'gleame:navigate-native') {
               unawaited(_handleWebNavigation(target));
               return;
@@ -358,6 +366,10 @@ class _LookLabPageState extends State<LookLabPage> {
   final Map<String, LookItem> _mixSlots = {};
   String? _mixModelUrl;
   int _mixCategory = 0;
+
+  /// The colour the wheel last produced, per region, so the chip keeps wearing
+  /// it while the user moves between categories.
+  final Map<String, Color> _customColours = {};
   bool _singleLookMode = false;
   bool _shadesOpen = false;
   String? _restoreGroupKey;
@@ -937,6 +949,7 @@ class _LookLabPageState extends State<LookLabPage> {
         'ios_${DateTime.now().millisecondsSinceEpoch}_'
                 '${name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_')}'
             .replaceAll(RegExp(r'_+$'), '');
+    final coverImage = await _lookCoverImage(_pendingLookId);
     final ok = await _writeLookToFirestore(
       collection: 'saved_looks',
       docId: _pendingLookId,
@@ -946,6 +959,9 @@ class _LookLabPageState extends State<LookLabPage> {
         'visibility': 'private',
         'savedFrom': 'tryon',
         'savedAt': DateTime.now().millisecondsSinceEpoch,
+        'coverImage': coverImage,
+        'filterId': look.id,
+        'filterIds': {(look.shade?['region'] as String? ?? 'lips'): look.id},
         'shades': [
           {
             'region': look.shade?['region'] ?? 'lips',
@@ -1192,6 +1208,11 @@ class _LookLabPageState extends State<LookLabPage> {
             .toList(),
       );
     }
+    // A picture of the look as it is being worn, so the saved look shows the
+    // makeup rather than a colour swatch. Best effort: no picture is still a
+    // save.
+    final coverImage = await _lookCoverImage(_pendingLookId);
+
     // Written straight to Firestore by the app. The web bridge is still
     // notified so the community copy and challenge entry can be made, but the
     // account save no longer depends on it.
@@ -1204,6 +1225,13 @@ class _LookLabPageState extends State<LookLabPage> {
         'visibility': share ? 'public' : 'private',
         'savedFrom': _tab == LabTab.build ? 'mixnmatch' : 'tryon',
         'savedAt': DateTime.now().millisecondsSinceEpoch,
+        'coverImage': coverImage,
+        // The filters behind the look, so reopening it anywhere restores the
+        // exact look rather than an approximation of its colours.
+        'filterIds': {
+          for (final e in _mixSlots.entries) e.key: e.value.id,
+        },
+        'filterId': _mixSlots['lips']?.id ?? _mixSlots.values.first.id,
         'shades': [
           for (final e in _mixSlots.entries)
             {
@@ -1502,26 +1530,104 @@ class _LookLabPageState extends State<LookLabPage> {
     }
   }
 
-  /// Opens one look straight from a web card, by catalog id. Single-look mode
-  /// shows just that filter; its palette stays behind the Shades menu.
-  Future<void> _openFilterById(String id) async {
-    LookItem? found;
-    var groupIndex = 0;
-    var itemIndex = 0;
+  /// Finds a catalog entry and where it sits, so a look can be opened by id
+  /// or by the name a web card shows.
+  (LookItem, int, int)? _findCatalogItem(bool Function(LookItem) match) {
     for (var g = 0; g < _categories.length; g++) {
       final items = _categories[g].items;
       for (var i = 0; i < items.length; i++) {
-        if (items[i].id == id) {
-          found = items[i];
-          groupIndex = g;
-          itemIndex = i;
-          break;
-        }
+        if (match(items[i])) return (items[i], g, i);
       }
-      if (found != null) break;
     }
+    return null;
+  }
+
+  static String _normalised(String value) =>
+      value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+
+  /// A look tapped on any web card. One that names a filter we ship opens that
+  /// filter on Try On; anything else is rebuilt on Mix & Match from the closest
+  /// shades, so a tap always lands on a live face with the look already on.
+  Future<void> _applyWebLook(Map<String, dynamic> look) async {
+    // A look built from several shades carries the filter behind each region,
+    // so it is restored exactly rather than approximated from its colours.
+    final regions = (look['filterIds'] as Map?)?.cast<String, dynamic>() ?? {};
+    final restored = <String, LookItem>{};
+    for (final entry in regions.entries) {
+      final itemId = entry.value?.toString() ?? '';
+      if (itemId.isEmpty) continue;
+      final hit = _findCatalogItem((item) => item.id == itemId);
+      if (hit != null) restored[entry.key] = hit.$1;
+    }
+    if (restored.length > 1) {
+      await _wearMixAndMatch(restored, look['name'] as String? ?? '');
+      return;
+    }
+
+    final id = (look['filterId'] as String? ?? '').trim();
+    if (id.isNotEmpty && _findCatalogItem((item) => item.id == id) != null) {
+      await _openFilterById(id);
+      return;
+    }
+    if (restored.length == 1) {
+      await _openFilterById(restored.values.first.id);
+      return;
+    }
+
+    final name = (look['name'] as String? ?? '').trim();
+    if (name.isNotEmpty) {
+      final key = _normalised(name);
+      final byName = _findCatalogItem(
+        (item) => item.id.isNotEmpty && _normalised(item.name) == key,
+      );
+      if (byName != null) {
+        await _openFilterById(byName.$1.id);
+        return;
+      }
+    }
+
+    final lips = _nearestShade('lip_swatches', look['lipColor'] as String?);
+    final cheeks = _nearestShade('blush_swatches', look['blushColor'] as String?);
+    if (lips == null && cheeks == null) {
+      if (mounted) _snack('That look has no shades to try on yet.');
+      return;
+    }
+
+    await _wearMixAndMatch({
+      if (lips != null) 'lips': lips,
+      if (cheeks != null) 'cheeks': cheeks,
+    }, name);
+  }
+
+  /// Opens Mix & Match already wearing these shades.
+  Future<void> _wearMixAndMatch(Map<String, LookItem> slots, String name) async {
+    for (final timer in _slotDebounceTimers.values) {
+      timer.cancel();
+    }
+    _slotDebounceTimers.clear();
+    if (!mounted) return;
+    setState(() {
+      _tab = LabTab.build;
+      _looksPortalOpen = false;
+      _beforeAfter = false;
+      _mixCategory = 0;
+      _mixSlots
+        ..clear()
+        ..addAll(slots);
+    });
+    await _applyMixAndMatch();
+    if (mounted && name.isNotEmpty) _snack(name);
+  }
+
+  /// Opens one look straight from a web card, by catalog id. Single-look mode
+  /// shows just that filter; its palette stays behind the Shades menu.
+  Future<void> _openFilterById(String id) async {
+    final hit = _findCatalogItem((item) => item.id == id);
+    final found = hit?.$1;
+    final groupIndex = hit?.$2 ?? 0;
+    final itemIndex = hit?.$3 ?? 0;
     if (found == null) {
-      log('No catalog filter with id \$id');
+      log('No catalog filter with id $id');
       if (mounted) _snack('That look is not in the catalog yet.');
       return;
     }
@@ -1751,6 +1857,67 @@ class _LookLabPageState extends State<LookLabPage> {
       if (mounted) _confirmToast(false, 'Couldn\'t save');
       return false;
     }
+  }
+
+  /// Grabs the frame the renderer is showing, with the look on it. Used when
+  /// a look is saved, so the stored look carries a real picture of itself
+  /// rather than only its colours.
+  Future<Uint8List?> _captureLookFrame() async {
+    final channel = _tryOnStudioNativeChannel;
+    if (channel == null || !_tryOnStudioReady) return null;
+    try {
+      return await channel.invokeMethod<Uint8List>('capture');
+    } catch (e) {
+      log('Look capture failed: $e');
+      return null;
+    }
+  }
+
+  /// Uploads a look's picture to Storage and returns its download URL, so the
+  /// saved look holds a link rather than the image bytes.
+  Future<String?> _uploadLookImage(String lookId, Uint8List bytes) async {
+    final token = await _validToken();
+    if (token == null) return null;
+    final uid = _uidFromToken(token) ?? _firebaseUid;
+    if (uid == null || uid.isEmpty) return null;
+
+    final objectPath = Uri.encodeComponent('users/$uid/looks/$lookId.png');
+    final url = Uri.parse(
+      'https://firebasestorage.googleapis.com/v0/b/$_firebaseStorageBucket'
+      '/o?uploadType=media&name=$objectPath',
+    );
+    final client = HttpClient();
+    try {
+      final request = await client.postUrl(url);
+      request.headers.contentType = ContentType('image', 'png');
+      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+      request.add(bytes);
+      final response = await request.close();
+      final text = await response.transform(utf8.decoder).join();
+      if (response.statusCode >= 400) {
+        log('Look image upload refused: ${response.statusCode} $text');
+        return null;
+      }
+      final decoded = jsonDecode(text) as Map<String, dynamic>;
+      final downloadToken =
+          (decoded['downloadTokens'] as String?)?.split(',').first;
+      if (downloadToken == null || downloadToken.isEmpty) return null;
+      return 'https://firebasestorage.googleapis.com/v0/b/$_firebaseStorageBucket'
+          '/o/$objectPath?alt=media&token=$downloadToken';
+    } catch (e, st) {
+      log('Look image upload failed: $e', stackTrace: st);
+      return null;
+    } finally {
+      client.close();
+    }
+  }
+
+  /// The picture stored with a saved look. A failure here must not stop the
+  /// save, so it returns null and the look is stored without one.
+  Future<String?> _lookCoverImage(String lookId) async {
+    final bytes = await _captureLookFrame();
+    if (bytes == null || bytes.isEmpty) return null;
+    return _uploadLookImage(lookId, bytes);
   }
 
   Future<void> _openExploreTab() async {
@@ -2539,6 +2706,12 @@ class _LookLabPageState extends State<LookLabPage> {
               setState(() => _mixSlots.remove(region));
               unawaited(_applyMixAndMatch());
             },
+            // Only packs that carry shades can be tinted to any colour;
+            // eyeliner and lashes ship as their own filters.
+            onCustomColour: items.any((i) => i.isShade)
+                ? () => unawaited(_openColourWheel())
+                : null,
+            customColour: _customColours[region],
           ),
         ],
       ),
@@ -2819,6 +2992,8 @@ class _LookLabPageState extends State<LookLabPage> {
     LookItem? selected,
     ValueChanged<LookItem> onPick, {
     VoidCallback? onClear,
+    VoidCallback? onCustomColour,
+    Color? customColour,
   }) {
     if (items.isEmpty) {
       return const SizedBox(
@@ -2831,41 +3006,23 @@ class _LookLabPageState extends State<LookLabPage> {
         ),
       );
     }
+    // The chips before the palette: wear none of this product, then pick any
+    // colour at all. The palette follows them.
+    final leading = <Widget>[
+      if (onClear != null) _noneChip(selected == null, onClear),
+      if (onCustomColour != null)
+        _colourWheelChip(customColour, selected, onCustomColour),
+    ];
+
     return SizedBox(
       height: 44,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemExtent: 42,
-        itemCount: items.length + (onClear == null ? 0 : 1),
+        itemCount: items.length + leading.length,
         itemBuilder: (context, index) {
-          // First chip clears this region, for wearing none of it.
-          if (onClear != null && index == 0) {
-            final none = selected == null;
-            return Center(
-              child: GestureDetector(
-                onTap: onClear,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 140),
-                  width: none ? 34 : 29,
-                  height: none ? 34 : 29,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                    border: Border.all(
-                      color: none ? _pink : _line,
-                      width: none ? 2.2 : 1,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.block,
-                    size: none ? 17 : 15,
-                    color: none ? _pink : _muted,
-                  ),
-                ),
-              ),
-            );
-          }
-          final item = items[index - (onClear == null ? 0 : 1)];
+          if (index < leading.length) return leading[index];
+          final item = items[index - leading.length];
           final isOn = selected?.assetPath == item.assetPath &&
               selected?.name == item.name;
           return Center(
@@ -2898,6 +3055,157 @@ class _LookLabPageState extends State<LookLabPage> {
         },
       ),
     );
+  }
+
+  /// Wear none of this product.
+  Widget _noneChip(bool on, VoidCallback onTap) {
+    return Center(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          width: on ? 34 : 29,
+          height: on ? 34 : 29,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            border: Border.all(
+              color: on ? _pink : _line,
+              width: on ? 2.2 : 1,
+            ),
+          ),
+          child: Icon(Icons.block, size: on ? 17 : 15, color: on ? _pink : _muted),
+        ),
+      ),
+    );
+  }
+
+  /// Opens the colour wheel. Once a colour has been picked the chip wears it,
+  /// so it reads as the shade it is rather than a button.
+  Widget _colourWheelChip(
+    Color? picked,
+    LookItem? selected,
+    VoidCallback onTap,
+  ) {
+    final on = picked != null && selected?.id == _customShadeId;
+    return Center(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          width: on ? 34 : 29,
+          height: on ? 34 : 29,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: picked ?? Colors.white,
+            gradient: picked == null
+                ? const SweepGradient(
+                    colors: [
+                      Color(0xffff0000),
+                      Color(0xffffff00),
+                      Color(0xff00ff00),
+                      Color(0xff00ffff),
+                      Color(0xff0000ff),
+                      Color(0xffff00ff),
+                      Color(0xffff0000),
+                    ],
+                  )
+                : null,
+            border: Border.all(
+              color: on ? Colors.white : _line,
+              width: on ? 2.2 : 1,
+            ),
+            boxShadow: on
+                ? [
+                    BoxShadow(
+                      color: _pink.withValues(alpha: 0.45),
+                      blurRadius: 7,
+                      spreadRadius: 0.5,
+                    ),
+                  ]
+                : null,
+          ),
+          child: picked == null
+              ? Center(
+                  child: Container(
+                    width: 11,
+                    height: 11,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                    ),
+                  ),
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+
+  /// One id for whatever colour the wheel is currently wearing, so the chip
+  /// can tell that the picked colour is the one on the face.
+  static const String _customShadeId = 'custom-colour';
+
+  Future<void> _openColourWheel() async {
+    final slot = _mixSlotDefs[_mixCategory];
+    final region = slot['region']!;
+    final start = _customColours[region] ??
+        _mixSlots[region]?.lipColor ??
+        _pink;
+
+    final chosen = await showModalBottomSheet<Color>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _ColourWheelSheet(
+        initial: start,
+        label: slot['label']!,
+      ),
+    );
+    if (chosen == null) return;
+    await _applyCustomColour(region, chosen);
+  }
+
+  /// A picked colour is worn as a shade override on the swatch pack's own
+  /// filter: the pack renders any colour, so nothing else has to change.
+  Future<void> _applyCustomColour(String region, Color colour) async {
+    final slot = _mixSlotDefs[_mixCategory];
+    final items = _shadesFor(slot['group']!);
+    final current = _mixSlots[region];
+    final base = current != null && current.isShade
+        ? current
+        : items.where((i) => i.isShade).firstOrNull;
+    if (base == null) {
+      _snack('That product has no colours to tint yet.');
+      return;
+    }
+
+    final hex = _hex(colour) ?? '#000000';
+    final shade = Map<String, dynamic>.from(base.shade ?? const {});
+    shade['region'] = region;
+    shade['colour'] = hex;
+    shade['opacity'] = shade['opacity'] ?? 0;
+    shade['finish'] = shade['finish'] ?? base.finish;
+
+    final custom = LookItem.tryOnStudio(
+      'Custom ${hex.toUpperCase()}',
+      base.assetPath,
+      lipColor: colour,
+      linerColor: colour,
+      finish: base.finish,
+      hasLiner: base.hasLiner,
+      hasGloss: base.hasGloss,
+      hasShimmer: base.hasShimmer,
+      shade: shade,
+      id: _customShadeId,
+      family: 'Custom',
+    );
+
+    setState(() {
+      _customColours[region] = colour;
+      _mixSlots[region] = custom;
+    });
+    await _applyMixAndMatch();
   }
 
   Widget _glass({required Widget child}) {
@@ -3306,4 +3614,224 @@ Color? parseHexColor(Object? value) {
   final parsed = int.tryParse(hex, radix: 16);
   if (parsed == null) return null;
   return Color(0xff000000 | parsed);
+}
+
+
+/// The colour wheel behind Mix & Match's custom shade. Hue runs around the
+/// wheel, saturation from the middle outwards, and the slider sets how light
+/// the colour is. Returns the picked colour, or null if the sheet is dismissed.
+class _ColourWheelSheet extends StatefulWidget {
+  const _ColourWheelSheet({required this.initial, required this.label});
+
+  final Color initial;
+  final String label;
+
+  @override
+  State<_ColourWheelSheet> createState() => _ColourWheelSheetState();
+}
+
+class _ColourWheelSheetState extends State<_ColourWheelSheet> {
+  static const double _wheel = 224;
+
+  late HSVColor _hsv = HSVColor.fromColor(widget.initial);
+
+  void _pickAt(Offset local) {
+    const centre = Offset(_wheel / 2, _wheel / 2);
+    const radius = _wheel / 2;
+    final vector = local - centre;
+    final saturation = (vector.distance / radius).clamp(0.0, 1.0);
+    var hue = math.atan2(vector.dy, vector.dx) * 180 / math.pi;
+    if (hue < 0) hue += 360;
+    setState(
+      () => _hsv = _hsv.withHue(hue).withSaturation(saturation.toDouble()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colour = _hsv.toColor();
+    final hex =
+        '#${(colour.toARGB32() & 0xffffff).toRadixString(16).padLeft(6, '0').toUpperCase()}';
+    const radius = _wheel / 2;
+    final marker = Offset(radius, radius) +
+        Offset(
+              math.cos(_hsv.hue * math.pi / 180),
+              math.sin(_hsv.hue * math.pi / 180),
+            ) *
+            (_hsv.saturation * radius);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
+      decoration: const BoxDecoration(
+        color: Color(0xfff7f2ef),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Text(
+                '${widget.label} colour',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+              ),
+              const Spacer(),
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colour,
+                  border: Border.all(color: const Color(0xffe6dcd6)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                hex,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Center(
+            child: GestureDetector(
+              onPanDown: (d) => _pickAt(d.localPosition),
+              onPanUpdate: (d) => _pickAt(d.localPosition),
+              onTapDown: (d) => _pickAt(d.localPosition),
+              child: SizedBox(
+                width: _wheel,
+                height: _wheel,
+                child: CustomPaint(
+                  painter: _ColourWheelPainter(_hsv.value),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: marker.dx - 9,
+                        top: marker.dy - 9,
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: colour,
+                            border: Border.all(color: Colors.white, width: 2.4),
+                            boxShadow: const [
+                              BoxShadow(color: Color(0x33000000), blurRadius: 4),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.brightness_low, size: 16, color: Color(0xff8a8079)),
+              Expanded(
+                child: Slider(
+                  value: _hsv.value,
+                  activeColor: colour,
+                  onChanged: (v) => setState(() => _hsv = _hsv.withValue(v)),
+                ),
+              ),
+              const Icon(Icons.brightness_high, size: 16, color: Color(0xff8a8079)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    height: 46,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: const Color(0xffe6dcd6)),
+                    ),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(colour),
+                  child: Container(
+                    height: 46,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xffe0577f),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'Wear this colour',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ColourWheelPainter extends CustomPainter {
+  const _ColourWheelPainter(this.value);
+
+  /// How light the wheel is drawn, matching the brightness slider.
+  final double value;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final centre = rect.center;
+    final radius = size.width / 2;
+
+    final hues = [
+      for (var i = 0; i <= 12; i++)
+        HSVColor.fromAHSV(1, (i * 30) % 360, 1, 1).toColor(),
+    ];
+    canvas.drawCircle(
+      centre,
+      radius,
+      Paint()..shader = SweepGradient(colors: hues).createShader(rect),
+    );
+    canvas.drawCircle(
+      centre,
+      radius,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [Colors.white, Colors.white.withValues(alpha: 0)],
+        ).createShader(rect),
+    );
+    if (value < 1) {
+      canvas.drawCircle(
+        centre,
+        radius,
+        Paint()..color = Colors.black.withValues(alpha: 1 - value),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ColourWheelPainter oldDelegate) =>
+      oldDelegate.value != value;
 }
