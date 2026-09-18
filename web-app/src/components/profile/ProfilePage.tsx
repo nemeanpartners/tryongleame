@@ -22,7 +22,7 @@ import {
   getRedirectResult
 } from 'firebase/auth';
 import { 
-  User, 
+  User as UserIcon, 
   CircleUser,
   Mail, 
   Lock, 
@@ -80,7 +80,7 @@ import {
   LogoutModal
 } from './SettingsCategoryViews';
 import { PhotoUploadModal } from './PhotoUploadModal';
-import { getEffectiveAvatar, getEffectiveCover, clearCachedProfileMedia } from '../../lib/userProfileService';
+import { getEffectiveAvatar, getEffectiveCover, clearCachedProfileMedia, hasProfilePhoto } from '../../lib/userProfileService';
 import { lookShadeLines } from '../../lib/lookShades';
 
 interface ProfilePageProps {
@@ -655,7 +655,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
     return (
       <div className="py-16 px-5 max-w-sm mx-auto text-center space-y-5">
         <div className="w-16 h-16 rounded-full bg-[#f2eee9] border border-white/80 shadow-[2px_2px_6px_rgba(0,0,0,0.06),-2px_-2px_6px_rgba(255,255,255,0.95)] flex items-center justify-center mx-auto text-stone-500">
-          <User className="w-8 h-8" />
+          <UserIcon className="w-8 h-8" />
         </div>
         <div className="space-y-1.5">
           <h3 className="text-base font-bold text-stone-900">You're signed out</h3>
@@ -717,7 +717,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
 
   /* List of Categories in exact order requested by user & screenshot */
   const categories: { id: SettingsCategory | 'logout'; label: string; icon: React.FC<any> }[] = [
-    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'profile', label: 'Profile', icon: UserIcon },
     { id: 'account', label: 'Account', icon: CircleUser },
     { id: 'saved', label: 'Saved', icon: Bookmark },
     { id: 'notification', label: 'Notification', icon: Bell },
@@ -813,12 +813,18 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
           {/* Tactile Profile Greeting Header Card (matching aesthetic example) */}
           <div className="flex items-center gap-3.5 p-3.5 sm:p-4 rounded-3xl bg-[#f5f2ee] shadow-[5px_5px_15px_rgba(0,0,0,0.05),-5px_-5px_15px_rgba(255,255,255,0.9)] border border-white/80">
             <div className="w-12 h-12 rounded-full p-0.5 bg-[#ede9e4] shadow-[3px_3px_8px_rgba(0,0,0,0.06),-3px_-3px_8px_rgba(255,255,255,0.95)] border border-white/80 shrink-0 overflow-hidden">
-              <img 
-                src={userAvatar} 
-                alt={currentDisplayName}
-                className="w-full h-full object-cover rounded-full"
-                referrerPolicy="no-referrer"
-              />
+              {hasProfilePhoto(user) ? (
+                <img 
+                  src={userAvatar} 
+                  alt={currentDisplayName}
+                  className="w-full h-full object-cover rounded-full"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-full h-full rounded-full flex items-center justify-center text-stone-400">
+                  <UserIcon className="w-5 h-5 stroke-[2.2]" />
+                </div>
+              )}
             </div>
             <div className="grow min-w-0 text-left">
               <div className="flex items-center gap-2">
@@ -956,12 +962,18 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                       className="w-20 h-20 sm:w-22 sm:h-22 rounded-full border-3 border-white overflow-hidden shadow-lg bg-stone-800 cursor-pointer"
                       title="Click to update profile photo"
                     >
-                      <img 
-                        src={userAvatar} 
-                        alt="Profile Avatar" 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        referrerPolicy="no-referrer"
-                      />
+                      {hasProfilePhoto(user) ? (
+                        <img 
+                          src={userAvatar} 
+                          alt="Profile Avatar" 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-[#f2eee9] text-stone-400">
+                          <UserIcon className="w-8 h-8 stroke-[1.8]" />
+                        </div>
+                      )}
                     </div>
                     <button 
                       onClick={() => {

@@ -45,7 +45,7 @@ import { auth, db, doc, setDoc } from './firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { installGleameNativeBridge } from './lib/nativeBridge';
 import { trackDwellTime } from './lib/analytics';
-import { getEffectiveAvatar, loadUserProfileFromFirestore } from './lib/userProfileService';
+import { getEffectiveAvatar, loadUserProfileFromFirestore, hasProfilePhoto } from './lib/userProfileService';
 import { openLookInNative, isNativeApp } from './lib/nativeLooks';
 
 type LabNavTarget = 'sandbox' | 'gallery' | 'gallery-looks' | 'gallery-challenges' | 'gallery-inspiration' | 'gallery-wanted' | 'wanted-list' | 'wanted-scrollfeed' | 'hall-of-fame' | 'trending' | 'built-looks' | 'votes' | 'profile' | 'looks' | 'tiktok-effects' | 'inspiration-wall' | 'inspirationlooks-scrollfeed' | 'shade-edit' | 'admin';
@@ -617,13 +617,21 @@ export default function App() {
                   className="flex items-center gap-2 cursor-pointer group"
                   title="Settings"
                 >
-                  <div className="w-8 h-8 rounded-full border border-black/10 overflow-hidden bg-stone-900 text-white flex items-center justify-center font-bold text-xs shadow-xs group-hover:scale-105 transition-transform">
-                    <img 
-                      src={headerAvatar} 
-                      alt="User Avatar" 
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
+                  {/* Signed out there is no picture to show, and a stock
+                      portrait would read as someone else's account. */}
+                  <div className={`w-8 h-8 rounded-full border border-black/10 overflow-hidden flex items-center justify-center font-bold text-xs shadow-xs group-hover:scale-105 transition-transform ${
+                    hasProfilePhoto(firebaseUser) ? 'bg-stone-900 text-white' : 'bg-[#f2eee9] text-stone-500'
+                  }`}>
+                    {hasProfilePhoto(firebaseUser) ? (
+                      <img 
+                        src={headerAvatar} 
+                        alt="User Avatar" 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <User className="w-4 h-4 stroke-[2.2]" />
+                    )}
                   </div>
                 </div>
 

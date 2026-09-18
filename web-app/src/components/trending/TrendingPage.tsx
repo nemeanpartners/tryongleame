@@ -25,7 +25,7 @@ import {
 import { db, collection, getDocs, addDoc, updateDoc, doc, increment } from '../../firebase';
 import { LookRequest } from '../../types';
 import { GlitterConfetti } from '../common/GlitterConfetti';
-import { Spinning3DVotesBadge } from './Spinning3DVotesBadge';
+import { DemandPulseCard } from './DemandPulseCard';
 import { WantedQuickActionCard } from './WantedQuickActionCard';
 import { useCountUp } from '../../lib/liveCounters';
 
@@ -491,188 +491,45 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
       {/* LEFT COLUMN: Controls & Distribution Form (Cols: 4) */}
       <div className="xl:col-span-4 space-y-6">
         
-        {/* STATS PANEL / DEMAND PULSE INTERACTIVE TRACKER */}
-        <div className="glass-card rounded-[28px] p-5 sm:p-6 text-left relative overflow-hidden font-montserrat">
-          {/* Header */}
-          <div className="flex items-start justify-between">
-            <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-500 block">
-                Demand Pulse
-              </span>
-              <h3 className="text-2xl font-display font-black text-stone-900 tracking-tight mt-0.5">
-                What&apos;s wanted now
-              </h3>
-              <p className="text-[10px] font-bold text-stone-400 mt-1 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 live-dot" />
-                <span>
-                  updated {pulseSecondsAgo < 5 ? 'just now' : `${pulseSecondsAgo}s ago`}
-                </span>
-                <span className="text-stone-300">·</span>
-                <span className="tabular-nums">{proposalsToday} new today</span>
-                {backedByYou > 0 && (
-                  <>
-                    <span className="text-stone-300">·</span>
-                    <span className="tabular-nums text-[#E91E63]">
-                      you backed {backedByYou}
-                    </span>
-                  </>
-                )}
-              </p>
-            </div>
-            
-            {/* Interactive Live Sync Badge */}
-            <button
-              type="button"
-              onClick={handleRefreshPulse}
-              title="Click to sync live tracker data from community"
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B8887A]/15 hover:bg-[#B8887A]/25 text-stone-700 text-xs font-bold transition-all active:scale-95 cursor-pointer"
-            >
-              {isRefreshingPulse ? (
-                <RefreshCw className="w-2.5 h-2.5 animate-spin text-[#2A1715]" />
-              ) : (
-                <span className="w-2 h-2 rounded-full bg-[#B8887A] animate-pulse" />
-              )}
-              <span>LIVE</span>
-            </button>
-          </div>
-
-          {/* Metric Boxes */}
-          <div className="grid grid-cols-2 gap-3.5 mt-5">
-            {/* 3D Spinning Votes Badge (Total Votes) */}
-            <Spinning3DVotesBadge 
-              totalVotes={animatedTotalVotes}
-              boostTrigger={badgeBoostTrigger}
-              todayCount={votesToday}
-              onClick={() => {
-                setActiveCategoryFilter(null);
-                setPulseToast(`Tracking ${trendingStats.totalVotes} total community votes`);
-                setTimeout(() => setPulseToast(null), 2500);
-              }}
-            />
-
-            {/* Top Rising (Interactive click to inspect proposal) */}
-            <div 
-              onClick={() => {
-                setSearchQuery(topRisingProposal);
-                setPulseToast(`Filtered to Top Rising: ${topRisingProposal}`);
-                setTimeout(() => setPulseToast(null), 2500);
-              }}
-              title={`Click to filter board for '${topRisingProposal}'`}
-              className="group bg-[#faf6f5] hover:bg-[#f5eeea] rounded-2xl p-3.5 sm:p-4 border border-[#B8887A]/15 hover:border-[#B8887A]/35 flex flex-col justify-between min-w-0 cursor-pointer transition-all duration-200"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-stone-400 tracking-wider uppercase block">
-                  Top Rising
-                </span>
-                <ArrowUpRight className="w-3 h-3 text-stone-400 group-hover:text-[#2A1715] transition-colors" />
-              </div>
-              <div 
-                className="text-sm sm:text-base font-bold text-stone-900 tracking-tight leading-snug break-words mt-1.5 line-clamp-2 group-hover:text-[#2A1715] transition-colors"
-                title={topRisingProposal}
-              >
-                {topRisingProposal}
-              </div>
-            </div>
-          </div>
-
-          {/* Category Section with Title & Interactive Chips */}
-          <div className="mt-5 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-400 block">
-                Cosmetic Category Popularity
-              </span>
-              {activeCategoryFilter && (
-                <button
-                  type="button"
-                  onClick={() => setActiveCategoryFilter(null)}
-                  className="text-[10px] font-bold text-[#2A1715] hover:underline cursor-pointer flex items-center gap-0.5"
-                >
-                  <span>Reset filter</span>
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Interactive Category Chips */}
-            <div className="flex flex-wrap gap-2">
-              {trendingStats.categories.slice(0, 4).map((stat) => {
-                const isSelected = activeCategoryFilter === stat.name;
-                return (
-                  <button
-                    key={stat.name}
-                    type="button"
-                    onClick={() => {
-                      if (isSelected) {
-                        setActiveCategoryFilter(null);
-                        setPulseToast('Cleared category filter');
-                      } else {
-                        setActiveCategoryFilter(stat.name);
-                        setPulseToast(`Filtered demand board to: ${stat.name} (${stat.value} votes)`);
-                      }
-                      setTimeout(() => setPulseToast(null), 2500);
-                    }}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
-                      isSelected
-                        ? 'bg-[#2A1715] text-white border border-[#2A1715] shadow-xs ring-2 ring-[#2A1715]/20'
-                        : 'bg-[#faf6f5] hover:bg-[#f3ebe8] border border-[#B8887A]/15 text-stone-700 shadow-2xs'
-                    }`}
-                  >
-                    <span
-                      className={`w-2 h-2 rounded-full shrink-0 ${
-                        isSelected
-                          ? 'bg-white'
-                          : stat.name === 'Eyes'
-                          ? 'bg-[#2A1715]'
-                          : stat.name === 'Blush'
-                          ? 'bg-amber-600'
-                          : stat.name === 'Lips'
-                          ? 'bg-[#B8887A]'
-                          : 'bg-stone-400'
-                      }`}
-                    />
-                    <span>
-                      {stat.name} {stat.percentage}%
-                    </span>
-                    {isSelected && (
-                      <X className="w-3 h-3 ml-0.5 text-white/80" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Interactive Hot Now / Tip Banner */}
-          <button
-            type="button"
-            onClick={handleApplyHotFormula}
-            title="Click to load this formula into the proposal builder below"
-            className="w-full mt-4 p-3 sm:p-3.5 bg-[#faf6f5] hover:bg-[#f5eeea] rounded-2xl border border-[#B8887A]/15 hover:border-[#B8887A]/35 text-xs text-stone-700 font-medium flex items-center justify-between gap-2 text-left transition-all active:scale-[0.99] cursor-pointer group"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-[#B8887A] shrink-0 text-sm group-hover:scale-110 transition-transform">✦</span>
-              <span className="leading-snug">
-                Hot now: velvet plum + holographic pearl
-              </span>
-            </div>
-            <span className="text-[10px] font-extrabold uppercase text-[#2A1715] tracking-wider opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline whitespace-nowrap">
-              Try Formula →
-            </span>
-          </button>
-
-          {/* Interactive Action Toast Notification */}
-          {pulseToast && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 6 }}
-              className="mt-3 px-3 py-1.5 rounded-xl bg-[#2A1715]/10 border border-[#2A1715]/20 text-[11px] font-bold text-[#2A1715] flex items-center justify-center gap-1.5 animate-in fade-in"
-            >
-              <span>{pulseToast}</span>
-            </motion.div>
-          )}
-        </div>
-
+        {/* DEMAND PULSE - the live instrument for the whole board */}
+        <DemandPulseCard
+          totalVotes={trendingStats.totalVotes}
+          votesToday={votesToday}
+          proposalsToday={proposalsToday}
+          backedByYou={backedByYou}
+          categories={trendingStats.categories}
+          topRising={topRisingProposal}
+          leaders={[...requests]
+            .sort((a, b) => b.votes - a.votes)
+            .slice(0, 12)
+            .map((req) => ({ title: req.title, votes: req.votes }))}
+          activeCategoryFilter={activeCategoryFilter}
+          isRefreshing={isRefreshingPulse}
+          onRefresh={handleRefreshPulse}
+          onSelectCategory={(name) => {
+            setActiveCategoryFilter(name);
+            setPulseToast(
+              name
+                ? `Filtered demand board to: ${name}`
+                : "Cleared category filter"
+            );
+            setTimeout(() => setPulseToast(null), 2500);
+          }}
+          onSelectTopRising={() => {
+            setSearchQuery(topRisingProposal);
+            setPulseToast(`Filtered to Top Rising: ${topRisingProposal}`);
+            setTimeout(() => setPulseToast(null), 2500);
+          }}
+          onApplyHotFormula={handleApplyHotFormula}
+          onInspectTotal={() => {
+            setActiveCategoryFilter(null);
+            setPulseToast(
+              `Tracking ${trendingStats.totalVotes} total community votes`
+            );
+            setTimeout(() => setPulseToast(null), 2500);
+          }}
+          toast={pulseToast}
+        />
         {/* 2. WANTED QUICK ACTION CARD (MATCHING DESIGN WITH WANT BUTTONS, SWATCHES & SEE MORE) */}
         <WantedQuickActionCard
           onSeeMore={() => {

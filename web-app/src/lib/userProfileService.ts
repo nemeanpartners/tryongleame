@@ -77,6 +77,18 @@ export function clearCachedProfileMedia(): void {
 }
 
 /**
+ * Whether there is a real picture to show at all. Signed out, there is none -
+ * and a stock portrait standing in for the account reads as someone else's
+ * face, so the plain account icon is drawn instead.
+ */
+export function hasProfilePhoto(user?: FirebaseUser | null): boolean {
+  const currentUser = user || auth.currentUser;
+  if (!currentUser) return false;
+  if (currentUser.photoURL) return true;
+  return getEffectiveAvatar(currentUser) !== DEFAULT_AVATAR_URL;
+}
+
+/**
  * Returns whether the user has a Google / Gmail account photo available.
  */
 export function hasGooglePhoto(user?: FirebaseUser | null): boolean {
