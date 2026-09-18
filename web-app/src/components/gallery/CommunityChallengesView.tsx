@@ -18,6 +18,7 @@ import { ChallengeSubmission, PresetLook } from '../../types';
 import { db, collection, getDocs, updateDoc, doc, increment, addDoc, handleFirestoreError, OperationType } from '../../firebase';
 import { PopularChallengeCard } from '../common/PopularChallengeCard';
 import { ChallengePulseStrip } from './ChallengePulseStrip';
+import { RevealCard } from './RevealCard';
 
 interface CommunityChallengesViewProps {
   onLoadPreset: (preset: PresetLook) => void;
@@ -324,14 +325,16 @@ export const CommunityChallengesView: React.FC<CommunityChallengesViewProps> = (
               ];
               const coverImg = COSMETIC_COVERS[entry.lookName] || DEFAULT_COVERS[idx % DEFAULT_COVERS.length];
 
+              const accents = ['#E91E63', '#B8887A', '#2A1715'];
+
               return (
-                <div 
+                <RevealCard
                   key={entry.id}
-                  className={`relative rounded-2xl border p-4 flex flex-col justify-between space-y-3 transition-all ${
-                    idx === 0 
-                      ? 'border-amber-300/80 bg-amber-50/20 shadow-xs' 
-                      : 'border-stone-200 bg-white'
-                  }`}
+                  id={entry.id}
+                  image={coverImg}
+                  rankLabel={rankLabels[idx]}
+                  teaser={`${entry.votes} votes · brush to see who`}
+                  accent={accents[idx] || '#B8887A'}
                 >
                   <div className="flex items-center justify-between">
                     <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-1 border ${rankColors[idx]}`}>
@@ -379,7 +382,7 @@ export const CommunityChallengesView: React.FC<CommunityChallengesViewProps> = (
                       <Play className="w-3 h-3" /> Try
                     </button>
                   </div>
-                </div>
+                </RevealCard>
               );
             })}
           </div>

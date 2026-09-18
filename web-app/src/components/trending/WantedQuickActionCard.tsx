@@ -5,6 +5,7 @@ import { WantedListViewModal } from './WantedListViewModal';
 import { WANTED_LOOKS_100 } from '../../data/wantedLooks100';
 import { subscribeWantedLooks, voteWantedLookInFirestore } from '../../services/wantedLooksService';
 import { useCountUp } from '../../lib/liveCounters';
+import { DemandOrbs } from './DemandOrbs';
 
 export interface WantedLookItem {
   id: string;
@@ -51,6 +52,10 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
   });
 
   const [animatingId, setAnimatingId] = useState<string | null>(null);
+  /** The orb the viewer last touched, highlighted in both views. */
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  /** The opening wave runs once; after that a row only turns on a change. */
+  const [hasSettled, setHasSettled] = useState(false);
   const [isSeeMoreModalOpen, setIsSeeMoreModalOpen] = useState<boolean>(false);
 
   /** How far each look has just moved up or down the board. */
@@ -68,6 +73,11 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
       setItems(updatedLooks);
     });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const settle = window.setTimeout(() => setHasSettled(true), 900);
+    return () => window.clearTimeout(settle);
   }, []);
 
   /** The board, highest first, which is what makes a rank mean anything. */
@@ -261,6 +271,22 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
           </div>
         )}
 
+        {/* The board as a shape: size is how many people want it */}
+        <DemandOrbs
+          orbs={ranked.slice(0, 7).map((item) => ({
+            id: item.id,
+            name: item.name,
+            votes: item.numericVotes,
+            colour: item.colors[0] || '#E91E63'
+          }))}
+          selectedId={focusedId}
+          onSelect={(orb) => {
+            setFocusedId(orb.id);
+            const match = items.find((item) => item.id === orb.id);
+            if (match && onSelectLook) onSelectLook(match);
+          }}
+        />
+
         {/* The board */}
         <div className="mt-4 space-y-1">
           {visibleItems.map((item, index) => {
@@ -275,8 +301,27 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
                 layout
                 transition={{ type: 'spring', stiffness: 380, damping: 34 }}
                 onClick={() => onSelectLook && onSelectLook(item)}
-                className="py-2.5 px-2 -mx-2 flex items-center justify-between gap-3 group hover:bg-white/60 rounded-2xl transition-colors cursor-pointer"
+                className={`py-2.5 px-2 -mx-2 group rounded-2xl transition-colors cursor-pointer ${
+                  focusedId === item.id ? 'bg-white/70' : 'hover:bg-white/60'
+                }`}
+                style={{ perspective: 760 }}
               >
+                {/* Each row turns over when its count changes, and the board
+                    turns over in a wave when it first opens. */}
+                <AnimatePresence mode="wait" initial>
+                <motion.div
+                  key={`${item.id}-${item.numericVotes}`}
+                  initial={{ rotateX: -88, opacity: 0 }}
+                  animate={{ rotateX: 0, opacity: 1 }}
+                  exit={{ rotateX: 88, opacity: 0 }}
+                  transition={{
+                    duration: 0.34,
+                    ease: [0.22, 1, 0.36, 1],
+                    delay: hasSettled ? 0 : index * 0.07
+                  }}
+                  style={{ transformOrigin: 'center top', transformStyle: 'preserve-3d' }}
+                  className="flex items-center justify-between gap-3"
+                >
                 {/* Rank, swatch and name */}
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-6 shrink-0 flex flex-col items-center">
@@ -406,6 +451,8 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
                     )}
                   </AnimatePresence>
                 </div>
+                </motion.div>
+                </AnimatePresence>
               </motion.div>
             );
           })}
