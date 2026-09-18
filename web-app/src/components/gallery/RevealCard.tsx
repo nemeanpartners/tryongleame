@@ -73,6 +73,13 @@ export const RevealCard: React.FC<RevealCardProps> = ({
     }
   }, [taken, revealed, id]);
 
+  /** Whichever tile is under this point, taken off. */
+  const brushAt = (x: number, y: number) => {
+    const element = document.elementFromPoint(x, y) as HTMLElement | null;
+    const index = element?.dataset?.tile;
+    if (index !== undefined) takeTile(Number(index));
+  };
+
   const takeTile = (index: number) => {
     setTaken((prev) => {
       if (prev.has(index)) return prev;
@@ -117,17 +124,19 @@ export const RevealCard: React.FC<RevealCardProps> = ({
               style={{
                 gridTemplateColumns: `repeat(${COLUMNS}, 1fr)`,
                 gridTemplateRows: `repeat(${ROWS}, 1fr)`,
-                perspective: 900
+                perspective: 900,
+                // A swipe that starts on the tiles brushes them in any
+                // direction instead of scrolling the page away mid-stroke.
+                // Only while they are still there: once the card is open it
+                // scrolls like anything else.
+                touchAction: 'none'
               }}
               // A finger keeps its pointer events on the tile it landed on, so
               // brushing across only works if the point is tested directly.
-              onPointerMove={(event) => {
-                const element = document.elementFromPoint(
-                  event.clientX,
-                  event.clientY
-                ) as HTMLElement | null;
-                const index = element?.dataset?.tile;
-                if (index !== undefined) takeTile(Number(index));
+              onPointerMove={(event) => brushAt(event.clientX, event.clientY)}
+              onTouchMove={(event) => {
+                const touch = event.touches[0];
+                if (touch) brushAt(touch.clientX, touch.clientY);
               }}
             >
               {Array.from({ length: TILE_COUNT }, (_, index) => {
@@ -139,7 +148,13 @@ export const RevealCard: React.FC<RevealCardProps> = ({
                     aria-label="Lift a tile"
                     data-tile={index}
                     onPointerEnter={() => takeTile(index)}
-                    onPointerDown={() => takeTile(index)}
+                    onPointerDown={(event) => {
+                      takeTile(index);
+                      const target = event.currentTarget;
+                      if (target.hasPointerCapture?.(event.pointerId)) {
+                        target.releasePointerCapture(event.pointerId);
+                      }
+                    }}
                     onFocus={() => takeTile(index)}
                     className="relative cursor-pointer"
                     initial={false}

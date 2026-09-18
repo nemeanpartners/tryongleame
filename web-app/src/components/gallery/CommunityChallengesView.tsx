@@ -281,10 +281,7 @@ export const CommunityChallengesView: React.FC<CommunityChallengesViewProps> = (
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 text-stone-800 text-left">
-      {/* 0. ACTIVE MONTHLY CHALLENGE CARD (EXACT SAME AS HOMEPAGE) */}
-      <PopularChallengeCard onEnter={() => setIsSubmitModalOpen(true)} />
-
-      {/* 0b. LIVE PULSE - the clock, the numbers, and the viewer's own part */}
+      {/* 0. LIVE PULSE - the clock, the numbers, and the viewer's own part */}
       <ChallengePulseStrip
         submissions={submissions}
         votedIds={votedSubIds}
@@ -388,6 +385,9 @@ export const CommunityChallengesView: React.FC<CommunityChallengesViewProps> = (
           </div>
         </div>
       )}
+
+      {/* 1b. THIS MONTH'S CHALLENGE (EXACT SAME AS HOMEPAGE) */}
+      <PopularChallengeCard onEnter={() => setIsSubmitModalOpen(true)} />
 
       {/* 2. SEARCH & FILTER CONTROLS */}
       <div className="glass-card rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
