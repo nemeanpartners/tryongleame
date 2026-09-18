@@ -1446,6 +1446,9 @@ class _LookLabPageState extends State<LookLabPage> {
       _tab = LabTab.build;
       _looksPortalOpen = false;
       _beforeAfter = false;
+      // Start blank rather than carrying the previous look over.
+      _mixSlots.clear();
+      _mixCategory = 0;
     });
     // Bring the camera up straight away with nothing applied yet, rather than
     // waiting for the first shade to be picked.
@@ -1752,6 +1755,15 @@ class _LookLabPageState extends State<LookLabPage> {
 
   Future<void> _openExploreTab() async {
     await _closeTryOnStudioRenderer();
+    // Always land on Discover, wherever the web view had been left. Routing
+    // the SPA in place keeps the signed-in session rather than reloading.
+    unawaited(
+      _homeWebController.runJavaScript(
+        "if (location.pathname !== '/home') {"
+        "history.pushState(null, '', '/home');"
+        "window.dispatchEvent(new PopStateEvent('popstate'));}",
+      ),
+    );
     _activeSlotPaths.remove('tryonstudio');
     if (!mounted) return;
     setState(() {
@@ -2516,10 +2528,18 @@ class _LookLabPageState extends State<LookLabPage> {
           const SizedBox(height: 7),
           SizedBox(height: 25, child: _mixCategoryChips()),
           const SizedBox(height: 4),
-          _mixStrip(items, _mixSlots[region], (item) {
-            setState(() => _mixSlots[region] = item);
-            unawaited(_applyMixAndMatch());
-          }),
+          _mixStrip(
+            items,
+            _mixSlots[region],
+            (item) {
+              setState(() => _mixSlots[region] = item);
+              unawaited(_applyMixAndMatch());
+            },
+            onClear: () {
+              setState(() => _mixSlots.remove(region));
+              unawaited(_applyMixAndMatch());
+            },
+          ),
         ],
       ),
     );
@@ -2797,8 +2817,9 @@ class _LookLabPageState extends State<LookLabPage> {
   Widget _mixStrip(
     List<LookItem> items,
     LookItem? selected,
-    ValueChanged<LookItem> onPick,
-  ) {
+    ValueChanged<LookItem> onPick, {
+    VoidCallback? onClear,
+  }) {
     if (items.isEmpty) {
       return const SizedBox(
         height: 38,
@@ -2815,9 +2836,36 @@ class _LookLabPageState extends State<LookLabPage> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemExtent: 42,
-        itemCount: items.length,
+        itemCount: items.length + (onClear == null ? 0 : 1),
         itemBuilder: (context, index) {
-          final item = items[index];
+          // First chip clears this region, for wearing none of it.
+          if (onClear != null && index == 0) {
+            final none = selected == null;
+            return Center(
+              child: GestureDetector(
+                onTap: onClear,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 140),
+                  width: none ? 34 : 29,
+                  height: none ? 34 : 29,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    border: Border.all(
+                      color: none ? _pink : _line,
+                      width: none ? 2.2 : 1,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.block,
+                    size: none ? 17 : 15,
+                    color: none ? _pink : _muted,
+                  ),
+                ),
+              ),
+            );
+          }
+          final item = items[index - (onClear == null ? 0 : 1)];
           final isOn = selected?.assetPath == item.assetPath &&
               selected?.name == item.name;
           return Center(

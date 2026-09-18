@@ -3,6 +3,9 @@ import { updateProfile, User as FirebaseUser } from 'firebase/auth';
 
 const STORAGE_AVATAR_KEY = 'tryon_custom_avatar';
 const STORAGE_COVER_KEY = 'tryon_custom_cover';
+// The cached photo belongs to one account. Without remembering whose it is, a
+// second account signing in on the same device inherits the first one's face.
+const STORAGE_OWNER_KEY = 'tryon_profile_owner_uid';
 
 export const DEFAULT_AVATAR_URL = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300';
 export const DEFAULT_COVER_URL = 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=1200';
@@ -14,19 +17,63 @@ export const DEFAULT_COVER_URL = 'https://images.unsplash.com/photo-159646250227
  * 3. Default resident avatar
  */
 export function getEffectiveAvatar(user?: FirebaseUser | null): string {
-  try {
-    const custom = localStorage.getItem(STORAGE_AVATAR_KEY);
-    if (custom) return custom;
-  } catch (e) {
-    console.warn('Error reading custom avatar:', e);
+  const currentUser = user || auth.currentUser;
+
+  if (cacheBelongsToCurrentUser(currentUser)) {
+    try {
+      const custom = localStorage.getItem(STORAGE_AVATAR_KEY);
+      if (custom) return custom;
+    } catch (e) {
+      console.warn('Error reading custom avatar:', e);
+    }
   }
 
-  const currentUser = user || auth.currentUser;
   if (currentUser?.photoURL) {
     return currentUser.photoURL;
   }
 
   return DEFAULT_AVATAR_URL;
+}
+
+/**
+ * True when the cached photos have no owner recorded yet (a session from before
+ * this key existed) or belong to the account that is signed in now.
+ */
+function cacheBelongsToCurrentUser(currentUser?: FirebaseUser | null): boolean {
+  try {
+    const owner = localStorage.getItem(STORAGE_OWNER_KEY);
+    if (!owner) return true;
+    if (!currentUser?.uid) return true;
+    if (owner === currentUser.uid) return true;
+    clearCachedProfileMedia();
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+function rememberOwner(uid?: string | null): void {
+  if (!uid) return;
+  try {
+    localStorage.setItem(STORAGE_OWNER_KEY, uid);
+  } catch {
+    /* storage unavailable; the Firestore copy is still the source of truth */
+  }
+}
+
+/**
+ * Drops the cached photos, e.g. on sign out, so the next account starts from
+ * its own profile rather than the previous one's.
+ */
+export function clearCachedProfileMedia(): void {
+  try {
+    localStorage.removeItem(STORAGE_AVATAR_KEY);
+    localStorage.removeItem(STORAGE_COVER_KEY);
+    localStorage.removeItem(STORAGE_OWNER_KEY);
+  } catch {
+    /* nothing cached to clear */
+  }
+  window.dispatchEvent(new Event('tryon_profile_updated'));
 }
 
 /**
@@ -60,6 +107,8 @@ export async function loadUserProfileFromFirestore(userId: string): Promise<{ av
       const avatar = data.avatarUrl || data.photoURL;
       const cover = data.coverUrl || data.coverURL;
       
+      rememberOwner(userId);
+
       let changed = false;
       if (avatar && avatar !== localStorage.getItem(STORAGE_AVATAR_KEY)) {
         localStorage.setItem(STORAGE_AVATAR_KEY, avatar);
@@ -137,6 +186,7 @@ export async function saveCustomAvatar(rawImageUrl: string, user?: FirebaseUser 
   }
 
   // 1. Immediately store in localStorage so UI is instantaneous
+  rememberOwner(currentUserEarly?.uid);
   try {
     localStorage.setItem(STORAGE_AVATAR_KEY, imageUrl);
   } catch (e) {

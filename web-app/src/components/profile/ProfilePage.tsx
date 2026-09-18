@@ -80,7 +80,7 @@ import {
   LogoutModal
 } from './SettingsCategoryViews';
 import { PhotoUploadModal } from './PhotoUploadModal';
-import { getEffectiveAvatar, getEffectiveCover } from '../../lib/userProfileService';
+import { getEffectiveAvatar, getEffectiveCover, clearCachedProfileMedia } from '../../lib/userProfileService';
 
 interface ProfilePageProps {
   onLoadPreset?: (preset: any) => void;
@@ -603,6 +603,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
     try {
       await signOut(auth);
       // Clear anything tied to the old session, then show the sign-in screen.
+      clearCachedProfileMedia();
       // Previously it only set a message and stayed on the profile, which read
       // as still being signed in.
       setUserSubmissions([]);
@@ -797,7 +798,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
           <div className="flex items-center gap-3.5 p-3.5 sm:p-4 rounded-3xl bg-[#f5f2ee] shadow-[5px_5px_15px_rgba(0,0,0,0.05),-5px_-5px_15px_rgba(255,255,255,0.9)] border border-white/80">
             <div className="w-12 h-12 rounded-full p-0.5 bg-[#ede9e4] shadow-[3px_3px_8px_rgba(0,0,0,0.06),-3px_-3px_8px_rgba(255,255,255,0.95)] border border-white/80 shrink-0 overflow-hidden">
               <img 
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200" 
+                src={userAvatar} 
                 alt={currentDisplayName}
                 className="w-full h-full object-cover rounded-full"
                 referrerPolicy="no-referrer"

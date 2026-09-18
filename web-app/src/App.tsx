@@ -313,9 +313,12 @@ export default function App() {
           displayName: user.displayName || name || null,
           providerIds: user.providerData.map((provider) => provider.providerId),
           lastSeenAt: Date.now()
-        }, { merge: true }).then(() => {
-          void loadUserProfileFromFirestore(user.uid);
+        }, { merge: true }).catch((err) => {
+          console.warn('Could not update the user profile document:', err);
         });
+        // Load the stored photo whether or not the profile write succeeds, so a
+        // blocked write never leaves the avatar on the placeholder.
+        void loadUserProfileFromFirestore(user.uid);
         if (window.location.pathname === '/login' || window.location.pathname === '/signin') {
           window.history.replaceState(null, '', '/profile');
         }
