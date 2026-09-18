@@ -186,7 +186,7 @@ const MIX_MATCH_PRESET: PresetLook = {
   description: 'Our top-rated customized community blend. A warm, romantic sunset glow featuring rich coppery eyeshadow, vibrant rose cheeks, and a deep velvet plum lip glaze, set against our signature Golden Hour filter.',
   eyeshadowColor: '#d97706',
   eyeshadowOpacity: 0.75,
-  blushColor: '#bc8381',
+  blushColor: '#B8887A',
   blushOpacity: 0.55,
   lipColor: '#f43f5e',
   lipOpacity: 0.8,

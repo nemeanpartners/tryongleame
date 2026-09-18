@@ -103,10 +103,10 @@ export const TiktokEffectsPage: React.FC = () => {
     <div id="tiktok-effects-page" className="space-y-8 animate-in fade-in duration-300 text-stone-800">
       
       {/* Page Header */}
-      <div className="border-b border-[#bc8381]/30 pb-4 text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="border-b border-[#B8887A]/30 pb-4 text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-serif font-bold uppercase tracking-wider flex items-center gap-2 text-[#732729]">
-            <Video className="w-5 h-5 text-[#bc8381]" /> TikTok Effects Studio
+          <h2 className="text-xl font-display font-bold uppercase tracking-wider flex items-center gap-2 text-[#2A1715]">
+            <Video className="w-5 h-5 text-[#B8887A]" /> TikTok Effects Studio
           </h2>
           <p className="text-xs text-stone-500 mt-1">
             Tap on any viral AR effect we've custom formulated and published to try them directly on your device inside TikTok.
@@ -177,7 +177,7 @@ export const TiktokEffectsPage: React.FC = () => {
             <div className="p-5 flex-1 flex flex-col justify-between text-left">
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <h3 className="font-serif font-black text-stone-900 text-base leading-tight group-hover:text-[#ff3f87] transition-colors">
+                  <h3 className="font-display font-black text-stone-900 text-base leading-tight group-hover:text-[#ff3f87] transition-colors">
                     {effect.name}
                   </h3>
                   <span className="text-[10px] font-semibold text-stone-400">
@@ -221,10 +221,10 @@ export const TiktokEffectsPage: React.FC = () => {
       </div>
 
       {/* Dynamic Info Banner */}
-      <div className="bg-[#bc8381]/10 border border-[#bc8381]/20 p-5 rounded-2xl text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-[#B8887A]/10 border border-[#B8887A]/20 p-5 rounded-2xl text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h4 className="font-serif font-bold text-[#732729] text-sm flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-[#bc8381]" /> Want your custom design published?
+          <h4 className="font-display font-bold text-[#2A1715] text-sm flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-[#B8887A]" /> Want your custom design published?
           </h4>
           <p className="text-xs text-stone-600 leading-normal">
             Submit your formula via our **Mix & Match** editor and upvote on the **Vote Board**. Highly requested creations get packaged and published to our official TikTok library!

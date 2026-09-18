@@ -742,7 +742,7 @@ export const SpinWheelSurpriseSection: React.FC<SpinWheelSurpriseSectionProps> =
 
       {/* SECTION BREAK HEADER: BEAUTY ROULETTE (Outside the card on the top left) */}
       <div className="flex items-center gap-2.5 px-3 sm:px-6 lg:px-0 pt-1 pb-0.5">
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white border border-[#E8DDD4] shadow-xs text-[9.5px] sm:text-[10.5px] font-bold text-[#A85A3C] uppercase tracking-[0.18em]">
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white border border-[#EDE7E3] shadow-xs text-[9.5px] sm:text-[10.5px] font-bold text-[#B8887A] uppercase tracking-[0.18em]">
           <Sparkles className="w-3 h-3 text-[#E91E63]" />
           <span>BEAUTY ROULETTE</span>
         </div>
@@ -754,14 +754,14 @@ export const SpinWheelSurpriseSection: React.FC<SpinWheelSurpriseSectionProps> =
         
         {/* Soft Ambient Warm Blush Center Glow (Contained inside card rounded boundary) */}
         <div className="absolute inset-0 rounded-[28px] sm:rounded-[40px] overflow-hidden pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 sm:w-[500px] h-80 sm:h-[500px] bg-gradient-to-tr from-[#FED7AA]/20 via-[#FCE4E8]/25 to-[#F5D5DC]/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 sm:w-[500px] h-80 sm:h-[500px] bg-gradient-to-tr from-[#F7C6D7]/20 via-[#FCE4E8]/25 to-[#F5D5DC]/20 rounded-full blur-3xl pointer-events-none" />
         </div>
 
         {/* Section Header (Inter Sans Font as requested) */}
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-end justify-between gap-2.5 sm:gap-3 mb-4 sm:mb-8 text-center sm:text-left px-1">
           <div className="space-y-1 mx-auto sm:mx-0">
             <h3 
-              className="text-2xl sm:text-3xl lg:text-[34px] text-[#1F1916] font-semibold tracking-tight leading-tight pt-0.5 sm:pt-1"
+              className="text-2xl sm:text-3xl lg:text-[34px] text-[#2A1715] font-semibold tracking-tight leading-tight pt-0.5 sm:pt-1"
               style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif" }}
             >
               Dont know what to try? suprise me
@@ -773,10 +773,10 @@ export const SpinWheelSurpriseSection: React.FC<SpinWheelSurpriseSectionProps> =
             <button
               type="button"
               onClick={() => setIsWinnerModalOpen(true)}
-              className="self-center sm:self-auto shrink-0 px-3.5 sm:px-4 py-1.5 rounded-full bg-white/90 hover:bg-white text-[11px] sm:text-xs font-bold text-[#A85A3C] border border-[#E8DDD4] shadow-xs flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
+              className="self-center sm:self-auto shrink-0 px-3.5 sm:px-4 py-1.5 rounded-full bg-white/90 hover:bg-white text-[11px] sm:text-xs font-bold text-[#B8887A] border border-[#EDE7E3] shadow-xs flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer"
             >
               <span>Selected:</span>
-              <span className="font-extrabold text-[#1F1916] truncate max-w-[120px]">{winnerLook.name}</span>
+              <span className="font-extrabold text-[#2A1715] truncate max-w-[120px]">{winnerLook.name}</span>
               <ArrowRight className="w-3 h-3 text-[#E91E63]" />
             </button>
           )}
@@ -1113,10 +1113,10 @@ export const SpinWheelSurpriseSection: React.FC<SpinWheelSurpriseSectionProps> =
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md bg-white rounded-[32px] p-6 sm:p-7 shadow-2xl border border-white/90 relative text-left overflow-hidden"
+              className="w-full max-w-md glass-sheet rounded-[32px] p-6 sm:p-7 relative text-left overflow-hidden"
             >
               {/* Confetti / Top Accent Glow */}
-              <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-[#FED7AA]/35 via-[#FDBA74]/15 to-transparent pointer-events-none" />
+              <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-[#F7C6D7]/35 via-[#FDBA74]/15 to-transparent pointer-events-none" />
 
               {/* Close Button with High Z-Index & Generous 44px Touch Target */}
               <button
@@ -1135,7 +1135,7 @@ export const SpinWheelSurpriseSection: React.FC<SpinWheelSurpriseSectionProps> =
 
               {/* Header Badge */}
               <div className="relative z-10 space-y-3">
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#FFF7ED] text-[#C2410C] border border-[#FED7AA] text-[11px] font-extrabold uppercase tracking-widest">
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#FDF1F4] text-[#E91E63] border border-[#F7C6D7] text-[11px] font-extrabold uppercase tracking-widest">
                   <Sparkles className="w-3.5 h-3.5 text-[#EA580C]" />
                   <span>{isSpinning ? 'SPINNING...' : 'FORMULA SELECTED'}</span>
                 </div>
@@ -1154,12 +1154,12 @@ export const SpinWheelSurpriseSection: React.FC<SpinWheelSurpriseSectionProps> =
                   </div>
                   <div>
                     <h3 
-                      className="font-ultra-disney-pro font-ultra text-2xl sm:text-3xl text-[#1F1916] leading-tight font-normal"
+                      className="font-display text-2xl sm:text-3xl text-[#2A1715] leading-tight font-normal"
                       style={{ fontFamily: "'Ultra Disney Pro', 'Ultra Disney', 'Ultra', serif" }}
                     >
                       {winnerLook.name}
                     </h3>
-                    <p className="text-xs sm:text-sm font-bold text-[#A85A3C] tracking-wide uppercase">
+                    <p className="text-xs sm:text-sm font-bold text-[#B8887A] tracking-wide uppercase">
                       {winnerLook.subtitle}
                     </p>
                   </div>
@@ -1171,8 +1171,8 @@ export const SpinWheelSurpriseSection: React.FC<SpinWheelSurpriseSectionProps> =
                 </p>
 
                 {/* Makeup Formula Breakdown */}
-                <div className="p-3.5 rounded-2xl bg-[#FDF9F6] border border-[#E8DDD4] space-y-2 text-xs">
-                  <span className="text-[10px] font-black text-[#A85A3C] uppercase tracking-wider block">
+                <div className="p-3.5 rounded-2xl bg-[#FDF9F6] border border-[#EDE7E3] space-y-2 text-xs">
+                  <span className="text-[10px] font-black text-[#B8887A] uppercase tracking-wider block">
                     Formula Breakdown
                   </span>
                   
@@ -1202,7 +1202,7 @@ export const SpinWheelSurpriseSection: React.FC<SpinWheelSurpriseSectionProps> =
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Layers className="w-3 h-3 text-[#A85A3C] shrink-0" />
+                      <Layers className="w-3 h-3 text-[#B8887A] shrink-0" />
                       <span className="font-medium capitalize">Lashes: {winnerLook.preset.lashesStyle}</span>
                     </div>
                   </div>
@@ -1218,7 +1218,7 @@ export const SpinWheelSurpriseSection: React.FC<SpinWheelSurpriseSectionProps> =
                       onTryOn(winnerLook.preset);
                       onNavigate('sandbox');
                     }}
-                    className="w-full py-3.5 px-6 rounded-full bg-gradient-to-r from-[#B8623F] via-[#A85332] to-[#8C3E21] hover:brightness-105 active:scale-98 text-white text-xs sm:text-sm font-bold tracking-wider uppercase shadow-[0_6px_20px_rgba(140,62,33,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    className="w-full py-3.5 px-6 rounded-full bg-gradient-to-r from-[#E91E63] via-[#D81B60] to-[#AD1457] hover:brightness-105 active:scale-98 text-white text-xs sm:text-sm font-bold tracking-wider uppercase shadow-[0_6px_20px_rgba(233,30,99,0.32),inset_0_1px_1px_rgba(255,255,255,0.4)] flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <span>TRY NOW</span>
                     <ArrowRight className="w-4 h-4" />

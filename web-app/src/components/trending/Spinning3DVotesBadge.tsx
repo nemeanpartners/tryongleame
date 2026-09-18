@@ -59,11 +59,11 @@ export const Spinning3DVotesBadge: React.FC<Spinning3DVotesBadgeProps> = ({
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
       title="Click or hover to interact with the 3D Community Votes Emblem"
-      className="relative bg-gradient-to-br from-[#faf6f5] via-[#fcf8f6] to-[#f4ebe6] hover:from-[#fdf8f6] hover:to-[#efe3dc] rounded-2xl p-3.5 sm:p-4 border border-[#bc8381]/25 hover:border-[#732729]/40 flex flex-col justify-between cursor-pointer transition-all duration-300 shadow-xs hover:shadow-md group overflow-visible select-none"
+      className="relative bg-gradient-to-br from-[#faf6f5] via-[#fcf8f6] to-[#f4ebe6] hover:from-[#fdf8f6] hover:to-[#efe3dc] rounded-2xl p-3.5 sm:p-4 border border-[#B8887A]/25 hover:border-[#2A1715]/40 flex flex-col justify-between cursor-pointer transition-all duration-300 shadow-xs hover:shadow-md group overflow-visible select-none"
     >
       {/* Background ambient lighting aura */}
       <div 
-        className={`absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#bc8381]/20 via-[#f43f5e]/20 to-[#fbbf24]/25 blur-sm -z-10 transition-opacity duration-500 pointer-events-none ${
+        className={`absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[#B8887A]/20 via-[#f43f5e]/20 to-[#fbbf24]/25 blur-sm -z-10 transition-opacity duration-500 pointer-events-none ${
           isBoosted ? 'opacity-100 animate-pulse' : isHovered ? 'opacity-70' : 'opacity-0'
         }`} 
       />
@@ -160,12 +160,12 @@ export const Spinning3DVotesBadge: React.FC<Spinning3DVotesBadgeProps> = ({
       <div className="flex items-baseline gap-1.5 mt-2">
         <span 
           className={`text-2xl sm:text-3xl font-black text-stone-900 leading-none tracking-tight transition-transform duration-300 font-['SF_Pro_Display',-apple-system,BlinkMacSystemFont,sans-serif] ${
-            isBoosted ? 'scale-110 text-[#732729]' : ''
+            isBoosted ? 'scale-110 text-[#2A1715]' : ''
           }`}
         >
           {totalVotes.toLocaleString()}
         </span>
-        <span className="text-[11px] font-semibold text-[#bc8381] whitespace-nowrap flex items-center gap-0.5">
+        <span className="text-[11px] font-semibold text-[#B8887A] whitespace-nowrap flex items-center gap-0.5">
           <Flame className="w-3 h-3 text-[#f43f5e] fill-current" />
           <span>+{todayCount} today</span>
         </span>
@@ -173,7 +173,7 @@ export const Spinning3DVotesBadge: React.FC<Spinning3DVotesBadgeProps> = ({
 
       {/* Interactive Micro Tooltip Indicator */}
       <div className="mt-1 text-[9px] text-stone-400 font-medium flex items-center justify-between">
-        <span className="group-hover:text-[#732729] transition-colors">
+        <span className="group-hover:text-[#2A1715] transition-colors">
           {isHovered ? '★ 3D Interactive Coin' : 'Tap to interact'}
         </span>
         {isBoosted && (

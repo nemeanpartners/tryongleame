@@ -253,7 +253,7 @@ export const CommunityRequestsView: React.FC<CommunityRequestsViewProps> = ({ on
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 text-stone-800">
-      
+
       {/* 1. TOP PIPELINE HIGHLIGHT - LEADING REQUEST */}
       {leadingRequest && (
         <div className="relative overflow-hidden bg-gradient-to-br from-stone-900 via-[#3b1219] to-stone-950 rounded-3xl p-5 sm:p-7 text-white shadow-md border border-stone-800 text-left">
@@ -272,7 +272,7 @@ export const CommunityRequestsView: React.FC<CommunityRequestsViewProps> = ({ on
               </span>
             </div>
 
-            <h3 className="font-serif font-black text-lg sm:text-xl md:text-2xl text-white tracking-tight">
+            <h3 className="font-display font-black text-lg sm:text-xl md:text-2xl text-white tracking-tight">
               {leadingRequest.title}
             </h3>
             
@@ -323,7 +323,7 @@ export const CommunityRequestsView: React.FC<CommunityRequestsViewProps> = ({ on
       )}
 
       {/* 2. SEARCH & CONTROLS TRAY */}
-      <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-[#EDE7E3] p-3.5 sm:p-4 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="glass-card rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         
         {/* Status Filters */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
@@ -377,7 +377,7 @@ export const CommunityRequestsView: React.FC<CommunityRequestsViewProps> = ({ on
           <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Loading community look wishlist...</span>
         </div>
       ) : filteredRequests.length === 0 ? (
-        <div className="py-16 text-center border border-dashed border-[#EDE7E3] rounded-3xl bg-white/50 p-6 space-y-3">
+        <div className="py-16 text-center border border-dashed border-[#EDE7E3] rounded-3xl glass-card p-6 space-y-3">
           <p className="text-sm font-bold text-stone-700">No requests found matching your filter.</p>
           <p className="text-xs text-stone-500">Have a specific makeup look or color combination in mind? Request it below!</p>
           <button
@@ -396,7 +396,7 @@ export const CommunityRequestsView: React.FC<CommunityRequestsViewProps> = ({ on
             return (
               <div 
                 key={req.id}
-                className="bg-white rounded-3xl border border-[#EDE7E3] p-5 shadow-xs hover:shadow-md hover:border-black/20 transition-all duration-300 flex flex-col justify-between text-left space-y-4 group"
+                className="glass-card rounded-3xl p-5 hover: hover:border-black/20 transition-all duration-300 flex flex-col justify-between text-left space-y-4 group"
               >
                 {/* Header: Requester & Status */}
                 <div className="flex items-center justify-between gap-2">
@@ -495,7 +495,7 @@ export const CommunityRequestsView: React.FC<CommunityRequestsViewProps> = ({ on
       {/* 4. POST LOOK REQUEST MODAL */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative bg-white rounded-3xl border border-[#EDE7E3] p-5 sm:p-6 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 text-left">
+          <div className="relative glass-card rounded-3xl p-5 sm:p-6 w-full max-w-md space-y-4 animate-in zoom-in-95 duration-200 text-left">
             <button
               onClick={() => setIsCreateModalOpen(false)}
               className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
@@ -615,7 +615,7 @@ export const CommunityRequestsView: React.FC<CommunityRequestsViewProps> = ({ on
       {/* 5. FORMULA COMPILER MODAL */}
       {compilingRequest && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative bg-white rounded-3xl border border-[#EDE7E3] p-5 sm:p-6 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 text-left">
+          <div className="relative glass-card rounded-3xl p-5 sm:p-6 w-full max-w-md space-y-4 animate-in zoom-in-95 duration-200 text-left">
             <button
               onClick={() => setCompilingRequest(null)}
               className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"

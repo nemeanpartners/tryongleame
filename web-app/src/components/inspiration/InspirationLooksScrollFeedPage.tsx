@@ -289,7 +289,7 @@ export const InspirationLooksScrollFeedPage: React.FC<InspirationLooksScrollFeed
 
                     {/* Look Title */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-2xl sm:text-3xl font-serif font-black tracking-wider uppercase text-white drop-shadow-lg leading-tight">
+                      <h2 className="text-2xl sm:text-3xl font-display font-black tracking-wider uppercase text-white drop-shadow-lg leading-tight">
                         {item.title}
                       </h2>
                       {(item.isLocked || item.preset.isLocked) && (

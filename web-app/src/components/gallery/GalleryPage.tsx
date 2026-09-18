@@ -2222,7 +2222,7 @@ export const GalleryPage: React.FC<GalleryPageProps> = ({
 
                             <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                               <div className="space-y-1 text-left">
-                                <h4 className="font-serif font-black text-stone-900 text-sm group-hover:text-[#ff4e7e] transition-colors leading-snug">
+                                <h4 className="font-display font-black text-stone-900 text-sm group-hover:text-[#ff4e7e] transition-colors leading-snug">
                                   {sub.lookName}
                                 </h4>
                                 <p className="text-xs text-stone-600 leading-relaxed font-medium line-clamp-2">
@@ -2308,7 +2308,7 @@ export const GalleryPage: React.FC<GalleryPageProps> = ({
 
                         <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                           <div className="space-y-1 text-left">
-                            <h4 className="font-serif font-black text-stone-900 text-sm group-hover:text-[#ff4e7e] transition-colors leading-snug">
+                            <h4 className="font-display font-black text-stone-900 text-sm group-hover:text-[#ff4e7e] transition-colors leading-snug">
                               {sub.lookName}
                             </h4>
                             <p className="text-xs text-stone-600 leading-relaxed font-medium line-clamp-2">
@@ -2667,7 +2667,7 @@ export const GalleryPage: React.FC<GalleryPageProps> = ({
                   {/* Look Name and Caption */}
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-base font-serif font-black tracking-wide uppercase leading-tight text-white drop-shadow-md">
+                      <h3 className="text-base font-display font-black tracking-wide uppercase leading-tight text-white drop-shadow-md">
                         {selectedReelSub.lookName}
                       </h3>
                       {isReelLocked && (

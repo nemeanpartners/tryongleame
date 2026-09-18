@@ -1377,7 +1377,7 @@ export const InspirationWall: React.FC<InspirationWallProps> = ({
           onClick={() => setIsAddModalOpen(false)}
         >
           <div 
-            className="relative w-full max-w-lg bg-white rounded-3xl border border-[#EDE7E3] shadow-2xl p-6 sm:p-8 text-left space-y-5 my-auto"
+            className="relative w-full max-w-lg glass-card rounded-3xl p-6 sm:p-8 text-left space-y-5 my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[#EDE7E3] pb-4">

@@ -416,14 +416,14 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
     <div id="sandbox-container" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start text-stone-800">
       
       {/* LEFT: Makeup formula preview */}
-      <div className="lg:col-span-7 bg-white rounded-2xl p-6 border border-[#bc8381]/25 shadow-md flex flex-col justify-between">
+      <div className="lg:col-span-7 bg-white rounded-2xl p-6 border border-[#B8887A]/25 shadow-md flex flex-col justify-between">
         
         {/* Device Stage and Capture */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#732729] animate-pulse"></span>
-              <h3 className="text-sm font-black tracking-wide uppercase text-[#732729] font-serif">Live Try-On Canvas</h3>
+              <span className="w-2.5 h-2.5 rounded-full bg-[#2A1715] animate-pulse"></span>
+              <h3 className="text-sm font-black tracking-wide uppercase text-[#2A1715] font-display">Live Try-On Canvas</h3>
             </div>
             
             <div className="flex gap-2">
@@ -433,8 +433,8 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                 onClick={() => setShowBeforeAfter(!showBeforeAfter)}
                 className={`text-[10px] font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1 ${
                   showBeforeAfter 
-                    ? 'bg-[#732729] border-[#732729] text-white' 
-                    : 'bg-[#faf6f5] hover:bg-white border-[#bc8381]/35 text-stone-600'
+                    ? 'bg-[#2A1715] border-[#2A1715] text-white' 
+                    : 'bg-[#faf6f5] hover:bg-white border-[#B8887A]/35 text-stone-600'
                 }`}
               >
                 <Eye className="w-3 h-3" /> {showBeforeAfter ? 'Hide Split' : 'Compare Before/After'}
@@ -469,7 +469,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
           {/* Interactive Try-on Viewports */}
           {showBeforeAfter ? (
             /* BEFORE & AFTER SPLIT SCREEN */
-            <div className="grid grid-cols-2 gap-3 aspect-[4/3] w-full bg-stone-950 rounded-2xl overflow-hidden relative border border-[#bc8381]/30">
+            <div className="grid grid-cols-2 gap-3 aspect-[4/3] w-full bg-stone-950 rounded-2xl overflow-hidden relative border border-[#B8887A]/30">
               
               {/* LEFT: BEFORE PANEL */}
               <div className="relative w-full h-full overflow-hidden bg-stone-900">
@@ -632,14 +632,14 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                   )}
                 </svg>
 
-                <div className="absolute top-3 right-3 bg-[#732729] text-white border border-[#bc8381]/40 text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
+                <div className="absolute top-3 right-3 bg-[#2A1715] text-white border border-[#B8887A]/40 text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
                   After (Formulated)
                 </div>
               </div>
             </div>
           ) : (
             /* STANDARD FULL CANVAS */
-            <div className="relative w-full aspect-[4/3] bg-stone-950 rounded-2xl overflow-hidden border border-[#bc8381]/30 flex flex-col items-center justify-center shadow-md">
+            <div className="relative w-full aspect-[4/3] bg-stone-950 rounded-2xl overflow-hidden border border-[#B8887A]/30 flex flex-col items-center justify-center shadow-md">
               
               {/* Image or Video Feed */}
               {useCamera ? (
@@ -775,13 +775,13 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
 
               {/* Nudge Calibration Control Bar overlay */}
               <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex items-center gap-1.5 bg-stone-900/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white z-30 shadow-md">
-                <button type="button" onClick={() => setOffsetY(y => y - 3)} className="p-1 hover:text-[#bc8381] transition-colors cursor-pointer" title="Nudge Up"><ChevronUp className="w-3.5 h-3.5" /></button>
-                <button type="button" onClick={() => setOffsetY(y => y + 3)} className="p-1 hover:text-[#bc8381] transition-colors cursor-pointer" title="Nudge Down"><ChevronDown className="w-3.5 h-3.5" /></button>
-                <button type="button" onClick={() => setOffsetX(x => x - 3)} className="p-1 hover:text-[#bc8381] transition-colors cursor-pointer" title="Nudge Left"><ChevronLeft className="w-3.5 h-3.5" /></button>
-                <button type="button" onClick={() => setOffsetX(x => x + 3)} className="p-1 hover:text-[#bc8381] transition-colors cursor-pointer" title="Nudge Right"><ChevronRight className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => setOffsetY(y => y - 3)} className="p-1 hover:text-[#B8887A] transition-colors cursor-pointer" title="Nudge Up"><ChevronUp className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => setOffsetY(y => y + 3)} className="p-1 hover:text-[#B8887A] transition-colors cursor-pointer" title="Nudge Down"><ChevronDown className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => setOffsetX(x => x - 3)} className="p-1 hover:text-[#B8887A] transition-colors cursor-pointer" title="Nudge Left"><ChevronLeft className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => setOffsetX(x => x + 3)} className="p-1 hover:text-[#B8887A] transition-colors cursor-pointer" title="Nudge Right"><ChevronRight className="w-3.5 h-3.5" /></button>
                 <div className="w-px h-3 bg-stone-700 mx-1" />
-                <button type="button" onClick={() => setScale(s => Math.min(1.4, s + 0.04))} className="p-1 hover:text-[#bc8381] transition-colors cursor-pointer" title="Zoom In"><ZoomIn className="w-3.5 h-3.5" /></button>
-                <button type="button" onClick={() => setScale(s => Math.max(0.7, s - 0.04))} className="p-1 hover:text-[#bc8381] transition-colors cursor-pointer" title="Zoom Out"><ZoomOut className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => setScale(s => Math.min(1.4, s + 0.04))} className="p-1 hover:text-[#B8887A] transition-colors cursor-pointer" title="Zoom In"><ZoomIn className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => setScale(s => Math.max(0.7, s - 0.04))} className="p-1 hover:text-[#B8887A] transition-colors cursor-pointer" title="Zoom Out"><ZoomOut className="w-3.5 h-3.5" /></button>
                 <button type="button" onClick={() => { setOffsetX(0); setOffsetY(0); setScale(1.0); }} className="text-[9px] font-black uppercase text-stone-300 hover:text-white ml-1.5 px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 transition-all cursor-pointer">Reset</button>
               </div>
             </div>
@@ -789,7 +789,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
 
           {/* Model portrait selector (only if camera is not active) */}
           {!useCamera && (
-            <div className="mt-4 bg-[#faf6f5] p-3 rounded-xl border border-[#bc8381]/20">
+            <div className="mt-4 bg-[#faf6f5] p-3 rounded-xl border border-[#B8887A]/20">
               <span className="text-[10px] font-black text-stone-500 uppercase tracking-wider block mb-2 text-left">
                 Select Model Portrait Face
               </span>
@@ -801,8 +801,8 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                     onClick={() => setSelectedModel(model)}
                     className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
                       selectedModel.id === model.id
-                        ? 'bg-[#732729] border-[#732729] text-white shadow-xs'
-                        : 'bg-white border-[#bc8381]/30 text-stone-600 hover:bg-stone-50'
+                        ? 'bg-[#2A1715] border-[#2A1715] text-white shadow-xs'
+                        : 'bg-white border-[#B8887A]/30 text-stone-600 hover:bg-stone-50'
                     }`}
                   >
                     <div className="w-5 h-5 rounded-full overflow-hidden bg-stone-200">
@@ -816,7 +816,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
           )}
 
           {/* Active Color Chips represent currently formulated shader colors */}
-          <div className="flex gap-2.5 mt-4 items-center justify-between bg-[#FAF6F5] border border-[#bc8381]/25 px-4 py-2.5 rounded-xl">
+          <div className="flex gap-2.5 mt-4 items-center justify-between bg-[#FAF6F5] border border-[#B8887A]/25 px-4 py-2.5 rounded-xl">
             <div className="flex items-center gap-1.5 text-xs font-bold text-stone-600">
               <span className="text-[10px] uppercase tracking-wider font-extrabold text-stone-400">Color Swatch:</span>
               <div style={{ backgroundColor: eyeshadowColor }} className="w-3.5 h-3.5 rounded-full border border-stone-200" title="Eyeshadow color" />
@@ -824,21 +824,21 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
               <div style={{ backgroundColor: blushColor }} className="w-3.5 h-3.5 rounded-full border border-stone-200 -ml-1" title="Blush color" />
               <div style={{ backgroundColor: lipColor }} className="w-3.5 h-3.5 rounded-full border border-stone-200 -ml-1" title="Lip color" />
             </div>
-            <div className="text-[10px] text-[#732729] font-black tracking-wide uppercase">
+            <div className="text-[10px] text-[#2A1715] font-black tracking-wide uppercase">
               Shaders formulated
             </div>
           </div>
         </div>
 
         {/* Dynamic Preset Looks Selection Bar */}
-        <div className="mt-6 pt-5 border-t border-[#bc8381]/25">
-          <h4 className="text-xs font-bold text-[#732729] uppercase tracking-wider mb-3 font-serif">Official Studio Presets</h4>
+        <div className="mt-6 pt-5 border-t border-[#B8887A]/25">
+          <h4 className="text-xs font-bold text-[#2A1715] uppercase tracking-wider mb-3 font-display">Official Studio Presets</h4>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {presetLooks.map((preset) => (
               <button
                 key={preset.id}
                 onClick={() => applyPreset(preset)}
-                className="group flex flex-col justify-between text-left p-3 rounded-xl border border-[#bc8381]/25 bg-[#faf6f5] hover:border-[#732729]/50 hover:bg-white transition-all cursor-pointer shadow-xs"
+                className="group flex flex-col justify-between text-left p-3 rounded-xl border border-[#B8887A]/25 bg-[#faf6f5] hover:border-[#2A1715]/50 hover:bg-white transition-all cursor-pointer shadow-xs"
               >
                 <div>
                   <div className="flex items-center gap-1.5 mb-1">
@@ -854,7 +854,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                   </div>
                   <p className="text-[10px] text-stone-500 line-clamp-2 leading-relaxed">{preset.description}</p>
                 </div>
-                <div className="mt-2 text-[9px] font-bold text-[#732729] flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="mt-2 text-[9px] font-bold text-[#2A1715] flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   Load Specs <ArrowRight className="w-2.5 h-2.5" />
                 </div>
               </button>
@@ -862,23 +862,23 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
           </div>
         </div>
 
-        <div className="mt-6 pt-5 border-t border-[#bc8381]/25">
-          <h4 className="text-xs font-bold text-[#732729] uppercase tracking-wider mb-3 font-serif">Look Lab Actions</h4>
+        <div className="mt-6 pt-5 border-t border-[#B8887A]/25">
+          <h4 className="text-xs font-bold text-[#2A1715] uppercase tracking-wider mb-3 font-display">Look Lab Actions</h4>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <button
               onClick={() => onNavigate?.('trending')}
-              className="group text-left p-3 rounded-xl border border-[#bc8381]/25 bg-[#faf6f5] hover:bg-white hover:border-[#732729]/45 transition-all cursor-pointer"
+              className="group text-left p-3 rounded-xl border border-[#B8887A]/25 bg-[#faf6f5] hover:bg-white hover:border-[#2A1715]/45 transition-all cursor-pointer"
             >
-              <div className="flex items-center gap-2 text-[#732729] font-black text-xs">
+              <div className="flex items-center gap-2 text-[#2A1715] font-black text-xs">
                 <MessageSquare className="w-4 h-4" /> Request a Look
               </div>
               <p className="text-[10px] text-stone-500 mt-1 leading-relaxed">Ask the community for a formula to build next.</p>
             </button>
             <button
               onClick={() => onNavigate?.('votes')}
-              className="group text-left p-3 rounded-xl border border-[#bc8381]/25 bg-[#faf6f5] hover:bg-white hover:border-[#732729]/45 transition-all cursor-pointer"
+              className="group text-left p-3 rounded-xl border border-[#B8887A]/25 bg-[#faf6f5] hover:bg-white hover:border-[#2A1715]/45 transition-all cursor-pointer"
             >
-              <div className="flex items-center gap-2 text-[#732729] font-black text-xs">
+              <div className="flex items-center gap-2 text-[#2A1715] font-black text-xs">
                 <Vote className="w-4 h-4" /> Vote Next Look
               </div>
               <p className="text-[10px] text-stone-500 mt-1 leading-relaxed">Vote for winning looks and requested filters.</p>
@@ -888,9 +888,9 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                 setMuaSentSuccess(false);
                 setShowMUAModal(true);
               }}
-              className="group text-left p-3 rounded-xl border border-[#bc8381]/25 bg-[#faf6f5] hover:bg-white hover:border-[#732729]/45 transition-all cursor-pointer"
+              className="group text-left p-3 rounded-xl border border-[#B8887A]/25 bg-[#faf6f5] hover:bg-white hover:border-[#2A1715]/45 transition-all cursor-pointer"
             >
-              <div className="flex items-center gap-2 text-[#732729] font-black text-xs">
+              <div className="flex items-center gap-2 text-[#2A1715] font-black text-xs">
                 <Send className="w-4 h-4" /> Send to My MUA
               </div>
               <p className="text-[10px] text-stone-500 mt-1 leading-relaxed">Package this formula as a shareable brief.</p>
@@ -901,11 +901,11 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
       </div>
 
       {/* RIGHT: High-Precision Makeup Controls Panel (Cols: 5) */}
-      <div className="lg:col-span-5 bg-white rounded-2xl p-6 border border-[#bc8381]/25 shadow-md flex flex-col justify-between min-h-[500px]">
+      <div className="lg:col-span-5 bg-white rounded-2xl p-6 border border-[#B8887A]/25 shadow-md flex flex-col justify-between min-h-[500px]">
         <div>
-          <div className="flex items-center justify-between border-b border-[#bc8381]/25 pb-4 mb-5">
-            <h3 className="text-lg font-serif font-bold text-[#732729] flex items-center gap-2">
-              <Sliders className="w-5 h-5 text-[#732729]" /> Adjust Formula
+          <div className="flex items-center justify-between border-b border-[#B8887A]/25 pb-4 mb-5">
+            <h3 className="text-lg font-display font-bold text-[#2A1715] flex items-center gap-2">
+              <Sliders className="w-5 h-5 text-[#2A1715]" /> Adjust Formula
             </h3>
             <button
               onClick={() => {
@@ -918,7 +918,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                   glitterLevel: 0, filter: 'none'
                 });
               }}
-              className="text-xs text-stone-400 hover:text-[#732729] flex items-center gap-1 transition-colors font-semibold"
+              className="text-xs text-stone-400 hover:text-[#2A1715] flex items-center gap-1 transition-colors font-semibold"
             >
               <Trash2 className="w-3.5 h-3.5" /> Clear All
             </button>
@@ -926,14 +926,14 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
 
           <div className="space-y-5">
             {/* 1. EYESHADOW CONTROLS */}
-            <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/20">
+            <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#B8887A]/20">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-stone-700 uppercase tracking-wide">1. Eyeshadow Shadow</span>
                 <span className="text-xs font-semibold text-stone-500">{Math.round(eyeshadowOpacity * 100)}% intensity</span>
               </div>
               
               {/* Preset Palette */}
-              <div className="flex gap-1.5 overflow-x-auto pb-2.5 scrollbar-thin scrollbar-thumb-[#bc8381]/20">
+              <div className="flex gap-1.5 overflow-x-auto pb-2.5 scrollbar-thin scrollbar-thumb-[#B8887A]/20">
                 {PRESET_PALETTES.eyeshadow.map((item) => (
                   <button
                     key={item.name}
@@ -950,7 +950,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                   type="color" 
                   value={eyeshadowColor} 
                   onChange={(e) => setEyeshadowColor(e.target.value)}
-                  className="w-6 h-6 rounded-full border border-[#bc8381]/30 overflow-hidden cursor-pointer bg-transparent"
+                  className="w-6 h-6 rounded-full border border-[#B8887A]/30 overflow-hidden cursor-pointer bg-transparent"
                 />
               </div>
 
@@ -962,12 +962,12 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                 step="0.05"
                 value={eyeshadowOpacity}
                 onChange={(e) => setEyeshadowOpacity(Number(e.target.value))}
-                className="w-full h-1 bg-[#bc8381]/25 rounded-lg appearance-none cursor-pointer accent-[#732729] mt-2"
+                className="w-full h-1 bg-[#B8887A]/25 rounded-lg appearance-none cursor-pointer accent-[#2A1715] mt-2"
               />
             </div>
 
             {/* 2. EYELINER CONTROLS */}
-            <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/20">
+            <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#B8887A]/20">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-stone-700 uppercase tracking-wide">2. Precision Eyeliner</span>
                 <span className="text-xs font-semibold text-stone-500">{Math.round(eyelinerOpacity * 100)}% opacity</span>
@@ -987,8 +987,8 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                     }}
                     className={`py-1 px-1.5 rounded-lg text-[9px] font-black tracking-wider uppercase border text-center cursor-pointer transition-all ${
                       eyelinerStyle === style 
-                        ? 'bg-[#732729] border-[#732729] text-white' 
-                        : 'bg-white border-[#bc8381]/30 text-stone-600 hover:bg-[#faf6f5] hover:text-stone-900'
+                        ? 'bg-[#2A1715] border-[#2A1715] text-white' 
+                        : 'bg-white border-[#B8887A]/30 text-stone-600 hover:bg-[#faf6f5] hover:text-stone-900'
                     }`}
                   >
                     {style}
@@ -997,7 +997,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
               </div>
 
               {/* Preset Palette */}
-              <div className="flex gap-1.5 overflow-x-auto pb-2.5 scrollbar-thin scrollbar-thumb-[#bc8381]/20">
+              <div className="flex gap-1.5 overflow-x-auto pb-2.5 scrollbar-thin scrollbar-thumb-[#B8887A]/20">
                 {PRESET_PALETTES.eyeliner.map((item) => (
                   <button
                     key={item.name}
@@ -1014,7 +1014,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                   type="color" 
                   value={eyelinerColor} 
                   onChange={(e) => setEyelinerColor(e.target.value)}
-                  className="w-6 h-6 rounded-full border border-[#bc8381]/30 overflow-hidden cursor-pointer bg-transparent"
+                  className="w-6 h-6 rounded-full border border-[#B8887A]/30 overflow-hidden cursor-pointer bg-transparent"
                 />
               </div>
 
@@ -1026,19 +1026,19 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                 step="0.05"
                 value={eyelinerOpacity}
                 onChange={(e) => setEyelinerOpacity(Number(e.target.value))}
-                className="w-full h-1 bg-[#bc8381]/25 rounded-lg appearance-none cursor-pointer accent-[#732729] mt-2"
+                className="w-full h-1 bg-[#B8887A]/25 rounded-lg appearance-none cursor-pointer accent-[#2A1715] mt-2"
               />
             </div>
 
             {/* 3. LIPSTICK CONTROLS */}
-            <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/20">
+            <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#B8887A]/20">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-stone-700 uppercase tracking-wide">3. Lip Tint</span>
                 <span className="text-xs font-semibold text-stone-500">{Math.round(lipOpacity * 100)}% opacity</span>
               </div>
 
               {/* Preset Palette */}
-              <div className="flex gap-1.5 overflow-x-auto pb-2.5 scrollbar-thin scrollbar-thumb-[#bc8381]/20">
+              <div className="flex gap-1.5 overflow-x-auto pb-2.5 scrollbar-thin scrollbar-thumb-[#B8887A]/20">
                 {PRESET_PALETTES.lip.map((item) => (
                   <button
                     key={item.name}
@@ -1054,7 +1054,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                   type="color" 
                   value={lipColor} 
                   onChange={(e) => setLipColor(e.target.value)}
-                  className="w-6 h-6 rounded-full border border-[#bc8381]/30 overflow-hidden cursor-pointer bg-transparent"
+                  className="w-6 h-6 rounded-full border border-[#B8887A]/30 overflow-hidden cursor-pointer bg-transparent"
                 />
               </div>
 
@@ -1066,17 +1066,17 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                 step="0.05"
                 value={lipOpacity}
                 onChange={(e) => setLipOpacity(Number(e.target.value))}
-                className="w-full h-1 bg-[#bc8381]/25 rounded-lg appearance-none cursor-pointer accent-[#732729] mt-2"
+                className="w-full h-1 bg-[#B8887A]/25 rounded-lg appearance-none cursor-pointer accent-[#2A1715] mt-2"
               />
 
               {/* Lip texture checkboxes */}
-              <div className="flex items-center gap-4 mt-3 pt-2 border-t border-[#bc8381]/15">
+              <div className="flex items-center gap-4 mt-3 pt-2 border-t border-[#B8887A]/15">
                 <label className="flex items-center gap-2 text-xs font-bold text-stone-700 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={lipGloss}
                     onChange={(e) => setLipGloss(e.target.checked)}
-                    className="rounded border-[#bc8381]/30 bg-white text-[#732729] focus:ring-[#732729]/50 w-4 h-4"
+                    className="rounded border-[#B8887A]/30 bg-white text-[#2A1715] focus:ring-[#2A1715]/50 w-4 h-4"
                   />
                   Holographic Lip Gloss
                 </label>
@@ -1084,14 +1084,14 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
             </div>
 
             {/* 4. BLUSH CONTROLS */}
-            <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/20">
+            <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#B8887A]/20">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-stone-700 uppercase tracking-wide">4. Cheek Blush</span>
                 <span className="text-xs font-semibold text-stone-500">{Math.round(blushOpacity * 100)}% intensity</span>
               </div>
 
               {/* Preset Palette */}
-              <div className="flex gap-1.5 overflow-x-auto pb-2.5 scrollbar-thin scrollbar-thumb-[#bc8381]/20">
+              <div className="flex gap-1.5 overflow-x-auto pb-2.5 scrollbar-thin scrollbar-thumb-[#B8887A]/20">
                 {PRESET_PALETTES.blush.map((item) => (
                   <button
                     key={item.name}
@@ -1107,7 +1107,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                   type="color" 
                   value={blushColor} 
                   onChange={(e) => setBlushColor(e.target.value)}
-                  className="w-6 h-6 rounded-full border border-[#bc8381]/30 overflow-hidden cursor-pointer bg-transparent"
+                  className="w-6 h-6 rounded-full border border-[#B8887A]/30 overflow-hidden cursor-pointer bg-transparent"
                 />
               </div>
 
@@ -1119,12 +1119,12 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                 step="0.05"
                 value={blushOpacity}
                 onChange={(e) => setBlushOpacity(Number(e.target.value))}
-                className="w-full h-1 bg-[#bc8381]/25 rounded-lg appearance-none cursor-pointer accent-[#732729] mt-2"
+                className="w-full h-1 bg-[#B8887A]/25 rounded-lg appearance-none cursor-pointer accent-[#2A1715] mt-2"
               />
             </div>
 
             {/* 4. DETAILS (Lashes, Glitter, Filter) */}
-            <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/20 grid grid-cols-1 gap-4">
+            <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#B8887A]/20 grid grid-cols-1 gap-4">
               {/* Lashes Selection */}
               <div>
                 <label className="block text-xs font-bold text-stone-700 uppercase tracking-wide mb-2">5. Lash Extension</label>
@@ -1135,8 +1135,8 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                       onClick={() => setLashesStyle(style)}
                       className={`py-1.5 px-2.5 rounded-lg text-[10px] font-bold tracking-wider uppercase border text-center cursor-pointer transition-all ${
                         lashesStyle === style 
-                          ? 'bg-[#732729] border-[#732729] text-white font-black shadow-sm' 
-                          : 'bg-white border-[#bc8381]/30 text-stone-600 hover:bg-[#faf6f5] hover:text-stone-900'
+                          ? 'bg-[#2A1715] border-[#2A1715] text-white font-black shadow-sm' 
+                          : 'bg-white border-[#B8887A]/30 text-stone-600 hover:bg-[#faf6f5] hover:text-stone-900'
                       }`}
                     >
                       {style}
@@ -1146,11 +1146,11 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
               </div>
 
               {/* Glitter and render filters */}
-              <div className="grid grid-cols-2 gap-4 border-t border-[#bc8381]/15 pt-3">
+              <div className="grid grid-cols-2 gap-4 border-t border-[#B8887A]/15 pt-3">
                 {/* Glitter */}
                 <div>
                   <label className="block text-xs font-bold text-stone-700 uppercase tracking-wide mb-1 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-[#732729]" /> 6. Glitter Glimmer
+                    <Sparkles className="w-3 h-3 text-[#2A1715]" /> 6. Glitter Glimmer
                   </label>
                   <input
                     type="range"
@@ -1158,7 +1158,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                     max="100"
                     value={glitterLevel}
                     onChange={(e) => setGlitterLevel(Number(e.target.value))}
-                    className="w-full h-1 bg-[#bc8381]/25 rounded-lg appearance-none cursor-pointer accent-[#732729] mt-2"
+                    className="w-full h-1 bg-[#B8887A]/25 rounded-lg appearance-none cursor-pointer accent-[#2A1715] mt-2"
                   />
                   <div className="text-[10px] text-stone-500 mt-1 font-semibold">{glitterLevel}% sparkle density</div>
                 </div>
@@ -1169,7 +1169,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                   <select
                     value={activeFilter}
                     onChange={(e: any) => setActiveFilter(e.target.value)}
-                    className="w-full text-xs bg-white border border-[#bc8381]/30 rounded-lg px-2.5 py-1.5 font-semibold text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#732729]/50"
+                    className="w-full text-xs bg-white border border-[#B8887A]/30 rounded-lg px-2.5 py-1.5 font-semibold text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50"
                   >
                     <option value="none">No Filter</option>
                     <option value="vintage">Vintage Glam</option>
@@ -1182,7 +1182,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
             </div>
 
             {/* 8. SAVE FORMULATION PRESET */}
-            <form onSubmit={handleSaveLookLocally} className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/25 text-left space-y-2">
+            <form onSubmit={handleSaveLookLocally} className="bg-[#faf6f5] p-4 rounded-xl border border-[#B8887A]/25 text-left space-y-2">
               <span className="text-xs font-bold text-stone-700 uppercase tracking-wide block">8. Save Formulation Preset</span>
               <div className="flex gap-2">
                 <input
@@ -1190,11 +1190,11 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                   placeholder="Name your custom look..."
                   value={localLookName}
                   onChange={(e) => setLocalLookName(e.target.value)}
-                  className="bg-white border border-[#bc8381]/30 rounded-lg px-2.5 py-1.5 text-xs w-full focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold"
+                  className="bg-white border border-[#B8887A]/30 rounded-lg px-2.5 py-1.5 text-xs w-full focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50 font-semibold"
                 />
                 <button
                   type="submit"
-                  className="bg-[#732729] hover:bg-[#732729]/90 text-white font-extrabold px-3 py-1.5 rounded-lg text-xs transition-colors shrink-0 cursor-pointer flex items-center gap-1"
+                  className="bg-[#2A1715] hover:bg-[#2A1715]/90 text-white font-extrabold px-3 py-1.5 rounded-lg text-xs transition-colors shrink-0 cursor-pointer flex items-center gap-1"
                 >
                   <Save className="w-3.5 h-3.5" /> Save
                 </button>
@@ -1208,14 +1208,14 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
 
             {/* 9. LOCAL SAVED LOOKS COLLECTION */}
             {savedLooks.length > 0 && (
-              <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/20 text-left">
+              <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#B8887A]/20 text-left">
                 <span className="text-xs font-bold text-stone-700 uppercase tracking-wide block mb-2.5">9. Your Saved Formulations ({savedLooks.length})</span>
                 <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
                   {savedLooks.map((look) => (
                     <div
                       key={look.id}
                       onClick={() => handleLoadLocalLook(look)}
-                      className="flex items-center justify-between p-2 rounded-lg bg-white border border-[#bc8381]/15 hover:border-[#732729]/40 cursor-pointer transition-all"
+                      className="flex items-center justify-between p-2 rounded-lg bg-white border border-[#B8887A]/15 hover:border-[#2A1715]/40 cursor-pointer transition-all"
                     >
                       <div className="flex items-center gap-2">
                         <div className="flex gap-0.5">
@@ -1242,17 +1242,17 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
         </div>
 
         {/* Submit to Monthly Competition Action Block */}
-        <div className="mt-6 pt-5 border-t border-[#bc8381]/20">
+        <div className="mt-6 pt-5 border-t border-[#B8887A]/20">
           <div className="flex flex-col gap-2">
             <button
               id="open-challenge-submit-modal"
               onClick={() => setShowSubmitModal(true)}
-              className="w-full bg-[#732729] hover:bg-[#5c1d1f] text-white text-xs font-bold tracking-wider uppercase py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg transition-all"
+              className="w-full bg-[#2A1715] hover:bg-[#1C1917] text-white text-xs font-bold tracking-wider uppercase py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg transition-all"
             >
               <Sparkles className="w-4 h-4" /> Enter Monthly Challenge
             </button>
             <p className="text-[10px] text-stone-400 text-center font-semibold">
-              Active challenge: <span className="font-bold text-[#732729]">August Clean Summer Look</span>. Submit this custom look configuration to the community challenge board!
+              Active challenge: <span className="font-bold text-[#2A1715]">August Clean Summer Look</span>. Submit this custom look configuration to the community challenge board!
             </p>
           </div>
         </div>
@@ -1261,13 +1261,13 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
       {/* Submission Modal */}
       {showSubmitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl border border-[#bc8381]/35 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-gradient-to-r from-[#bc8381]/10 to-[#732729]/5 p-6 border-b border-[#bc8381]/25 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#bc8381]/15 border border-[#bc8381]/25 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-[#732729]" />
+          <div className="bg-white rounded-2xl border border-[#B8887A]/35 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-gradient-to-r from-[#B8887A]/10 to-[#2A1715]/5 p-6 border-b border-[#B8887A]/25 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#B8887A]/15 border border-[#B8887A]/25 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-[#2A1715]" />
               </div>
               <div>
-                <h4 className="font-serif font-bold text-[#732729] text-sm">Enter "Mix & Match"</h4>
+                <h4 className="font-display font-bold text-[#2A1715] text-sm">Enter "Mix & Match"</h4>
                 <p className="text-[10px] text-stone-500 font-bold tracking-wide uppercase">Monthly Design Challenge / Category Submit</p>
               </div>
             </div>
@@ -1277,12 +1277,12 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                 <div className="w-12 h-12 rounded-full bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
                   <ShieldAlert className="w-6 h-6" />
                 </div>
-                <h5 className="font-serif font-black text-stone-800 text-sm">Authentication Required</h5>
+                <h5 className="font-display font-black text-stone-800 text-sm">Authentication Required</h5>
                 <p className="text-xs text-stone-500 font-semibold leading-relaxed">
                   Only signed-up members with a verified Studio Profile can submit cosmetic filter looks to active challenges and categories.
                 </p>
-                <div className="bg-[#faf6f5] rounded-xl p-3 border border-[#bc8381]/25 text-[11px] text-stone-500 text-left font-semibold">
-                  🌿 <span className="text-[#732729] font-black">All sign-ups start as Studio Residents</span>, unlocking access to community challenges, live upvotes, design portfolios, and notifications.
+                <div className="bg-[#faf6f5] rounded-xl p-3 border border-[#B8887A]/25 text-[11px] text-stone-500 text-left font-semibold">
+                  🌿 <span className="text-[#2A1715] font-black">All sign-ups start as Studio Residents</span>, unlocking access to community challenges, live upvotes, design portfolios, and notifications.
                 </div>
                 <div className="flex gap-2 pt-3 border-t border-stone-100">
                   <button
@@ -1300,7 +1300,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                         onNavigate('profile');
                       }
                     }}
-                    className="flex-1 bg-[#732729] hover:bg-[#5c1d1f] text-white font-bold uppercase tracking-wider text-[10px] py-3 rounded-lg cursor-pointer flex items-center justify-center gap-1 shadow-lg transition-all"
+                    className="flex-1 bg-[#2A1715] hover:bg-[#1C1917] text-white font-bold uppercase tracking-wider text-[10px] py-3 rounded-lg cursor-pointer flex items-center justify-center gap-1 shadow-lg transition-all"
                   >
                     Go to Sign Up
                   </button>
@@ -1313,7 +1313,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                     <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600">
                       <CheckCircle2 className="w-7 h-7" />
                     </div>
-                    <h5 className="font-serif font-bold text-stone-800">Look Submitted successfully!</h5>
+                    <h5 className="font-display font-bold text-stone-800">Look Submitted successfully!</h5>
                     <p className="text-xs text-stone-500">Your gorgeous creations are live in the community gallery.</p>
                   </div>
                 ) : (
@@ -1342,8 +1342,8 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                           onClick={() => setSubmissionType('challenge')}
                           className={`py-2 px-3 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
                             submissionType === 'challenge'
-                              ? 'bg-[#732729] text-white border-[#732729] shadow-sm'
-                              : 'bg-white text-stone-600 border-[#bc8381]/35 hover:bg-[#faf6f5]'
+                              ? 'bg-[#2A1715] text-white border-[#2A1715] shadow-sm'
+                              : 'bg-white text-stone-600 border-[#B8887A]/35 hover:bg-[#faf6f5]'
                           }`}
                         >
                           🏆 Monthly Challenge
@@ -1353,8 +1353,8 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                           onClick={() => setSubmissionType('category')}
                           className={`py-2 px-3 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
                             submissionType === 'category'
-                              ? 'bg-[#732729] text-white border-[#732729] shadow-sm'
-                              : 'bg-white text-stone-600 border-[#bc8381]/35 hover:bg-[#faf6f5]'
+                              ? 'bg-[#2A1715] text-white border-[#2A1715] shadow-sm'
+                              : 'bg-white text-stone-600 border-[#B8887A]/35 hover:bg-[#faf6f5]'
                           }`}
                         >
                           🎨 Look Category
@@ -1368,7 +1368,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                         <select
                           value={submissionCategory}
                           onChange={(e) => setSubmissionCategory(e.target.value)}
-                          className="w-full text-xs px-3 py-2.5 border border-[#bc8381]/30 bg-[#faf6f5] rounded-lg font-bold text-stone-800 focus:outline-none"
+                          className="w-full text-xs px-3 py-2.5 border border-[#B8887A]/30 bg-[#faf6f5] rounded-lg font-bold text-stone-800 focus:outline-none"
                         >
                           <option value="holographic">Holographic Glow</option>
                           <option value="cool-cyber">Cool Cyber Matrix</option>
@@ -1387,7 +1387,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                         placeholder="e.g. Prism Heatwave Glow"
                         value={submissionLookName}
                         onChange={(e) => setSubmissionLookName(e.target.value)}
-                        className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/30 bg-[#faf6f5] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800"
+                        className="w-full text-xs px-3.5 py-2.5 border border-[#B8887A]/30 bg-[#faf6f5] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50 font-semibold text-stone-800"
                       />
                     </div>
 
@@ -1398,12 +1398,12 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                         value={submissionDescription}
                         onChange={(e) => setSubmissionDescription(e.target.value)}
                         rows={3}
-                        className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/30 bg-[#faf6f5] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800"
+                        className="w-full text-xs px-3.5 py-2.5 border border-[#B8887A]/30 bg-[#faf6f5] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50 font-semibold text-stone-800"
                       />
                     </div>
 
                     {/* Summary of Makeup Config to be saved */}
-                    <div className="bg-[#faf6f5] rounded-xl p-3 border border-[#bc8381]/25 grid grid-cols-2 gap-2 text-[10px] text-stone-500">
+                    <div className="bg-[#faf6f5] rounded-xl p-3 border border-[#B8887A]/25 grid grid-cols-2 gap-2 text-[10px] text-stone-500">
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: eyeshadowColor }} />
                         <span>Eyeshadow: {eyeshadowColor}</span>
@@ -1416,10 +1416,10 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: blushColor }} />
                         <span>Blush: {blushColor}</span>
                       </div>
-                      <div>Lashes: <span className="font-bold uppercase text-[9px] text-[#732729]">{lashesStyle}</span></div>
+                      <div>Lashes: <span className="font-bold uppercase text-[9px] text-[#2A1715]">{lashesStyle}</span></div>
                     </div>
 
-                    <div className="flex gap-2 pt-3 border-t border-[#bc8381]/25">
+                    <div className="flex gap-2 pt-3 border-t border-[#B8887A]/25">
                       <button
                         type="button"
                         onClick={() => setShowSubmitModal(false)}
@@ -1430,7 +1430,7 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                       <button
                         type="submit"
                         disabled={isSubmittingChallenge}
-                        className="flex-1 bg-[#732729] hover:bg-[#5c1d1f] text-white font-bold uppercase tracking-wider text-[10px] py-3 rounded-lg cursor-pointer flex items-center justify-center gap-1.5 shadow-lg transition-all"
+                        className="flex-1 bg-[#2A1715] hover:bg-[#1C1917] text-white font-bold uppercase tracking-wider text-[10px] py-3 rounded-lg cursor-pointer flex items-center justify-center gap-1.5 shadow-lg transition-all"
                       >
                         {isSubmittingChallenge ? 'Saving...' : 'Submit Entry'}
                       </button>
@@ -1446,13 +1446,13 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
       {/* Send to MUA (Makeup Artist) Modal */}
       {showMUAModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl border border-[#bc8381]/35 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-gradient-to-r from-[#bc8381]/10 to-[#732729]/5 p-6 border-b border-[#bc8381]/25 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#bc8381]/15 border border-[#bc8381]/25 flex items-center justify-center text-[#732729]">
+          <div className="bg-white rounded-2xl border border-[#B8887A]/35 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-gradient-to-r from-[#B8887A]/10 to-[#2A1715]/5 p-6 border-b border-[#B8887A]/25 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#B8887A]/15 border border-[#B8887A]/25 flex items-center justify-center text-[#2A1715]">
                 <Send className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-serif font-bold text-[#732729] text-sm">Send Formula to MUA</h4>
+                <h4 className="font-display font-bold text-[#2A1715] text-sm">Send Formula to MUA</h4>
                 <p className="text-[10px] text-stone-500 font-bold tracking-wide uppercase">Transmit Technical Parameters to Your Artist</p>
               </div>
             </div>
@@ -1463,14 +1463,14 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                   <div className="w-12 h-12 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-600">
                     <CheckCircle2 className="w-7 h-7" />
                   </div>
-                  <h5 className="font-serif font-black text-stone-800 text-sm">Formula Dispatched!</h5>
+                  <h5 className="font-display font-black text-stone-800 text-sm">Formula Dispatched!</h5>
                   <p className="text-xs text-stone-500 font-semibold leading-relaxed">
-                    The exact formulation specifications have been delivered to <span className="text-[#732729] font-bold">{muaEmail}</span>. Your artist can now replicate this exact look in-studio!
+                    The exact formulation specifications have been delivered to <span className="text-[#2A1715] font-bold">{muaEmail}</span>. Your artist can now replicate this exact look in-studio!
                   </p>
                   <button
                     type="button"
                     onClick={() => setShowMUAModal(false)}
-                    className="mt-3 bg-[#732729] hover:bg-[#5c1d1f] text-white text-xs font-extrabold tracking-wider uppercase px-6 py-2 rounded-lg cursor-pointer transition-all shadow-md"
+                    className="mt-3 bg-[#2A1715] hover:bg-[#1C1917] text-white text-xs font-extrabold tracking-wider uppercase px-6 py-2 rounded-lg cursor-pointer transition-all shadow-md"
                   >
                     Close Mailer
                   </button>
@@ -1482,8 +1482,8 @@ export default function SandboxPage({ onChallengeSubmitSuccess, activePreset, on
                   </p>
 
                   {/* Formula Spec Breakdown */}
-                  <div className="bg-[#faf6f5] rounded-xl p-3.5 border border-[#bc8381]/20 space-y-2 text-[11px] text-stone-600">
-                    <div className="flex items-center justify-between font-bold text-stone-800 border-b border-[#bc8381]/15 pb-1">
+                  <div className="bg-[#faf6f5] rounded-xl p-3.5 border border-[#B8887A]/20 space-y-2 text-[11px] text-stone-600">
+                    <div className="flex items-center justify-between font-bold text-stone-800 border-b border-[#B8887A]/15 pb-1">
                       <span>Cosmetic Component</span>
                       <span>Formula Setting</span>
                     </div>
@@ -1569,11 +1569,11 @@ Rendered via TryOnBeauty: Makeup Try-On App`;
                         placeholder="artist@salon.com"
                         value={muaEmail}
                         onChange={(e) => setMuaEmail(e.target.value)}
-                        className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/30 bg-[#faf6f5] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800"
+                        className="w-full text-xs px-3.5 py-2.5 border border-[#B8887A]/30 bg-[#faf6f5] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50 font-semibold text-stone-800"
                       />
                     </div>
 
-                    <div className="flex gap-2 pt-3 border-t border-[#bc8381]/25">
+                    <div className="flex gap-2 pt-3 border-t border-[#B8887A]/25">
                       <button
                         type="button"
                         onClick={() => setShowMUAModal(false)}
@@ -1583,7 +1583,7 @@ Rendered via TryOnBeauty: Makeup Try-On App`;
                       </button>
                       <button
                         type="submit"
-                        className="flex-1 bg-[#732729] hover:bg-[#5c1d1f] text-white font-bold uppercase tracking-wider text-[10px] py-3 rounded-lg cursor-pointer flex items-center justify-center gap-1 shadow-lg transition-all"
+                        className="flex-1 bg-[#2A1715] hover:bg-[#1C1917] text-white font-bold uppercase tracking-wider text-[10px] py-3 rounded-lg cursor-pointer flex items-center justify-center gap-1 shadow-lg transition-all"
                       >
                         Dispatch Formula
                       </button>

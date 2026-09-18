@@ -460,6 +460,17 @@ class _LookLabPageState extends State<LookLabPage> {
       return null;
     });
     setState(() => _tryOnStudioNativeChannel = channel);
+
+    // The renderer can be started before its payload has finished building, so
+    // hand it whatever the current look is as soon as it is reachable.
+    final payload = _activeTryOnStudioPayload;
+    if (payload != null) {
+      unawaited(
+        channel
+            .invokeMethod<void>('setPayload', payload)
+            .catchError((Object e) => log('Initial payload push failed: $e')),
+      );
+    }
   }
 
   Future<void> _handleWebNavigation(String? target) async {
@@ -657,13 +668,16 @@ class _LookLabPageState extends State<LookLabPage> {
     final cached = _payloadCache[key];
     if (cached != null) return cached;
 
-    final filterData =
-        jsonDecode(await _filterSource(item.assetPath)) as Map<String, dynamic>;
-    if (filterData['schema'] != 'tryonstudio.filter.v1' ||
-        filterData['format'] != 'tryonfilter-json') {
+    final raw = await _filterSource(item.assetPath);
+    if (!raw.contains('tryonstudio.filter.v1') ||
+        !raw.contains('tryonfilter-json')) {
       throw const FormatException('Unsupported TryOnStudio filter format.');
     }
-    final payload = _previewPayload(filterData, item);
+    final payload = await compute(buildSinglePayload, <String, String?>{
+      'raw': raw,
+      'shade': item.shade == null ? null : jsonEncode(item.shade),
+      'name': item.name,
+    });
     if (_payloadCache.length >= 6) {
       _payloadCache.remove(_payloadCache.keys.first);
     }
@@ -695,85 +709,10 @@ class _LookLabPageState extends State<LookLabPage> {
     await _applyTryOnStudioPreset(item);
   }
 
-  /// Turns a .tryonfilter into the payload TryOn Studio's preview page reads.
-  ///
-  /// The page resolves texture paths against the server origin, so anything the
-  /// bundle actually serves (/assets/effect-house/...) is left alone, while
-  /// paths that only exist inside Studio (/user-assets/...) are swapped for the
-  /// texture embedded in the filter itself.
-  String _previewPayload(Map<String, dynamic> filter, LookItem item) {
-    final embedded = <String, String>{};
-    for (final asset in (filter['assets'] as List? ?? const [])) {
-      if (asset is! Map) continue;
-      final region = asset['region'];
-      final dataUrl = asset['dataUrl'];
-      if (region is String && dataUrl is String && dataUrl.startsWith('data:')) {
-        embedded[region] = dataUrl;
-      }
-    }
-
-    String? resolve(Object? path, String region) {
-      if (path is! String || path.isEmpty) return path as String?;
-      if (path.startsWith('data:') || path.startsWith('/assets/')) return path;
-      return embedded[region] ?? path;
-    }
-
-    final payload = Map<String, dynamic>.from(filter);
-    final look = Map<String, dynamic>.from(payload['look'] as Map? ?? {});
-    final textures = Map<String, dynamic>.from(look['textures'] as Map? ?? {});
-    for (final region in textures.keys.toList()) {
-      textures[region] = resolve(textures[region], region);
-    }
-    look['textures'] = textures;
-    payload['look'] = look;
-
-    final eyeControls = payload['eyeControls'];
-    if (eyeControls is Map) {
-      final eyes = Map<String, dynamic>.from(eyeControls);
-      eyes['baseTexture'] = resolve(eyes['baseTexture'], 'eyes');
-      eyes['shimmerTexture'] = resolve(eyes['shimmerTexture'], 'glitter');
-      payload['eyeControls'] = eyes;
-    }
-    final lipControls = payload['lipControls'];
-    if (lipControls is Map) {
-      final lips = Map<String, dynamic>.from(lipControls);
-      lips['glossTexture'] = resolve(lips['glossTexture'], 'lipgloss');
-      lips['shimmerTexture'] = resolve(lips['shimmerTexture'], 'lipshimmer');
-      payload['lipControls'] = lips;
-    }
-
-    // Studio's payload calls this `lighting`; the saved filter calls it
-    // `lightingControls`.
-    payload['lighting'] ??= payload['lightingControls'];
-
-    // Swatch packs share one filter; the shade only moves colour, strength and
-    // finish, so the render path stays exactly the one Studio saved.
-    final shade = item.shade;
-    if (shade != null) {
-      final region = shade['region'] as String? ?? 'lips';
-      final palette = Map<String, dynamic>.from(look['palette'] as Map? ?? {});
-      final intensity = Map<String, dynamic>.from(look['intensity'] as Map? ?? {});
-      final layers = Map<String, dynamic>.from(payload['layers'] as Map? ?? {});
-      palette[region] = shade['colour'];
-      intensity[region] = shade['opacity'];
-      layers[region] = true;
-      look['palette'] = palette;
-      look['intensity'] = intensity;
-      look['name'] = item.name;
-      payload['layers'] = layers;
-      payload['look'] = look;
-      if (region == 'lips') {
-        final lips = Map<String, dynamic>.from(payload['lipControls'] as Map? ?? {});
-        lips['finish'] = shade['finish'];
-        payload['lipControls'] = lips;
-      }
-    }
-    return jsonEncode(payload);
-  }
-
   /// Mix & Match composes one Studio payload from every selected region.
-  /// Each pack owns its own texture and controls, so the merge takes each
-  /// region's half from the filter that defines it.
+  /// Reading the packs happens here; merging them - which means decoding and
+  /// re-encoding every texture they carry - happens on a background isolate,
+  /// so picking a shade never blocks the camera.
   Future<void> _applyMixAndMatch() async {
     if (_mixSlots.isEmpty) {
       await _closeTryOnStudioRenderer();
@@ -781,74 +720,42 @@ class _LookLabPageState extends State<LookLabPage> {
     }
 
     try {
-      Map<String, dynamic>? merged;
+      final parts = <Map<String, String?>>[];
       LookItem? first;
-
       for (final entry in _mixSlots.entries) {
-        final region = entry.key;
         final item = entry.value;
         first ??= item;
-        final raw =
-            jsonDecode(await _filterSource(item.assetPath)) as Map<String, dynamic>;
-        final part =
-            jsonDecode(_previewPayload(raw, item)) as Map<String, dynamic>;
-        if (merged == null) {
-          merged = part;
-          continue;
-        }
+        parts.add({
+          'region': entry.key,
+          'raw': await _filterSource(item.assetPath),
+          'shade': item.shade == null ? null : jsonEncode(item.shade),
+          'name': item.name,
+        });
+      }
+      if (first == null) return;
 
-        final look = Map<String, dynamic>.from(merged['look'] as Map? ?? {});
-        final partLook = part['look'] as Map? ?? {};
-        for (final key in ['palette', 'intensity', 'textures']) {
-          final target = Map<String, dynamic>.from(look[key] as Map? ?? {});
-          final source = partLook[key] as Map? ?? {};
-          if (source[region] != null) target[region] = source[region];
-          look[key] = target;
-        }
-        merged['look'] = look;
-
-        final layers = Map<String, dynamic>.from(merged['layers'] as Map? ?? {});
-        layers[region] = true;
-        merged['layers'] = layers;
-
-        final assets = (merged['assets'] as List? ?? const [])
-            .whereType<Map>()
-            .map((a) => Map<String, dynamic>.from(a))
-            .where((a) => a['region'] != region)
-            .toList();
-        for (final asset in (part['assets'] as List? ?? const [])) {
-          if (asset is Map && asset['region'] == region) {
-            assets.add(Map<String, dynamic>.from(asset));
-          }
-        }
-        merged['assets'] = assets;
-
-        for (final key in ['cheekControls', 'eyeControls', 'lipControls']) {
-          if (part[key] != null && _controlsRegion(key) == region) {
-            merged[key] = part[key];
-          }
-        }
+      // The camera takes seconds to come up and the payload milliseconds, so
+      // start it before the payload rather than after it.
+      if (!_tryOnStudioRendererActive) {
+        await _openTryOnStudioRenderer(first);
       }
 
-      if (merged == null || first == null) return;
-      await _pushStudioPayload(jsonEncode(merged), first);
+      final payload = await compute(buildMixPayload, parts);
+      await _pushStudioPayload(payload, first);
     } catch (e, st) {
       log('Mix & Match compose failed: $e', stackTrace: st);
       if (mounted) _snack('Could not combine those shades.');
     }
   }
 
-  String _controlsRegion(String key) => switch (key) {
-    'cheekControls' => 'cheeks',
-    'eyeControls' => 'eyes',
-    _ => 'lips',
-  };
-
   Future<void> _pushStudioPayload(String payload, LookItem anchor) async {
     _activeTryOnStudioPayload = payload;
-    final live = _tryOnStudioNativeChannel;
-    if (_tryOnStudioRendererActive && live != null) {
-      await live.invokeMethod<void>('setPayload', payload);
+    if (_tryOnStudioRendererActive) {
+      // The view may still be coming up. Its channel arrives a moment later,
+      // and whatever the current payload is by then is pushed from there, so
+      // nothing is lost by the renderer not being reachable yet.
+      final live = _tryOnStudioNativeChannel;
+      if (live != null) await live.invokeMethod<void>('setPayload', payload);
       return;
     }
     await _openTryOnStudioRenderer(anchor);
@@ -894,24 +801,28 @@ class _LookLabPageState extends State<LookLabPage> {
     bool showMessage = true,
   }) async {
     try {
-      final payload = await _payloadForItem(item);
-      _activeTryOnStudioPayload = payload;
-
-      final live = _tryOnStudioNativeChannel;
-      if (_tryOnStudioRendererActive && live != null) {
-        // Renderer already running: hand it the new look, no camera restart.
-        await live.invokeMethod<void>('setPayload', payload);
-        _activeSlotPaths['tryonstudio'] = item.assetPath;
-        if (mounted) {
-          setState(() => _activeTryOnStudioAsset = item.assetPath);
-        }
-        return;
+      // Bring the camera up first. It takes seconds to boot while the payload
+      // takes milliseconds, and waiting for the payload before starting it ran
+      // the two costs end to end - which is what made opening Try On feel
+      // stuck on the loader.
+      if (!_tryOnStudioRendererActive) {
+        await _openTryOnStudioRenderer(item);
       }
 
-      await _closeTryOnStudioRenderer();
-      log('Loaded TryOnStudio preset ${item.name}: ${item.assetPath}');
-      await _openTryOnStudioRenderer(item);
+      final payload = await _payloadForItem(item);
+      _activeTryOnStudioPayload = payload;
       _activeSlotPaths['tryonstudio'] = item.assetPath;
+      if (mounted) {
+        setState(() => _activeTryOnStudioAsset = item.assetPath);
+      }
+
+      // The renderer reads its payload from the app's own server, so this can
+      // be handed over whether or not the page has finished loading.
+      final live = _tryOnStudioNativeChannel;
+      if (live != null) {
+        await live.invokeMethod<void>('setPayload', payload);
+      }
+      log('Loaded TryOnStudio preset ${item.name}: ${item.assetPath}');
 
       if (mounted && showMessage) {
         _snack('Imported ${item.name}');
@@ -1697,6 +1608,97 @@ class _LookLabPageState extends State<LookLabPage> {
     await _applyPreset(itemIndex);
   }
 
+  /// Saving needs an account. Rather than a message telling the user to go
+  /// and find the sign-in, this offers it where they are: one button that
+  /// signs them in and leaves them on the look they were saving.
+  Future<void> _promptSignIn() async {
+    final signIn = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+          decoration: BoxDecoration(
+            color: const Color(0xfff7f2ef),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(colors: [_pink, _berry]),
+                ),
+                child: const Icon(
+                  Icons.favorite_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Sign in to save looks',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Your saved looks live in your account, so they follow you '
+                'onto any device.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: _muted, height: 1.35),
+              ),
+              const SizedBox(height: 18),
+              GestureDetector(
+                onTap: () => Navigator.of(dialogContext).pop(true),
+                child: Container(
+                  height: 46,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _pink,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    'Sign in',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () => Navigator.of(dialogContext).pop(false),
+                child: Container(
+                  height: 40,
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'Not now',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: _muted,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (signIn == true) await _runNativeGoogleSignIn();
+  }
+
   /// Runs Google sign-in in Safari via ASWebAuthenticationSession and hands
   /// the resulting ID token to the web page, which completes the Firebase
   /// session with signInWithCredential.
@@ -1877,12 +1879,12 @@ class _LookLabPageState extends State<LookLabPage> {
   }) async {
     final token = await _validToken();
     if (token == null) {
-      if (mounted) _snack('Sign in with Google first, then save.');
+      if (mounted) unawaited(_promptSignIn());
       return false;
     }
     final uid = _uidFromToken(token) ?? _firebaseUid;
     if (uid == null || uid.isEmpty) {
-      if (mounted) _snack('Sign in with Google first, then save.');
+      if (mounted) unawaited(_promptSignIn());
       return false;
     }
     _firebaseUid = uid;
@@ -3885,3 +3887,162 @@ class _ColourWheelPainter extends CustomPainter {
   bool shouldRepaint(_ColourWheelPainter oldDelegate) =>
       oldDelegate.value != value;
 }
+
+/// Turns a .tryonfilter into the payload TryOn Studio's preview page reads.
+///
+/// Top level and plain data in, plain data out, so it can be handed to a
+/// background isolate: a filter carries its textures, and decoding and
+/// re-encoding megabytes of them is far too much work for the frame the user
+/// is waiting on.
+///
+/// The page resolves texture paths against the server origin, so anything the
+/// bundle actually serves (/assets/effect-house/...) is left alone, while
+/// paths that only exist inside Studio (/user-assets/...) are swapped for the
+/// texture embedded in the filter itself.
+Map<String, dynamic> buildPreviewMap(
+Map<String, dynamic> filter,
+Map<String, dynamic>? shade,
+String name,
+) {
+  final embedded = <String, String>{};
+  for (final asset in (filter['assets'] as List? ?? const [])) {
+    if (asset is! Map) continue;
+    final region = asset['region'];
+    final dataUrl = asset['dataUrl'];
+    if (region is String && dataUrl is String && dataUrl.startsWith('data:')) {
+      embedded[region] = dataUrl;
+    }
+  }
+
+  String? resolve(Object? path, String region) {
+    if (path is! String || path.isEmpty) return path as String?;
+    if (path.startsWith('data:') || path.startsWith('/assets/')) return path;
+    return embedded[region] ?? path;
+  }
+
+  final payload = Map<String, dynamic>.from(filter);
+  final look = Map<String, dynamic>.from(payload['look'] as Map? ?? {});
+  final textures = Map<String, dynamic>.from(look['textures'] as Map? ?? {});
+  for (final region in textures.keys.toList()) {
+    textures[region] = resolve(textures[region], region);
+  }
+  look['textures'] = textures;
+  payload['look'] = look;
+
+  final eyeControls = payload['eyeControls'];
+  if (eyeControls is Map) {
+    final eyes = Map<String, dynamic>.from(eyeControls);
+    eyes['baseTexture'] = resolve(eyes['baseTexture'], 'eyes');
+    eyes['shimmerTexture'] = resolve(eyes['shimmerTexture'], 'glitter');
+    payload['eyeControls'] = eyes;
+  }
+  final lipControls = payload['lipControls'];
+  if (lipControls is Map) {
+    final lips = Map<String, dynamic>.from(lipControls);
+    lips['glossTexture'] = resolve(lips['glossTexture'], 'lipgloss');
+    lips['shimmerTexture'] = resolve(lips['shimmerTexture'], 'lipshimmer');
+    payload['lipControls'] = lips;
+  }
+
+  // Studio's payload calls this `lighting`; the saved filter calls it
+  // `lightingControls`.
+  payload['lighting'] ??= payload['lightingControls'];
+
+  // Swatch packs share one filter; the shade only moves colour, strength and
+  // finish, so the render path stays exactly the one Studio saved.
+  if (shade != null) {
+    final region = shade['region'] as String? ?? 'lips';
+    final palette = Map<String, dynamic>.from(look['palette'] as Map? ?? {});
+    final intensity = Map<String, dynamic>.from(look['intensity'] as Map? ?? {});
+    final layers = Map<String, dynamic>.from(payload['layers'] as Map? ?? {});
+    palette[region] = shade['colour'];
+    intensity[region] = shade['opacity'];
+    layers[region] = true;
+    look['palette'] = palette;
+    look['intensity'] = intensity;
+    look['name'] = name;
+    payload['layers'] = layers;
+    payload['look'] = look;
+    if (region == 'lips') {
+      final lips = Map<String, dynamic>.from(payload['lipControls'] as Map? ?? {});
+      lips['finish'] = shade['finish'];
+      payload['lipControls'] = lips;
+    }
+  }
+  return payload;
+}
+
+/// Which region a control block belongs to.
+String controlsRegion(String key) => switch (key) {
+  'cheekControls' => 'cheeks',
+  'eyeControls' => 'eyes',
+  _ => 'lips',
+};
+
+/// One look, built on a background isolate. Keys: raw, shade, name.
+String buildSinglePayload(Map<String, String?> args) {
+  final filter = jsonDecode(args['raw'] ?? '{}') as Map<String, dynamic>;
+  final shadeRaw = args['shade'];
+  final shade = shadeRaw == null
+      ? null
+      : jsonDecode(shadeRaw) as Map<String, dynamic>;
+  return jsonEncode(buildPreviewMap(filter, shade, args['name'] ?? ''));
+}
+
+/// Mix & Match composes one Studio payload from every selected region. Each
+/// pack owns its own texture and controls, so the merge takes each region's
+/// half from the filter that defines it. Runs on a background isolate for the
+/// same reason as the single look.
+String buildMixPayload(List<Map<String, String?>> parts) {
+  Map<String, dynamic>? merged;
+
+  for (final part in parts) {
+    final region = part['region'] ?? 'lips';
+    final filter = jsonDecode(part['raw'] ?? '{}') as Map<String, dynamic>;
+    final shadeRaw = part['shade'];
+    final shade = shadeRaw == null
+        ? null
+        : jsonDecode(shadeRaw) as Map<String, dynamic>;
+    final piece = buildPreviewMap(filter, shade, part['name'] ?? '');
+
+    if (merged == null) {
+      merged = piece;
+      continue;
+    }
+
+    final look = Map<String, dynamic>.from(merged['look'] as Map? ?? {});
+    final partLook = piece['look'] as Map? ?? {};
+    for (final key in ['palette', 'intensity', 'textures']) {
+      final target = Map<String, dynamic>.from(look[key] as Map? ?? {});
+      final source = partLook[key] as Map? ?? {};
+      if (source[region] != null) target[region] = source[region];
+      look[key] = target;
+    }
+    merged['look'] = look;
+
+    final layers = Map<String, dynamic>.from(merged['layers'] as Map? ?? {});
+    layers[region] = true;
+    merged['layers'] = layers;
+
+    final assets = (merged['assets'] as List? ?? const [])
+        .whereType<Map>()
+        .map((a) => Map<String, dynamic>.from(a))
+        .where((a) => a['region'] != region)
+        .toList();
+    for (final asset in (piece['assets'] as List? ?? const [])) {
+      if (asset is Map && asset['region'] == region) {
+        assets.add(Map<String, dynamic>.from(asset));
+      }
+    }
+    merged['assets'] = assets;
+
+    for (final key in ['cheekControls', 'eyeControls', 'lipControls']) {
+      if (piece[key] != null && controlsRegion(key) == region) {
+        merged[key] = piece[key];
+      }
+    }
+  }
+
+  return merged == null ? '{}' : jsonEncode(merged);
+}
+

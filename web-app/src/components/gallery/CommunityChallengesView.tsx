@@ -17,6 +17,7 @@ import {
 import { ChallengeSubmission, PresetLook } from '../../types';
 import { db, collection, getDocs, updateDoc, doc, increment, addDoc, handleFirestoreError, OperationType } from '../../firebase';
 import { PopularChallengeCard } from '../common/PopularChallengeCard';
+import { ChallengePulseStrip } from './ChallengePulseStrip';
 
 interface CommunityChallengesViewProps {
   onLoadPreset: (preset: PresetLook) => void;
@@ -281,10 +282,17 @@ export const CommunityChallengesView: React.FC<CommunityChallengesViewProps> = (
     <div className="space-y-6 animate-in fade-in duration-300 text-stone-800 text-left">
       {/* 0. ACTIVE MONTHLY CHALLENGE CARD (EXACT SAME AS HOMEPAGE) */}
       <PopularChallengeCard onEnter={() => setIsSubmitModalOpen(true)} />
+
+      {/* 0b. LIVE PULSE - the clock, the numbers, and the viewer's own part */}
+      <ChallengePulseStrip
+        submissions={submissions}
+        votedIds={votedSubIds}
+        onEnter={() => setIsSubmitModalOpen(true)}
+      />
       
       {/* 1. CHALLENGE LEADERBOARD PODIUM */}
       {top3.length > 0 && (
-        <div className="bg-white rounded-3xl border border-[#EDE7E3] p-5 sm:p-7 shadow-xs">
+        <div className="glass-card rounded-3xl p-5 sm:p-7">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-stone-100">
             <div>
               <span className="text-[9px] font-bold uppercase text-[#E91E63] tracking-widest flex items-center gap-1">
@@ -379,7 +387,7 @@ export const CommunityChallengesView: React.FC<CommunityChallengesViewProps> = (
       )}
 
       {/* 2. SEARCH & FILTER CONTROLS */}
-      <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-[#EDE7E3] p-3.5 sm:p-4 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="glass-card rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           {[
             { id: 'all', label: 'All Entries' },
@@ -421,7 +429,7 @@ export const CommunityChallengesView: React.FC<CommunityChallengesViewProps> = (
           <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Loading challenge submissions...</span>
         </div>
       ) : filteredSubmissions.length === 0 ? (
-        <div className="py-16 text-center border border-dashed border-[#EDE7E3] rounded-3xl bg-white/50 p-6 space-y-2">
+        <div className="py-16 text-center border border-dashed border-[#EDE7E3] rounded-3xl glass-card p-6 space-y-2">
           <p className="text-sm font-bold text-stone-700">No challenge entries match this filter.</p>
           <p className="text-xs text-stone-500">Be the first to submit a look with this filter style!</p>
         </div>
@@ -500,7 +508,7 @@ export const CommunityChallengesView: React.FC<CommunityChallengesViewProps> = (
       {/* 4. SUBMIT CHALLENGE ENTRY MODAL */}
       {isSubmitModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative bg-white rounded-3xl border border-[#EDE7E3] p-5 sm:p-6 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 text-left">
+          <div className="relative glass-sheet rounded-3xl p-5 sm:p-6 w-full max-w-md space-y-4 animate-in zoom-in-95 duration-200 text-left">
             <button
               onClick={() => setIsSubmitModalOpen(false)}
               className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"

@@ -211,7 +211,7 @@ export const PostSaveDiscoverModal: React.FC<PostSaveDiscoverModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-[#EDE7E3] overflow-hidden z-10 text-left"
+          className="relative w-full max-w-md glass-sheet rounded-3xl overflow-hidden z-10 text-left"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Top Banner Accent */}

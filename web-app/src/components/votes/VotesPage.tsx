@@ -297,7 +297,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
       
       {/* HEADER HERO BANNER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200/50">
-        <h2 className="text-xl md:text-2xl font-serif font-light uppercase tracking-widest text-stone-950">
+        <h2 className="text-xl md:text-2xl font-display font-light uppercase tracking-widest text-stone-950">
           THE <span className="font-semibold tracking-wider text-stone-900">VOTE BOARD</span>
         </h2>
         
@@ -375,7 +375,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
               </div>
 
               {filteredSubmissions.length === 0 ? (
-                <div className="py-16 text-center border border-dashed border-[#bc8381]/25 rounded-2xl bg-[#faf6f5]/40">
+                <div className="py-16 text-center border border-dashed border-[#B8887A]/25 rounded-2xl bg-[#faf6f5]/40">
                   <p className="text-xs font-semibold text-stone-500">No challenge submissions match the selected filter criteria.</p>
                 </div>
               ) : (
@@ -389,7 +389,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                     return (
                       <div 
                         key={sub.id}
-                        className="bg-white rounded-2xl border border-[#bc8381]/20 overflow-hidden transition-all flex flex-col justify-between shadow-xs hover:shadow-md hover:border-[#732729]/30"
+                        className="bg-white rounded-2xl border border-[#B8887A]/20 overflow-hidden transition-all flex flex-col justify-between shadow-xs hover:shadow-md hover:border-[#2A1715]/30"
                       >
                         {/* Visual Card Cover */}
                         <div className="h-44 bg-stone-100 relative overflow-hidden border-b border-stone-100">
@@ -402,26 +402,26 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                           <div className="absolute inset-0 bg-gradient-to-t from-stone-900/60 via-stone-900/10 to-transparent" />
                           
                           {/* Floating creator handle */}
-                          <div className="absolute top-3 left-3 bg-[#732729]/80 backdrop-blur-xs text-white text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-md">
+                          <div className="absolute top-3 left-3 bg-[#2A1715]/80 backdrop-blur-xs text-white text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-md">
                             @{sub.username}
                           </div>
 
                           {/* Filter Tag badge */}
                           {filterTag !== 'none' && (
-                            <div className="absolute top-3 right-3 bg-white/95 text-[#732729] text-[9px] font-black uppercase px-2 py-0.5 rounded-md border border-[#bc8381]/20">
+                            <div className="absolute top-3 right-3 bg-white/95 text-[#2A1715] text-[9px] font-black uppercase px-2 py-0.5 rounded-md border border-[#B8887A]/20">
                               {filterTag}
                             </div>
                           )}
 
                           {/* Swatches Overlay */}
-                          <div className="absolute bottom-3 left-3 flex gap-1.5 bg-white/95 px-2.5 py-1 rounded-lg border border-[#bc8381]/20 shadow-xs">
+                          <div className="absolute bottom-3 left-3 flex gap-1.5 bg-white/95 px-2.5 py-1 rounded-lg border border-[#B8887A]/20 shadow-xs">
                             <div style={{ backgroundColor: sub.makeupConfig?.eyeshadowColor || '#000000' }} className="w-3.5 h-3.5 rounded-full border border-stone-200" title="Eyeshadow color" />
                             <div style={{ backgroundColor: sub.makeupConfig?.blushColor || '#000000' }} className="w-3.5 h-3.5 rounded-full border border-stone-200" title="Blush color" />
                             <div style={{ backgroundColor: sub.makeupConfig?.lipColor || '#000000' }} className="w-3.5 h-3.5 rounded-full border border-stone-200" title="Lip color" />
                           </div>
 
                           {/* Live Vote Display */}
-                          <div className="absolute bottom-3 right-3 bg-white text-[#732729] border border-[#bc8381]/30 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 shadow-xs">
+                          <div className="absolute bottom-3 right-3 bg-white text-[#2A1715] border border-[#B8887A]/30 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 shadow-xs">
                             <Heart className="w-3 h-3 fill-rose-500 text-rose-500" />
                             <span>{sub.votes} Votes</span>
                           </div>
@@ -430,7 +430,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                         {/* Card Content & Try-On Action */}
                         <div className="p-4 flex-1 flex flex-col justify-between space-y-4 text-left">
                           <div className="space-y-1">
-                            <h4 className="font-serif font-black text-[#732729] text-sm line-clamp-1">{sub.lookName}</h4>
+                            <h4 className="font-display font-black text-[#2A1715] text-sm line-clamp-1">{sub.lookName}</h4>
                             <p className="text-[11px] text-stone-500 leading-relaxed font-semibold line-clamp-2">{sub.description || 'Custom formulation submitted by studio resident.'}</p>
                           </div>
 
@@ -441,7 +441,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                               className={`flex-1 font-bold text-[10px] tracking-wider uppercase py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer ${
                                 isVoted 
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : 'bg-[#732729] hover:bg-[#5c1d1f] text-white border border-[#732729]'
+                                  : 'bg-[#2A1715] hover:bg-[#1C1917] text-white border border-[#2A1715]'
                               }`}
                             >
                               <Heart className={`w-3.5 h-3.5 ${isVoted ? 'fill-emerald-600 text-emerald-600' : ''}`} />
@@ -450,10 +450,10 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
 
                             <button
                               onClick={() => handleTryOnLook(sub)}
-                              className="px-3.5 py-2 bg-[#FAF6F5] hover:bg-[#bc8381]/15 border border-[#bc8381]/25 rounded-xl text-stone-600 font-bold text-[10px] uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1"
+                              className="px-3.5 py-2 bg-[#FAF6F5] hover:bg-[#B8887A]/15 border border-[#B8887A]/25 rounded-xl text-stone-600 font-bold text-[10px] uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1"
                               title="Try this formulation on sandbox editor"
                             >
-                              <Play className="w-3 h-3 text-[#bc8381]" /> Try
+                              <Play className="w-3 h-3 text-[#B8887A]" /> Try
                             </button>
                           </div>
                         </div>
@@ -471,16 +471,16 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
               
               {/* Pipeline Controller Top Banner - Winner Compiler */}
               {leadingRequest && (
-                <div className="bg-gradient-to-br from-[#732729] to-[#5c1d1f] rounded-2xl p-6 border border-[#bc8381]/30 text-white shadow-md relative overflow-hidden">
+                <div className="bg-gradient-to-br from-[#2A1715] to-[#1C1917] rounded-2xl p-6 border border-[#B8887A]/30 text-white shadow-md relative overflow-hidden">
                   <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none transform translate-y-6 translate-x-6">
                     <Trophy className="w-48 h-48 text-white" />
                   </div>
                   
-                  <span className="bg-[#bc8381] text-stone-900 font-extrabold text-[8px] uppercase px-2.5 py-1 rounded-full tracking-wider inline-block mb-3 shadow-xs">
+                  <span className="bg-[#B8887A] text-stone-900 font-extrabold text-[8px] uppercase px-2.5 py-1 rounded-full tracking-wider inline-block mb-3 shadow-xs">
                     ★ Leading Look Request
                   </span>
 
-                  <h4 className="font-serif font-black text-xl mb-1.5 flex items-center gap-2 text-white">
+                  <h4 className="font-display font-black text-xl mb-1.5 flex items-center gap-2 text-white">
                     {leadingRequest.title}
                   </h4>
                   <p className="text-xs text-stone-200/90 leading-relaxed mb-4 font-medium max-w-xl">
@@ -503,9 +503,9 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
 
                   <button
                     onClick={() => handleOpenCompileForm(leadingRequest)}
-                    className="bg-white hover:bg-[#FAF6F5] text-[#732729] font-extrabold text-[10px] tracking-widest uppercase py-3 px-6 rounded-xl cursor-pointer transition-all flex items-center gap-1.5 shadow-sm hover:scale-[1.01]"
+                    className="bg-white hover:bg-[#FAF6F5] text-[#2A1715] font-extrabold text-[10px] tracking-widest uppercase py-3 px-6 rounded-xl cursor-pointer transition-all flex items-center gap-1.5 shadow-sm hover:scale-[1.01]"
                   >
-                    <Sliders className="w-4 h-4 text-[#732729]" /> Create & Release Winner to Library
+                    <Sliders className="w-4 h-4 text-[#2A1715]" /> Create & Release Winner to Library
                   </button>
                 </div>
               )}
@@ -541,7 +541,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
               <div className="space-y-6">
 
                 {filteredRequests.length === 0 ? (
-                  <div className="py-16 text-center border border-dashed border-[#bc8381]/25 rounded-2xl bg-[#faf6f5]/40">
+                  <div className="py-16 text-center border border-dashed border-[#B8887A]/25 rounded-2xl bg-[#faf6f5]/40">
                     <p className="text-xs font-semibold text-stone-500">No look requests match the search keyword.</p>
                   </div>
                 ) : (
@@ -553,7 +553,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                       return (
                         <div 
                           key={req.id}
-                          className="bg-white rounded-2xl border border-[#bc8381]/20 overflow-hidden shadow-xs hover:shadow-md hover:border-[#732729]/35 transition-all flex flex-col justify-between"
+                          className="bg-white rounded-2xl border border-[#B8887A]/20 overflow-hidden shadow-xs hover:shadow-md hover:border-[#2A1715]/35 transition-all flex flex-col justify-between"
                         >
                           {/* Visual Area with Overlay Badge and Creator name */}
                           <div className="h-44 bg-stone-100 relative overflow-hidden border-b border-stone-50">
@@ -566,7 +566,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                             <div className="absolute inset-0 bg-gradient-to-t from-stone-900/70 via-stone-900/10 to-transparent" />
                             
                             {/* Overlay tag (e.g., EYES) */}
-                            <div className="absolute top-3 left-3 bg-[#FAF6F5] border border-[#bc8381]/40 text-[#732729] text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md">
+                            <div className="absolute top-3 left-3 bg-[#FAF6F5] border border-[#B8887A]/40 text-[#2A1715] text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md">
                               {req.category || 'FACE'}
                             </div>
 
@@ -598,7 +598,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                           {/* Body Content */}
                           <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                             <div className="space-y-3">
-                              <h4 className="font-serif font-black text-[#732729] text-base leading-tight">{req.title}</h4>
+                              <h4 className="font-display font-black text-[#2A1715] text-base leading-tight">{req.title}</h4>
                               <p className="text-[11px] text-stone-500 leading-relaxed font-semibold">{req.description}</p>
                               
                               {req.isPublic === false && (
@@ -628,7 +628,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                                   <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 block">Request Pipeline Status</span>
                                   <span className="text-[8px] bg-stone-100 text-stone-600 font-extrabold uppercase px-1 rounded">Interactive</span>
                                 </div>
-                                <div className="grid grid-cols-4 gap-1 bg-[#faf6f5] border border-[#bc8381]/15 rounded-lg p-1 text-[8px] font-bold text-center">
+                                <div className="grid grid-cols-4 gap-1 bg-[#faf6f5] border border-[#B8887A]/15 rounded-lg p-1 text-[8px] font-bold text-center">
                                   {(['requested', 'selected', 'being built', 'released'] as const).map((st) => {
                                     const isActive = (req.status || 'requested') === st;
                                     const labelMap = {
@@ -644,7 +644,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                                         onClick={() => handleUpdateStatus(req.id, st)}
                                         className={`py-1.5 rounded transition-all cursor-pointer ${
                                           isActive
-                                            ? 'bg-[#732729] text-white shadow-xs font-black'
+                                            ? 'bg-[#2A1715] text-white shadow-xs font-black'
                                             : 'text-stone-400 hover:text-stone-700 hover:bg-stone-100'
                                         }`}
                                         title={`Move request to ${st}`}
@@ -698,8 +698,8 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                                       disabled={isVoted}
                                       className={`px-3.5 py-1.5 rounded-xl font-bold text-[9px] uppercase tracking-wider transition-colors cursor-pointer ${
                                         isVoted
-                                          ? 'bg-[#bc8381]/10 text-[#732729]/60 border border-[#bc8381]/20'
-                                          : 'bg-[#732729] hover:bg-[#5c1d1f] text-white border border-[#732729]'
+                                          ? 'bg-[#B8887A]/10 text-[#2A1715]/60 border border-[#B8887A]/20'
+                                          : 'bg-[#2A1715] hover:bg-[#1C1917] text-white border border-[#2A1715]'
                                       }`}
                                     >
                                       {isVoted ? 'Voted' : 'Vote'}
@@ -723,12 +723,12 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
       {/* COMPILATION MODAL FOR CREATING AND ADDING THE WINNER LOOK TO THE LIBRARY */}
       {compilingRequest && (
         <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-[#bc8381]/40 shadow-2xl max-w-lg w-full p-6 text-left space-y-6 animate-in zoom-in-95 duration-200 relative">
+          <div className="glass-sheet rounded-[26px] max-w-lg w-full p-6 text-left space-y-6 animate-in zoom-in-95 duration-200 relative">
             
-            <div className="flex justify-between items-start border-b border-[#bc8381]/25 pb-3">
+            <div className="flex justify-between items-start border-b border-[#B8887A]/25 pb-3">
               <div>
-                <h3 className="text-lg font-serif font-black text-[#732729] uppercase tracking-wider flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-[#bc8381] animate-spin" /> Compiler Suite
+                <h3 className="text-lg font-display font-black text-[#2A1715] uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-[#B8887A] animate-spin" /> Compiler Suite
                 </h3>
                 <p className="text-xs text-stone-500">Formulate and deploy community winning look requested parameters.</p>
               </div>
@@ -743,7 +743,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
             {releaseSuccess ? (
               <div className="py-8 text-center space-y-3 flex flex-col items-center justify-center">
                 <CheckCircle2 className="w-12 h-12 text-emerald-600 animate-bounce" />
-                <h4 className="font-serif font-black text-stone-800 text-lg">Look Compiled Successfully!</h4>
+                <h4 className="font-display font-black text-stone-800 text-lg">Look Compiled Successfully!</h4>
                 <p className="text-xs text-stone-500 max-w-xs mx-auto">
                   "{compilingName}" has been successfully added to the official Packaged Studio library across the platform!
                 </p>
@@ -757,7 +757,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                     required
                     value={compilingName}
                     onChange={(e) => setCompilingName(e.target.value)}
-                    className="w-full text-xs p-2.5 bg-[#faf6f5] border border-[#bc8381]/35 rounded-xl text-stone-800 font-bold focus:outline-none"
+                    className="w-full text-xs p-2.5 bg-[#faf6f5] border border-[#B8887A]/35 rounded-xl text-stone-800 font-bold focus:outline-none"
                   />
                 </div>
 
@@ -768,20 +768,20 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                     rows={2}
                     value={compilingDescription}
                     onChange={(e) => setCompilingDescription(e.target.value)}
-                    className="w-full text-xs p-2.5 bg-[#faf6f5] border border-[#bc8381]/35 rounded-xl text-stone-800 font-semibold focus:outline-none"
+                    className="w-full text-xs p-2.5 bg-[#faf6f5] border border-[#B8887A]/35 rounded-xl text-stone-800 font-semibold focus:outline-none"
                   />
                 </div>
 
                 {/* FORMULA SPECS */}
-                <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#bc8381]/20 space-y-3">
-                  <h4 className="text-[10px] font-black uppercase text-[#732729] tracking-wider border-b border-[#bc8381]/15 pb-1">
+                <div className="bg-[#faf6f5] p-4 rounded-xl border border-[#B8887A]/20 space-y-3">
+                  <h4 className="text-[10px] font-black uppercase text-[#2A1715] tracking-wider border-b border-[#B8887A]/15 pb-1">
                     Cosmetic Color Mapping
                   </h4>
                   
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1">
                       <span className="text-[9px] font-bold text-stone-500 block">Eyeshadow</span>
-                      <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-lg border border-[#bc8381]/20">
+                      <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-lg border border-[#B8887A]/20">
                         <input
                           type="color"
                           value={compilingEyeshadow}
@@ -794,7 +794,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
 
                     <div className="space-y-1">
                       <span className="text-[9px] font-bold text-stone-500 block">Blush</span>
-                      <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-lg border border-[#bc8381]/20">
+                      <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-lg border border-[#B8887A]/20">
                         <input
                           type="color"
                           value={compilingBlush}
@@ -807,7 +807,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
 
                     <div className="space-y-1">
                       <span className="text-[9px] font-bold text-stone-500 block">Lipstick</span>
-                      <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-lg border border-[#bc8381]/20">
+                      <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-lg border border-[#B8887A]/20">
                         <input
                           type="color"
                           value={compilingLip}
@@ -825,7 +825,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                       <select 
                         value={compilingGlitter} 
                         onChange={(e) => setCompilingGlitter(Number(e.target.value))}
-                        className="w-full text-[10px] font-bold bg-white p-2 rounded-lg border border-[#bc8381]/20 focus:outline-none"
+                        className="w-full text-[10px] font-bold bg-white p-2 rounded-lg border border-[#B8887A]/20 focus:outline-none"
                       >
                         <option value={10}>10% Soft Sparkle</option>
                         <option value={50}>50% Disco Sparkle</option>
@@ -839,7 +839,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                       <select 
                         value={compilingFilter} 
                         onChange={(e) => setCompilingFilter(e.target.value as any)}
-                        className="w-full text-[10px] font-bold bg-white p-2 rounded-lg border border-[#bc8381]/20 focus:outline-none"
+                        className="w-full text-[10px] font-bold bg-white p-2 rounded-lg border border-[#B8887A]/20 focus:outline-none"
                       >
                         <option value="none">No Filter Shift</option>
                         <option value="vintage">Vintage Sepia</option>
@@ -854,7 +854,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                       <select 
                         value={compilingLashes} 
                         onChange={(e) => setCompilingLashes(e.target.value as any)}
-                        className="w-full text-[10px] font-bold bg-white p-2 rounded-lg border border-[#bc8381]/20 focus:outline-none"
+                        className="w-full text-[10px] font-bold bg-white p-2 rounded-lg border border-[#B8887A]/20 focus:outline-none"
                       >
                         <option value="none">None</option>
                         <option value="natural">Natural</option>
@@ -876,7 +876,7 @@ export const VotesPage: React.FC<VotesPageProps> = ({ onLoadPreset }) => {
                   <button
                     type="submit"
                     disabled={isReleasing}
-                    className="flex-1 bg-[#732729] hover:bg-[#5c1d1f] text-white font-extrabold text-[10px] uppercase tracking-wider py-3 rounded-xl cursor-pointer flex items-center justify-center gap-1"
+                    className="flex-1 bg-[#2A1715] hover:bg-[#1C1917] text-white font-extrabold text-[10px] uppercase tracking-wider py-3 rounded-xl cursor-pointer flex items-center justify-center gap-1"
                   >
                     {isReleasing ? (
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />

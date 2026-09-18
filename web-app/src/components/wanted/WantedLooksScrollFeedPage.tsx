@@ -389,7 +389,7 @@ export const WantedLooksScrollFeedPage: React.FC<WantedLooksScrollFeedPageProps>
                   </button>
 
                   <div className="flex items-center gap-2">
-                    <span className="bg-[#732729]/90 border border-[#bc8381]/40 backdrop-blur-md text-white text-[11px] font-black uppercase px-3 py-1 rounded-full tracking-wider shadow-md">
+                    <span className="bg-[#2A1715]/90 border border-[#B8887A]/40 backdrop-blur-md text-white text-[11px] font-black uppercase px-3 py-1 rounded-full tracking-wider shadow-md">
                       {item.category}
                     </span>
                     {!item.isPublic && (
@@ -408,7 +408,7 @@ export const WantedLooksScrollFeedPage: React.FC<WantedLooksScrollFeedPageProps>
                     
                     {/* Creator Tag */}
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#732729] to-[#bc8381] flex items-center justify-center text-white text-xs font-bold ring-1 ring-white/30">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#2A1715] to-[#B8887A] flex items-center justify-center text-white text-xs font-bold ring-1 ring-white/30">
                         {item.requestedBy.replace('@', '').charAt(0).toUpperCase()}
                       </div>
                       <span className="text-sm font-semibold text-white/90 drop-shadow">
@@ -418,7 +418,7 @@ export const WantedLooksScrollFeedPage: React.FC<WantedLooksScrollFeedPageProps>
 
                     {/* Title & Description */}
                     <div>
-                      <h2 className="text-xl sm:text-2xl font-serif font-black text-white leading-tight drop-shadow-md">
+                      <h2 className="text-xl sm:text-2xl font-display font-black text-white leading-tight drop-shadow-md">
                         {item.title}
                       </h2>
                       <p className="text-xs sm:text-sm text-stone-200/90 mt-1 line-clamp-3 font-medium leading-relaxed drop-shadow">
@@ -457,7 +457,7 @@ export const WantedLooksScrollFeedPage: React.FC<WantedLooksScrollFeedPageProps>
                       <button
                         type="button"
                         onClick={(e) => handleRemix(item, e)}
-                        className="py-2.5 px-3 bg-[#732729] hover:bg-[#5c1d1f] text-white border border-[#bc8381]/50 rounded-full font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
+                        className="py-2.5 px-3 bg-[#2A1715] hover:bg-[#1C1917] text-white border border-[#B8887A]/50 rounded-full font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-all cursor-pointer"
                       >
                         <Wand2 className="w-4 h-4 text-amber-300" />
                         <span>REMIX</span>

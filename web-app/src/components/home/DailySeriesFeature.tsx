@@ -605,7 +605,7 @@ export const DailySeriesFeature: React.FC<DailySeriesFeatureProps> = ({ onTryOn,
                   {/* Shade B Card */}
                   <div className={`p-4 rounded-xl border transition-all ${
                     votedBattles[activeSeries.seriesKey] === 'B' 
-                      ? 'border-[#ea580c] bg-[#FFF7ED] ring-2 ring-[#ea580c]/20' 
+                      ? 'border-[#ea580c] bg-[#FDF1F4] ring-2 ring-[#ea580c]/20' 
                       : 'border-[#EDE7E3] bg-[#FAF6F4]'
                   }`}>
                     <div className="flex items-center gap-3">
@@ -751,10 +751,10 @@ export const DailySeriesFeature: React.FC<DailySeriesFeatureProps> = ({ onTryOn,
                 {/* Header & Save Pill */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div className="space-y-1">
-                    <span className="text-[10px] sm:text-[11px] font-semibold text-[#A85A3C] uppercase tracking-[0.2em] block">
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-[#B8887A] uppercase tracking-[0.2em] block">
                       DECONSTRUCTED FORMULA LAYERS
                     </span>
-                    <h4 className="font-ultra-disney font-editorial font-serif text-2xl sm:text-[30px] font-normal text-[#1F1916] tracking-tight leading-tight">
+                    <h4 className="font-display text-2xl sm:text-[30px] font-normal text-[#2A1715] tracking-tight leading-tight">
                       {activeSeries.buildMyLookData.recipeName}
                     </h4>
                   </div>
@@ -763,8 +763,8 @@ export const DailySeriesFeature: React.FC<DailySeriesFeatureProps> = ({ onTryOn,
                     onClick={() => handleSeriesCheckIn('Recipe Saved')}
                     className={`shrink-0 self-start px-4 sm:px-5 py-2 rounded-full text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center gap-2 border transition-all cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.02),inset_0_1px_1px_rgba(255,255,255,0.9)] ${
                       checkedInSeries[activeSeries.seriesKey]
-                        ? 'bg-[#A85A3C] text-white border-[#A85A3C]'
-                        : 'bg-white/60 hover:bg-white/85 text-[#3D2E28] border-white/90 hover:border-[#E8DDD4]'
+                        ? 'bg-[#B8887A] text-white border-[#B8887A]'
+                        : 'bg-white/60 hover:bg-white/85 text-[#3D2E28] border-white/90 hover:border-[#EDE7E3]'
                     }`}
                   >
                     <Heart className={`w-3.5 h-3.5 ${checkedInSeries[activeSeries.seriesKey] ? 'fill-white text-white' : 'text-[#3D2E28] stroke-[1.75]'}`} />
@@ -797,7 +797,7 @@ export const DailySeriesFeature: React.FC<DailySeriesFeatureProps> = ({ onTryOn,
                       >
                         {/* Top row: Tracked uppercase layer label & 3D sphere swatch */}
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] sm:text-[11px] font-semibold text-[#A85A3C] uppercase tracking-[0.18em]">
+                          <span className="text-[10px] sm:text-[11px] font-semibold text-[#B8887A] uppercase tracking-[0.18em]">
                             LAYER {layer.step}
                           </span>
                           <span 
@@ -809,7 +809,7 @@ export const DailySeriesFeature: React.FC<DailySeriesFeatureProps> = ({ onTryOn,
                         </div>
 
                         {/* Layer title & subtitle */}
-                        <h5 className="font-ultra-disney font-serif text-[16px] sm:text-[18px] font-normal text-[#1F1916] leading-snug mt-2.5">
+                        <h5 className="font-display text-[16px] sm:text-[18px] font-normal text-[#2A1715] leading-snug mt-2.5">
                           {layer.name}
                         </h5>
                         <p className="text-[11px] sm:text-xs text-[#7A6B64] font-normal leading-snug mt-0.5 sm:mt-1">
@@ -824,12 +824,12 @@ export const DailySeriesFeature: React.FC<DailySeriesFeatureProps> = ({ onTryOn,
                 <div className="rounded-[22px] p-3.5 sm:p-4 bg-white/50 backdrop-blur-xl border border-white/90 shadow-[0_4px_16px_rgba(180,140,120,0.04),inset_0_1px_2px_rgba(255,255,255,0.95)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative overflow-hidden">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/70 border border-white/90 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9),0_2px_6px_rgba(0,0,0,0.02)] flex items-center justify-center shrink-0">
-                      <svg className="w-4 h-4 fill-[#A85A3C] text-[#A85A3C]" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 fill-[#B8887A] text-[#B8887A]" viewBox="0 0 24 24">
                         <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" />
                       </svg>
                     </div>
                     <div className="space-y-0.5">
-                      <span className="font-ultra-disney font-serif text-[13px] sm:text-[14px] font-semibold text-[#A85A3C] block leading-tight">
+                      <span className="font-display text-[13px] sm:text-[14px] font-semibold text-[#B8887A] block leading-tight">
                         Layer {activeSeries.buildMyLookData.layers[activeStepTab].step} Pro Tip:
                       </span>
                       <p className="text-[11px] sm:text-xs text-[#4A3B35] font-normal leading-snug">

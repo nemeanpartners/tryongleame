@@ -27,6 +27,7 @@ import { LookRequest } from '../../types';
 import { GlitterConfetti } from '../common/GlitterConfetti';
 import { Spinning3DVotesBadge } from './Spinning3DVotesBadge';
 import { WantedQuickActionCard } from './WantedQuickActionCard';
+import { useCountUp } from '../../lib/liveCounters';
 
 const CATEGORY_COVERS: Record<string, string> = {
   'Eyes': 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=600',
@@ -133,6 +134,10 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
   const [confettiKey, setConfettiKey] = useState<number>(0);
   const [badgeBoostTrigger, setBadgeBoostTrigger] = useState<number>(0);
   const [recentlyVotedLookId, setRecentlyVotedLookId] = useState<string | null>(null);
+
+  /** When the board last changed, and how long ago that reads as now. */
+  const [pulseUpdatedAt, setPulseUpdatedAt] = useState<number>(Date.now());
+  const [pulseSecondsAgo, setPulseSecondsAgo] = useState<number>(0);
 
   const categories = ['Eyes', 'Lips', 'Blush', 'Highlight', 'Full Face', 'Other'];
 
@@ -322,6 +327,31 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
     ? [...requests].sort((a, b) => b.votes - a.votes)[0]?.title || 'Velvet Plum'
     : 'Velvet Plum';
 
+  // What the tracker counts. The "today" figure used to be the number 18,
+  // written into the page, which made a live tracker say the same thing
+  // forever.
+  const startOfToday = new Date().setHours(0, 0, 0, 0);
+  const proposalsToday = requests.filter((req) => (req.createdAt || 0) >= startOfToday).length;
+  const votesToday = requests
+    .filter((req) => (req.createdAt || 0) >= startOfToday)
+    .reduce((sum, req) => sum + (req.votes || 0), 0);
+  const animatedTotalVotes = useCountUp(trendingStats.totalVotes);
+  const backedByYou = requests.filter(
+    (req) => currentUser && req.votedUsers?.includes(currentUser)
+  ).length;
+
+  // The board moving is the reason to keep looking, so say when it last did.
+  useEffect(() => {
+    setPulseUpdatedAt(Date.now());
+  }, [trendingStats.totalVotes, requests.length]);
+
+  useEffect(() => {
+    const tick = window.setInterval(() => {
+      setPulseSecondsAgo(Math.floor((Date.now() - pulseUpdatedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(tick);
+  }, [pulseUpdatedAt]);
+
   // Filter requests based on privacy rules:
   // - Show public requests (isPublic !== false)
   // - Show private requests belonging to the CURRENT user only!
@@ -389,14 +419,14 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
       {/* MAILBOX LETTER ANIMATION OVERLAY */}
       {isAnimatingSubmit && (
         <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-[24px] border border-[#bc8381]/25 p-8 text-center space-y-6 relative overflow-hidden shadow-2xl">
-            <div className="absolute inset-x-8 -top-20 h-44 bg-[#732729]/10 blur-3xl pointer-events-none" />
+          <div className="max-w-md w-full glass-sheet rounded-[24px] p-8 text-center space-y-6 relative overflow-hidden">
+            <div className="absolute inset-x-8 -top-20 h-44 bg-[#2A1715]/10 blur-3xl pointer-events-none" />
             
             {/* Mailbox Container with Slot and sliding letter */}
             <div className="relative h-48 flex flex-col items-center justify-center">
               
               {/* Box Slot */}
-              <div className="absolute bottom-4 w-40 h-16 bg-[#732729] rounded-b-xl border-t border-[#bc8381]/50 flex items-center justify-center shadow-lg">
+              <div className="absolute bottom-4 w-40 h-16 bg-[#2A1715] rounded-b-xl border-t border-[#B8887A]/50 flex items-center justify-center shadow-lg">
                 <div className="absolute top-0 w-32 h-2.5 bg-stone-950 rounded-full mt-1.5 shadow-inner overflow-hidden flex justify-center">
                   {/* Flap flip rotation */}
                   <motion.div 
@@ -405,7 +435,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                     className="w-full h-full bg-stone-800 origin-top"
                   />
                 </div>
-                <span className="text-[8px] font-black uppercase text-[#bc8381] tracking-widest mt-5">TryOnBeauty Lab Box</span>
+                <span className="text-[8px] font-black uppercase text-[#B8887A] tracking-widest mt-5">TryOnBeauty Lab Box</span>
               </div>
 
               {/* Envelope / Letter Card */}
@@ -422,12 +452,12 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                   times: [0, 0.2, 0.5, 1],
                   ease: "easeInOut" 
                 }}
-                className="w-56 bg-[#faf6f5] border border-[#bc8381]/30 p-4 rounded-xl shadow-md space-y-2 text-left z-10"
+                className="w-56 bg-[#faf6f5] border border-[#B8887A]/30 p-4 rounded-xl shadow-md space-y-2 text-left z-10"
               >
-                <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-[#bc8381]/20 border border-[#bc8381]/45 flex items-center justify-center font-serif text-[10px] font-black text-[#732729]">
+                <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-[#B8887A]/20 border border-[#B8887A]/45 flex items-center justify-center font-display text-[10px] font-black text-[#2A1715]">
                   T
                 </div>
-                <div className="text-[8px] font-black text-[#bc8381] uppercase tracking-wider">New Look Proposal</div>
+                <div className="text-[8px] font-black text-[#B8887A] uppercase tracking-wider">New Look Proposal</div>
                 <h4 className="text-xs font-bold text-stone-800 line-clamp-1">{title || 'Custom Shader'}</h4>
                 <p className="text-[9px] text-stone-500 font-medium line-clamp-1">{category}</p>
                 <div className="flex gap-1.5 pt-1">
@@ -449,7 +479,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
             </div>
 
             <div className="space-y-1">
-              <h3 className="font-serif font-black text-stone-900 text-lg uppercase tracking-wider">Depositing Proposal...</h3>
+              <h3 className="font-display font-black text-stone-900 text-lg uppercase tracking-wider">Depositing Proposal...</h3>
               <p className="text-xs text-stone-500 max-w-xs mx-auto font-semibold">
                 Your creative recipe card is sliding straight into our developer queue. Saving & refreshing board...
               </p>
@@ -462,16 +492,32 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
       <div className="xl:col-span-4 space-y-6">
         
         {/* STATS PANEL / DEMAND PULSE INTERACTIVE TRACKER */}
-        <div className="bg-white/95 backdrop-blur-md rounded-[28px] p-5 sm:p-6 border border-[#bc8381]/20 shadow-xs text-left relative overflow-hidden font-montserrat">
+        <div className="glass-card rounded-[28px] p-5 sm:p-6 text-left relative overflow-hidden font-montserrat">
           {/* Header */}
           <div className="flex items-start justify-between">
             <div>
               <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-500 block">
                 Demand Pulse
               </span>
-              <h3 className="text-2xl font-bold text-stone-900 tracking-tight mt-0.5">
+              <h3 className="text-2xl font-display font-black text-stone-900 tracking-tight mt-0.5">
                 What&apos;s wanted now
               </h3>
+              <p className="text-[10px] font-bold text-stone-400 mt-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 live-dot" />
+                <span>
+                  updated {pulseSecondsAgo < 5 ? 'just now' : `${pulseSecondsAgo}s ago`}
+                </span>
+                <span className="text-stone-300">·</span>
+                <span className="tabular-nums">{proposalsToday} new today</span>
+                {backedByYou > 0 && (
+                  <>
+                    <span className="text-stone-300">·</span>
+                    <span className="tabular-nums text-[#E91E63]">
+                      you backed {backedByYou}
+                    </span>
+                  </>
+                )}
+              </p>
             </div>
             
             {/* Interactive Live Sync Badge */}
@@ -479,12 +525,12 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
               type="button"
               onClick={handleRefreshPulse}
               title="Click to sync live tracker data from community"
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#bc8381]/15 hover:bg-[#bc8381]/25 text-stone-700 text-xs font-bold transition-all active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B8887A]/15 hover:bg-[#B8887A]/25 text-stone-700 text-xs font-bold transition-all active:scale-95 cursor-pointer"
             >
               {isRefreshingPulse ? (
-                <RefreshCw className="w-2.5 h-2.5 animate-spin text-[#732729]" />
+                <RefreshCw className="w-2.5 h-2.5 animate-spin text-[#2A1715]" />
               ) : (
-                <span className="w-2 h-2 rounded-full bg-[#bc8381] animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-[#B8887A] animate-pulse" />
               )}
               <span>LIVE</span>
             </button>
@@ -494,9 +540,9 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
           <div className="grid grid-cols-2 gap-3.5 mt-5">
             {/* 3D Spinning Votes Badge (Total Votes) */}
             <Spinning3DVotesBadge 
-              totalVotes={trendingStats.totalVotes}
+              totalVotes={animatedTotalVotes}
               boostTrigger={badgeBoostTrigger}
-              todayCount={18}
+              todayCount={votesToday}
               onClick={() => {
                 setActiveCategoryFilter(null);
                 setPulseToast(`Tracking ${trendingStats.totalVotes} total community votes`);
@@ -512,16 +558,16 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                 setTimeout(() => setPulseToast(null), 2500);
               }}
               title={`Click to filter board for '${topRisingProposal}'`}
-              className="group bg-[#faf6f5] hover:bg-[#f5eeea] rounded-2xl p-3.5 sm:p-4 border border-[#bc8381]/15 hover:border-[#bc8381]/35 flex flex-col justify-between min-w-0 cursor-pointer transition-all duration-200"
+              className="group bg-[#faf6f5] hover:bg-[#f5eeea] rounded-2xl p-3.5 sm:p-4 border border-[#B8887A]/15 hover:border-[#B8887A]/35 flex flex-col justify-between min-w-0 cursor-pointer transition-all duration-200"
             >
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold text-stone-400 tracking-wider uppercase block">
                   Top Rising
                 </span>
-                <ArrowUpRight className="w-3 h-3 text-stone-400 group-hover:text-[#732729] transition-colors" />
+                <ArrowUpRight className="w-3 h-3 text-stone-400 group-hover:text-[#2A1715] transition-colors" />
               </div>
               <div 
-                className="text-sm sm:text-base font-bold text-stone-900 tracking-tight leading-snug break-words mt-1.5 line-clamp-2 group-hover:text-[#732729] transition-colors"
+                className="text-sm sm:text-base font-bold text-stone-900 tracking-tight leading-snug break-words mt-1.5 line-clamp-2 group-hover:text-[#2A1715] transition-colors"
                 title={topRisingProposal}
               >
                 {topRisingProposal}
@@ -539,7 +585,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                 <button
                   type="button"
                   onClick={() => setActiveCategoryFilter(null)}
-                  className="text-[10px] font-bold text-[#732729] hover:underline cursor-pointer flex items-center gap-0.5"
+                  className="text-[10px] font-bold text-[#2A1715] hover:underline cursor-pointer flex items-center gap-0.5"
                 >
                   <span>Reset filter</span>
                   <X className="w-2.5 h-2.5" />
@@ -567,8 +613,8 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                     }}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer active:scale-95 ${
                       isSelected
-                        ? 'bg-[#732729] text-white border border-[#732729] shadow-xs ring-2 ring-[#732729]/20'
-                        : 'bg-[#faf6f5] hover:bg-[#f3ebe8] border border-[#bc8381]/15 text-stone-700 shadow-2xs'
+                        ? 'bg-[#2A1715] text-white border border-[#2A1715] shadow-xs ring-2 ring-[#2A1715]/20'
+                        : 'bg-[#faf6f5] hover:bg-[#f3ebe8] border border-[#B8887A]/15 text-stone-700 shadow-2xs'
                     }`}
                   >
                     <span
@@ -576,11 +622,11 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                         isSelected
                           ? 'bg-white'
                           : stat.name === 'Eyes'
-                          ? 'bg-[#732729]'
+                          ? 'bg-[#2A1715]'
                           : stat.name === 'Blush'
                           ? 'bg-amber-600'
                           : stat.name === 'Lips'
-                          ? 'bg-[#bc8381]'
+                          ? 'bg-[#B8887A]'
                           : 'bg-stone-400'
                       }`}
                     />
@@ -601,15 +647,15 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
             type="button"
             onClick={handleApplyHotFormula}
             title="Click to load this formula into the proposal builder below"
-            className="w-full mt-4 p-3 sm:p-3.5 bg-[#faf6f5] hover:bg-[#f5eeea] rounded-2xl border border-[#bc8381]/15 hover:border-[#bc8381]/35 text-xs text-stone-700 font-medium flex items-center justify-between gap-2 text-left transition-all active:scale-[0.99] cursor-pointer group"
+            className="w-full mt-4 p-3 sm:p-3.5 bg-[#faf6f5] hover:bg-[#f5eeea] rounded-2xl border border-[#B8887A]/15 hover:border-[#B8887A]/35 text-xs text-stone-700 font-medium flex items-center justify-between gap-2 text-left transition-all active:scale-[0.99] cursor-pointer group"
           >
             <div className="flex items-center gap-2">
-              <span className="text-[#bc8381] shrink-0 text-sm group-hover:scale-110 transition-transform">✦</span>
+              <span className="text-[#B8887A] shrink-0 text-sm group-hover:scale-110 transition-transform">✦</span>
               <span className="leading-snug">
                 Hot now: velvet plum + holographic pearl
               </span>
             </div>
-            <span className="text-[10px] font-extrabold uppercase text-[#732729] tracking-wider opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline whitespace-nowrap">
+            <span className="text-[10px] font-extrabold uppercase text-[#2A1715] tracking-wider opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline whitespace-nowrap">
               Try Formula →
             </span>
           </button>
@@ -620,7 +666,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 6 }}
-              className="mt-3 px-3 py-1.5 rounded-xl bg-[#732729]/10 border border-[#732729]/20 text-[11px] font-bold text-[#732729] flex items-center justify-center gap-1.5 animate-in fade-in"
+              className="mt-3 px-3 py-1.5 rounded-xl bg-[#2A1715]/10 border border-[#2A1715]/20 text-[11px] font-bold text-[#2A1715] flex items-center justify-center gap-1.5 animate-in fade-in"
             >
               <span>{pulseToast}</span>
             </motion.div>
@@ -652,7 +698,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
         />
 
         {/* 3. PROPOSE NEXT SHADES SUBMISSION FORM (COMPACT COLLAPSIBLE WITH X BUTTON) */}
-        <div id="proposal-form" className="bg-white rounded-2xl border border-[#bc8381]/25 shadow-md text-left overflow-hidden transition-all duration-300">
+        <div id="proposal-form" className="bg-white rounded-2xl border border-[#B8887A]/25 shadow-md text-left overflow-hidden transition-all duration-300">
           {!isFormExpanded ? (
             /* COMPACT COLLAPSED CARD */
             <div 
@@ -660,11 +706,11 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
               className="p-5 sm:p-6 hover:bg-[#faf6f5]/60 cursor-pointer transition-colors group flex items-center justify-between gap-4"
             >
               <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-[#732729]/10 text-[#732729] flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-[#732729] group-hover:text-white transition-all shadow-xs">
+                <div className="w-10 h-10 rounded-2xl bg-[#2A1715]/10 text-[#2A1715] flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-[#2A1715] group-hover:text-white transition-all shadow-xs">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm sm:text-base font-serif font-bold text-[#732729] group-hover:text-[#5c1d1f] transition-colors truncate">
+                  <h3 className="text-sm sm:text-base font-display font-bold text-[#2A1715] group-hover:text-[#1C1917] transition-colors truncate">
                     Propose Next Shades
                   </h3>
                   <p className="text-[11px] text-stone-500 font-medium line-clamp-1">
@@ -679,7 +725,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                   e.stopPropagation();
                   setIsFormExpanded(true);
                 }}
-                className="px-3 py-1.5 bg-[#732729] hover:bg-[#5c1d1f] text-white text-xs font-bold rounded-xl flex items-center gap-1 shrink-0 shadow-xs cursor-pointer active:scale-95 transition-all"
+                className="px-3 py-1.5 bg-[#2A1715] hover:bg-[#1C1917] text-white text-xs font-bold rounded-xl flex items-center gap-1 shrink-0 shadow-xs cursor-pointer active:scale-95 transition-all"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Propose</span>
@@ -688,9 +734,9 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
           ) : (
             /* EXPANDED COMPLETE FORM WITH COLLAPSE X BUTTON */
             <div className="p-5 sm:p-6 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-[#bc8381]/15">
+              <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-[#B8887A]/15">
                 <div>
-                  <h3 className="text-base font-serif font-bold text-[#732729]">Propose Next Shades</h3>
+                  <h3 className="text-base font-display font-bold text-[#2A1715]">Propose Next Shades</h3>
                   <p className="text-[11px] text-stone-500 font-semibold">Request a specific makeup shade or finishing filter formula to be modeled next.</p>
                 </div>
                 <button
@@ -719,7 +765,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                     placeholder="e.g. Chrome Prism Violet"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800 bg-[#faf6f5]"
+                    className="w-full text-xs px-3.5 py-2.5 border border-[#B8887A]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50 font-semibold text-stone-800 bg-[#faf6f5]"
                   />
                 </div>
 
@@ -729,7 +775,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className="w-full text-xs bg-[#faf6f5] border border-[#bc8381]/35 rounded-lg px-2.5 py-2.5 font-semibold text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#732729]/50"
+                      className="w-full text-xs bg-[#faf6f5] border border-[#B8887A]/35 rounded-lg px-2.5 py-2.5 font-semibold text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50"
                     >
                       {categories.map(cat => (
                         <option key={cat} value={cat} className="bg-white text-stone-800">{cat}</option>
@@ -744,14 +790,14 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                       placeholder="designer_99"
                       value={requestedBy}
                       onChange={(e) => setRequestedBy(e.target.value)}
-                      className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800 bg-[#faf6f5]"
+                      className="w-full text-xs px-3.5 py-2.5 border border-[#B8887A]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50 font-semibold text-stone-800 bg-[#faf6f5]"
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Associated Palette Colors (Pick 3)</label>
-                  <div className="flex items-center gap-3 bg-[#faf6f5] p-2.5 border border-[#bc8381]/25 rounded-xl justify-between shadow-xs">
+                  <div className="flex items-center gap-3 bg-[#faf6f5] p-2.5 border border-[#B8887A]/25 rounded-xl justify-between shadow-xs">
                     <div className="flex items-center gap-1.5">
                       <input 
                         type="color" 
@@ -761,7 +807,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                       />
                       <span className="text-[10px] text-stone-400 font-mono font-bold">{color1.toUpperCase()}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 border-l border-[#bc8381]/15 pl-3">
+                    <div className="flex items-center gap-1.5 border-l border-[#B8887A]/15 pl-3">
                       <input 
                         type="color" 
                         value={color2} 
@@ -770,7 +816,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                       />
                       <span className="text-[10px] text-stone-400 font-mono font-bold">{color2.toUpperCase()}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 border-l border-[#bc8381]/15 pl-3">
+                    <div className="flex items-center gap-1.5 border-l border-[#B8887A]/15 pl-3">
                       <input 
                         type="color" 
                         value={color3} 
@@ -790,20 +836,20 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
-                    className="w-full text-xs px-3.5 py-2.5 border border-[#bc8381]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800 bg-[#faf6f5]"
+                    className="w-full text-xs px-3.5 py-2.5 border border-[#B8887A]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50 font-semibold text-stone-800 bg-[#faf6f5]"
                   />
                 </div>
 
                 {/* PUBLICITY PRIVACY TOGGLE SETTING */}
                 <div className="space-y-1.5">
                   <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide">Visibility Option</label>
-                  <div className="bg-[#faf6f5] p-3 rounded-xl border border-[#bc8381]/25 space-y-2">
+                  <div className="bg-[#faf6f5] p-3 rounded-xl border border-[#B8887A]/25 space-y-2">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input 
                         type="checkbox"
                         checked={isPublic}
                         onChange={(e) => setIsPublic(e.target.checked)}
-                        className="w-4 h-4 text-[#732729] border-[#bc8381]/35 rounded focus:ring-[#732729]/50"
+                        className="w-4 h-4 text-[#2A1715] border-[#B8887A]/35 rounded focus:ring-[#2A1715]/50"
                       />
                       <span className="text-xs font-bold text-stone-800">Publish to Community Board</span>
                     </label>
@@ -823,7 +869,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                 <div className="flex items-center gap-2">
                   <button
                     type="submit"
-                    className="flex-1 bg-[#732729] hover:bg-[#5c1d1f] text-white font-extrabold text-xs tracking-widest uppercase py-3 px-4 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all active:scale-[0.99]"
+                    className="flex-1 bg-[#2A1715] hover:bg-[#1C1917] text-white font-extrabold text-xs tracking-widest uppercase py-3 px-4 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all active:scale-[0.99]"
                   >
                     <Plus className="w-4 h-4" /> Submit Proposal
                   </button>
@@ -842,16 +888,16 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
       </div>
 
       {/* RIGHT COLUMN: Demand Board with 2x2 Cards Grid (Cols: 8) */}
-      <div className="xl:col-span-8 bg-white rounded-2xl p-4 sm:p-6 border border-[#bc8381]/25 shadow-md min-h-[600px] text-left">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#bc8381]/25 pb-4 mb-6">
+      <div className="xl:col-span-8 glass-card rounded-2xl p-4 sm:p-6 min-h-[600px] text-left">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#B8887A]/25 pb-4 mb-6">
           <div>
-            <h3 className="text-lg font-serif font-bold text-[#732729]">Proposed Ideas & Vote Rankings</h3>
+            <h3 className="text-lg font-display font-bold text-[#2A1715]">Proposed Ideas & Vote Rankings</h3>
             <p className="text-xs text-stone-500">These concepts are actively designed based on community support. Upvote your favorites!</p>
           </div>
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             {/* Active Category Filter Tag if set */}
             {activeCategoryFilter && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#732729] text-white text-xs font-bold shadow-xs">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#2A1715] text-white text-xs font-bold shadow-xs">
                 <span>Category: {activeCategoryFilter}</span>
                 <button
                   type="button"
@@ -872,7 +918,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                 placeholder="Search ideas or creators..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full text-xs pl-8 pr-8 py-2 bg-[#faf6f5] border border-[#bc8381]/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#732729]/50 font-semibold text-stone-800 placeholder-stone-400 shadow-inner"
+                className="w-full text-xs pl-8 pr-8 py-2 bg-[#faf6f5] border border-[#B8887A]/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50 font-semibold text-stone-800 placeholder-stone-400 shadow-inner"
               />
               {searchQuery && (
                 <button
@@ -884,7 +930,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                 </button>
               )}
             </div>
-            <span className="text-xs font-bold text-[#732729] bg-[#bc8381]/10 border border-[#bc8381]/25 px-3 py-1.5 rounded-full whitespace-nowrap shrink-0">
+            <span className="text-xs font-bold text-[#2A1715] bg-[#B8887A]/10 border border-[#B8887A]/25 px-3 py-1.5 rounded-full whitespace-nowrap shrink-0">
               {filteredRequests.length} Proposals
             </span>
           </div>
@@ -892,11 +938,11 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
 
         {loading ? (
           <div className="py-24 flex flex-col items-center justify-center text-stone-400 space-y-3">
-            <RefreshCw className="w-8 h-8 animate-spin text-[#732729]" />
+            <RefreshCw className="w-8 h-8 animate-spin text-[#2A1715]" />
             <span className="text-xs font-bold">Loading proposals from community registry...</span>
           </div>
         ) : filteredRequests.length === 0 ? (
-          <div className="py-24 text-center border border-dashed border-[#bc8381]/40 rounded-2xl bg-[#faf6f5]/50 text-stone-400 space-y-3">
+          <div className="py-24 text-center border border-dashed border-[#B8887A]/40 rounded-2xl bg-[#faf6f5]/50 text-stone-400 space-y-3">
             <p className="text-sm font-bold">No proposals found matching your search.</p>
             <p className="text-xs">Try searching for something else or submit your own concept on the left!</p>
           </div>
@@ -916,11 +962,11 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                   className={`group bg-white rounded-2xl border overflow-hidden transition-all duration-300 flex flex-col justify-between shadow-xs hover:shadow-md cursor-pointer hover:-translate-y-0.5 relative ${
                     isRecentlyVoted 
                       ? 'border-amber-400 ring-2 ring-amber-400/80 shadow-[0_0_25px_rgba(251,191,36,0.35)] scale-[1.01]' 
-                      : 'border-[#bc8381]/20 hover:border-[#732729]/35 hover:shadow-[0_8px_16px_rgba(115,39,41,0.06)]'
+                      : 'border-[#B8887A]/20 hover:border-[#2A1715]/35 hover:shadow-[0_8px_16px_rgba(115,39,41,0.06)]'
                   }`}
                 >
                   {/* Portrait Cover Image */}
-                  <div className="relative h-28 sm:h-36 md:h-40 w-full overflow-hidden bg-stone-100 border-b border-[#bc8381]/15">
+                  <div className="relative h-28 sm:h-36 md:h-40 w-full overflow-hidden bg-stone-100 border-b border-[#B8887A]/15">
                     <img 
                       src={cardCover} 
                       alt={req.category}
@@ -930,7 +976,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                     <div className="absolute inset-0 bg-gradient-to-t from-stone-900/85 via-stone-900/20 to-transparent" />
 
                     {/* Category Meta Tag */}
-                    <div className="absolute top-2.5 left-2.5 bg-white/95 border border-[#bc8381]/25 backdrop-blur-md px-2 py-0.5 rounded-md text-[8.5px] sm:text-[9px] font-black uppercase text-[#732729] shadow-2xs">
+                    <div className="absolute top-2.5 left-2.5 bg-white/95 border border-[#B8887A]/25 backdrop-blur-md px-2 py-0.5 rounded-md text-[8.5px] sm:text-[9px] font-black uppercase text-[#2A1715] shadow-2xs">
                       {req.category}
                     </div>
 
@@ -948,7 +994,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                   {/* Body Details */}
                   <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2.5 sm:space-y-3">
                     <div className="space-y-1">
-                      <h4 className="font-serif font-bold text-[#732729] text-xs sm:text-sm group-hover:text-[#bc8381] transition-colors line-clamp-1 leading-snug">
+                      <h4 className="font-display font-bold text-[#2A1715] text-xs sm:text-sm group-hover:text-[#B8887A] transition-colors line-clamp-1 leading-snug">
                         {req.title}
                       </h4>
                       <p className="text-[10.5px] sm:text-xs text-stone-500 leading-relaxed font-medium line-clamp-2">
@@ -979,7 +1025,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                       </div>
 
                       {/* Vote Count & Action Button */}
-                      <div className="flex items-center justify-between border-t border-[#bc8381]/15 pt-2.5 relative">
+                      <div className="flex items-center justify-between border-t border-[#B8887A]/15 pt-2.5 relative">
                         {/* Floating +1 Sparkle Pop Animation */}
                         {isRecentlyVoted && (
                           <motion.div
@@ -995,7 +1041,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
 
                         <div className="flex items-center gap-1">
                           <Heart 
-                            className={`w-3.5 h-3.5 text-[#732729] transition-transform duration-300 ${
+                            className={`w-3.5 h-3.5 text-[#2A1715] transition-transform duration-300 ${
                               hasVoted ? 'fill-current' : ''
                             } ${isRecentlyVoted ? 'scale-125 text-[#f43f5e]' : ''}`} 
                           />
@@ -1015,8 +1061,8 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                           disabled={hasVoted}
                           className={`text-[9.5px] sm:text-[10px] font-extrabold tracking-wider uppercase px-2.5 sm:px-3 py-1 rounded-lg cursor-pointer transition-all ${
                             hasVoted
-                              ? 'bg-[#bc8381]/15 text-[#732729] border border-[#bc8381]/20 cursor-default'
-                              : 'bg-[#732729] hover:bg-[#5c1d1f] text-white border border-transparent active:scale-95 shadow-2xs'
+                              ? 'bg-[#B8887A]/15 text-[#2A1715] border border-[#B8887A]/20 cursor-default'
+                              : 'bg-[#2A1715] hover:bg-[#1C1917] text-white border border-transparent active:scale-95 shadow-2xs'
                           }`}
                         >
                           {hasVoted ? 'Voted' : 'WANT'}

@@ -1276,7 +1276,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
               {(currentEmail === 'christinalucas1216@gmail.com' || currentDisplayName.toLowerCase().includes('christina') || localStorage.getItem('kobella_is_admin') === 'true') && (
                 <div className="p-4 rounded-3xl bg-gradient-to-br from-[#1e1714] via-[#2d221c] to-[#15100e] border border-[#59493f] shadow-sm text-left text-white space-y-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#732729] to-[#bc8381] flex items-center justify-center text-white shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#2A1715] to-[#B8887A] flex items-center justify-center text-white shrink-0">
                       <ShieldCheck className="w-4 h-4 text-[#ffb4c7]" />
                     </div>
                     <div>
@@ -1293,7 +1293,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                         window.dispatchEvent(new PopStateEvent('popstate'));
                       }
                     }}
-                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#bc8381] via-[#8c3a4f] to-[#732729] hover:brightness-110 text-white text-[11px] font-bold uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#B8887A] via-[#8c3a4f] to-[#2A1715] hover:brightness-110 text-white text-[11px] font-bold uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
                   >
                     <span>Enter Admin Portal</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -1397,51 +1397,31 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                         </button>
 
                         {openSavedGroups[group.key] !== false && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+                  <div className="grid grid-cols-1 gap-3">
                     {group.looks.map((look) => (
                       <div
                         key={look.id}
-                        className="bg-[#ede9e4]/80 rounded-2xl border border-white/70 shadow-[3px_3px_8px_rgba(0,0,0,0.04),-3px_-3px_8px_rgba(255,255,255,0.85)] p-3.5 flex flex-col justify-between space-y-3 group hover:scale-[1.01] transition-all"
+                        className="bg-[#ede9e4]/80 rounded-2xl border border-white/70 shadow-[3px_3px_8px_rgba(0,0,0,0.04),-3px_-3px_8px_rgba(255,255,255,0.85)] p-3.5 flex items-start gap-3.5 group transition-all"
                       >
-                        <div className="space-y-2">
-                          {/* A look saved from the app carries the frame it was
-                              wearing. Anything else is described by the shades
-                              it is made of, which says more than a drawing. */}
-                          {look.coverImage ? (
-                            <div className="w-full h-32 rounded-xl overflow-hidden relative bg-stone-200 shadow-inner">
-                              <img
-                                src={look.coverImage}
-                                alt={look.name}
-                                referrerPolicy="no-referrer"
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-full rounded-xl bg-[#f6f2ee] border border-white/70 shadow-inner px-3 py-2.5 space-y-1.5">
-                              {lookShadeLines(look as any).map((line, index) => (
-                                <div key={`${line.label}-${index}`} className="flex items-center gap-2">
-                                  <span
-                                    className="w-3.5 h-3.5 rounded-full border border-white shadow-xs shrink-0"
-                                    style={{ backgroundColor: line.hex || '#d8cec5' }}
-                                  />
-                                  <span className="text-[10px] text-stone-500 font-medium leading-tight truncate">
-                                    <span className="text-stone-900 font-bold">{line.label}</span>
-                                    {line.shade ? ` in ${line.shade}` : ''}
-                                  </span>
-                                </div>
-                              ))}
-                              {lookShadeLines(look as any).length === 0 && (
-                                <span className="text-[10px] text-stone-400 font-medium">
-                                  No shades recorded
-                                </span>
-                              )}
-                            </div>
-                          )}
+                        {/* A look saved from the app carries the frame it was
+                            wearing; the rest are read as their shades. The card
+                            lies across the page so a shade name is never cut. */}
+                        {look.coverImage && (
+                          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden relative bg-stone-200 shadow-inner shrink-0">
+                            <img
+                              src={look.coverImage}
+                              alt={look.name}
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                        )}
 
-                          <div className="flex items-start justify-between gap-2 pt-1">
-                            <div>
-                              <h4 className="font-bold text-xs text-stone-900 leading-tight">{look.name}</h4>
-                              <p className="text-[10px] text-stone-500 font-medium line-clamp-2 mt-0.5">
+                        <div className="grow min-w-0 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h4 className="font-bold text-sm text-stone-900 leading-tight">{look.name}</h4>
+                              <p className="text-[11px] text-stone-500 font-medium mt-0.5">
                                 {look.description}
                               </p>
                             </div>
@@ -1454,11 +1434,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                             </button>
                           </div>
 
-                          {/* The palette row used to repeat these colours with
-                              no names against them; the lines above carry both. */}
-                        </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {lookShadeLines(look as any).map((line, index) => (
+                              <span
+                                key={`${line.label}-${index}`}
+                                className="inline-flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full bg-[#f6f2ee] border border-white/80 shadow-2xs"
+                              >
+                                <span
+                                  className="w-3 h-3 rounded-full border border-white shadow-xs shrink-0"
+                                  style={{ backgroundColor: line.hex || '#d8cec5' }}
+                                />
+                                <span className="text-[10.5px] text-stone-500 font-medium leading-tight">
+                                  <span className="text-stone-900 font-bold">{line.label}</span>
+                                  {line.shade ? ` in ${line.shade}` : ''}
+                                </span>
+                              </span>
+                            ))}
+                            {lookShadeLines(look as any).length === 0 && (
+                              <span className="text-[10px] text-stone-400 font-medium">
+                                No shades recorded
+                              </span>
+                            )}
+                          </div>
 
-                        <div className="pt-2 border-t border-stone-300/50 flex items-center gap-2">
                           <button
                             onClick={() => {
                               if (onLoadPreset) {
@@ -1468,7 +1466,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                                 onNavigate('sandbox');
                               }
                             }}
-                            className="w-full py-2 rounded-full bg-[#f2eee9] hover:bg-white text-stone-900 text-xs font-bold shadow-[2px_2px_5px_rgba(0,0,0,0.05),-2px_-2px_5px_rgba(255,255,255,0.95)] border border-white/80 transition-all cursor-pointer hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5"
+                            className="px-4 py-1.5 rounded-full bg-[#f2eee9] hover:bg-white text-stone-900 text-xs font-bold shadow-[2px_2px_5px_rgba(0,0,0,0.05),-2px_-2px_5px_rgba(255,255,255,0.95)] border border-white/80 transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-1.5"
                           >
                             <Play className="w-3 h-3 fill-current" />
                             <span>Try Look</span>

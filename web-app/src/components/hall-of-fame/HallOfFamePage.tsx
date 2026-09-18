@@ -76,15 +76,15 @@ export const HallOfFamePage: React.FC<HallOfFamePageProps> = ({ onSelectWinningL
     <div id="hall-of-fame-page" className="space-y-8 animate-in fade-in duration-300 text-stone-800">
       
       {/* FEATURED PREVIOUS WINNER HEADER */}
-      <div className="bg-gradient-to-tr from-[#732729] via-[#5c1d1f] to-[#bc8381]/30 border border-[#bc8381]/30 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl text-white">
+      <div className="bg-gradient-to-tr from-[#2A1715] via-[#1C1917] to-[#B8887A]/30 border border-[#B8887A]/30 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl text-white">
         <div className="space-y-3 max-w-2xl text-left">
           <div className="flex items-center gap-2">
             <span className="bg-white/10 border border-white/20 text-[#FAF6F5] p-1.5 rounded-lg shrink-0">
               <Award className="w-4 h-4" />
             </span>
-            <span className="text-xs font-bold tracking-widest uppercase text-[#bc8381]">TryON Beauty Hall of Fame</span>
+            <span className="text-xs font-bold tracking-widest uppercase text-[#B8887A]">TryON Beauty Hall of Fame</span>
           </div>
-          <h2 className="text-2xl md:text-3xl font-serif font-black text-white leading-tight uppercase">
+          <h2 className="text-2xl md:text-3xl font-display font-black text-white leading-tight uppercase">
             Featured Look: <span className="font-light text-[#f5eae7]/90 italic">{HISTORICAL_WINNERS[0].lookName}</span>
           </h2>
           <p className="text-xs text-[#f5eae7]/85 leading-relaxed font-semibold">
@@ -106,7 +106,7 @@ export const HallOfFamePage: React.FC<HallOfFamePageProps> = ({ onSelectWinningL
 
         <button
           onClick={() => handleTryOnWinner(HISTORICAL_WINNERS[0])}
-          className="bg-white hover:bg-[#bc8381] hover:text-white text-[#732729] font-extrabold tracking-widest uppercase text-[10px] py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md shrink-0 w-full md:w-auto"
+          className="bg-white hover:bg-[#B8887A] hover:text-white text-[#2A1715] font-extrabold tracking-widest uppercase text-[10px] py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md shrink-0 w-full md:w-auto"
         >
           <Play className="w-3.5 h-3.5 fill-current" /> Try Sofia's Formula
         </button>
@@ -114,8 +114,8 @@ export const HallOfFamePage: React.FC<HallOfFamePageProps> = ({ onSelectWinningL
 
       {/* HISTORICAL GALLERY */}
       <div>
-        <div className="border-b border-[#bc8381]/30 pb-3.5 mb-6 text-left">
-          <h3 className="text-lg font-serif font-bold uppercase tracking-wider text-[#732729]">Historical Monthly Winners</h3>
+        <div className="border-b border-[#B8887A]/30 pb-3.5 mb-6 text-left">
+          <h3 className="text-lg font-display font-bold uppercase tracking-wider text-[#2A1715]">Historical Monthly Winners</h3>
           <p className="text-xs text-stone-500">Discover winning designs, customized palettes, and formula guidelines from past competitions.</p>
         </div>
 
@@ -123,10 +123,10 @@ export const HallOfFamePage: React.FC<HallOfFamePageProps> = ({ onSelectWinningL
           {HISTORICAL_WINNERS.map((winner) => (
             <div
               key={winner.id}
-              className="group bg-white rounded-2xl border border-[#bc8381]/25 hover:border-[#732729]/30 overflow-hidden transition-all duration-300 flex flex-col justify-between shadow-md hover:shadow-[0_10px_25px_rgba(115,39,41,0.06)]"
+              className="group bg-white rounded-2xl border border-[#B8887A]/25 hover:border-[#2A1715]/30 overflow-hidden transition-all duration-300 flex flex-col justify-between shadow-md hover:shadow-[0_10px_25px_rgba(115,39,41,0.06)]"
             >
               {/* Cover Image representing the style */}
-              <div className="h-48 bg-stone-100 relative flex items-center justify-center border-b border-[#bc8381]/15 overflow-hidden">
+              <div className="h-48 bg-stone-100 relative flex items-center justify-center border-b border-[#B8887A]/15 overflow-hidden">
                 <img 
                   src={winner.imagePreset} 
                   alt={winner.lookName} 
@@ -136,9 +136,9 @@ export const HallOfFamePage: React.FC<HallOfFamePageProps> = ({ onSelectWinningL
                 <div className="absolute inset-0 bg-gradient-to-t from-stone-900/80 via-transparent to-transparent" />
                 
                 {/* Visual mini tag overlay */}
-                <div className="absolute bottom-3 left-4 z-10 bg-white/95 backdrop-blur-md py-1.5 px-2.5 rounded-lg border border-[#bc8381]/25 text-left shadow-sm">
-                  <span className="text-[9px] font-black uppercase text-[#732729] flex items-center gap-1">
-                    <Calendar className="w-3 h-3 text-[#732729]" /> {winner.month}
+                <div className="absolute bottom-3 left-4 z-10 bg-white/95 backdrop-blur-md py-1.5 px-2.5 rounded-lg border border-[#B8887A]/25 text-left shadow-sm">
+                  <span className="text-[9px] font-black uppercase text-[#2A1715] flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-[#2A1715]" /> {winner.month}
                   </span>
                   <div className="font-extrabold text-stone-800 text-xs mt-0.5">@{winner.username}</div>
                 </div>
@@ -146,7 +146,7 @@ export const HallOfFamePage: React.FC<HallOfFamePageProps> = ({ onSelectWinningL
 
               <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                 <div className="text-left space-y-2">
-                  <h4 className="font-serif font-black text-[#732729] text-base group-hover:text-[#bc8381] transition-colors">
+                  <h4 className="font-display font-black text-[#2A1715] text-base group-hover:text-[#B8887A] transition-colors">
                     {winner.lookName}
                   </h4>
                   <p className="text-xs text-stone-500 font-semibold leading-relaxed line-clamp-3">
@@ -167,7 +167,7 @@ export const HallOfFamePage: React.FC<HallOfFamePageProps> = ({ onSelectWinningL
 
                   <button
                     onClick={() => handleTryOnWinner(winner)}
-                    className="w-full bg-[#faf6f5] hover:bg-[#732729] hover:text-white border border-[#bc8381]/25 text-[#732729] text-[10px] font-bold tracking-widest uppercase py-2.5 rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1.5"
+                    className="w-full bg-[#faf6f5] hover:bg-[#2A1715] hover:text-white border border-[#B8887A]/25 text-[#2A1715] text-[10px] font-bold tracking-widest uppercase py-2.5 rounded-lg cursor-pointer transition-all flex items-center justify-center gap-1.5"
                   >
                     <Sparkles className="w-3 h-3" /> Load Winner Formula
                   </button>

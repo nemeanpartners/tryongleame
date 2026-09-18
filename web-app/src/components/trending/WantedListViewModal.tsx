@@ -43,16 +43,16 @@ export const WantedListViewModal: React.FC<WantedListViewModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-[28px] max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#bc8381]/25 overflow-hidden text-left relative">
+      <div className="glass-sheet rounded-[28px] max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden text-left relative">
         
         {/* Modal Header */}
         <div className="p-5 sm:p-6 border-b border-stone-100 flex items-start justify-between gap-4 bg-gradient-to-b from-[#faf6f5] to-white">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900">
+              <h2 className="text-2xl sm:text-3xl font-display font-bold text-stone-900">
                 Community Wanted List
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full bg-[#732729]/10 text-[#732729] text-xs font-bold">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#2A1715]/10 text-[#2A1715] text-xs font-bold">
                 {items.length} looks
               </span>
             </div>
@@ -65,7 +65,7 @@ export const WantedListViewModal: React.FC<WantedListViewModalProps> = ({
             <button
               type="button"
               onClick={onRequestClick}
-              className="px-3.5 py-1.5 bg-[#732729] hover:bg-[#5a1e20] text-white text-xs font-bold rounded-full transition-all flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
+              className="px-3.5 py-1.5 bg-[#2A1715] hover:bg-[#1C1917] text-white text-xs font-bold rounded-full transition-all flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>New Request</span>
@@ -90,7 +90,7 @@ export const WantedListViewModal: React.FC<WantedListViewModalProps> = ({
               placeholder="Search requested shaders, formulas, or concepts..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-9 py-2.5 bg-[#faf6f5] border border-[#bc8381]/25 rounded-xl text-xs font-medium text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#732729]/50 placeholder-stone-400"
+              className="w-full pl-9 pr-9 py-2.5 bg-[#faf6f5] border border-[#B8887A]/25 rounded-xl text-xs font-medium text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50 placeholder-stone-400"
             />
             {search && (
               <button
@@ -114,7 +114,7 @@ export const WantedListViewModal: React.FC<WantedListViewModalProps> = ({
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
                     isSelected
-                      ? 'bg-[#732729] text-white shadow-xs'
+                      ? 'bg-[#2A1715] text-white shadow-xs'
                       : 'bg-stone-100 hover:bg-stone-200/70 text-stone-600'
                   }`}
                 >
@@ -172,7 +172,7 @@ export const WantedListViewModal: React.FC<WantedListViewModalProps> = ({
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm font-bold text-stone-900 group-hover:text-[#732729] transition-colors leading-tight">
+                        <h3 className="text-sm font-bold text-stone-900 group-hover:text-[#2A1715] transition-colors leading-tight">
                           {item.name}
                         </h3>
                         <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-stone-100 text-stone-600">
@@ -205,7 +205,7 @@ export const WantedListViewModal: React.FC<WantedListViewModalProps> = ({
                       onClick={(e) => handleWantClick(e, item.id)}
                       className={`px-4 py-2 rounded-full border text-xs font-bold flex items-center gap-1.5 transition-all duration-200 cursor-pointer select-none active:scale-95 shadow-2xs ${
                         isVoted
-                          ? 'bg-[#732729] text-white border-[#732729]'
+                          ? 'bg-[#2A1715] text-white border-[#2A1715]'
                           : 'bg-white hover:bg-stone-50 text-stone-800 border-stone-200 hover:border-stone-300'
                       }`}
                     >
