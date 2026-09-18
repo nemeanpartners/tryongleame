@@ -81,7 +81,7 @@ import {
 } from './SettingsCategoryViews';
 import { PhotoUploadModal } from './PhotoUploadModal';
 import { getEffectiveAvatar, getEffectiveCover, clearCachedProfileMedia } from '../../lib/userProfileService';
-import { lookCoverImage } from '../../lib/lookImage';
+import { lookShadeLines } from '../../lib/lookShades';
 
 interface ProfilePageProps {
   onLoadPreset?: (preset: any) => void;
@@ -1404,21 +1404,37 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                         className="bg-[#ede9e4]/80 rounded-2xl border border-white/70 shadow-[3px_3px_8px_rgba(0,0,0,0.04),-3px_-3px_8px_rgba(255,255,255,0.85)] p-3.5 flex flex-col justify-between space-y-3 group hover:scale-[1.01] transition-all"
                       >
                         <div className="space-y-2">
-                          {/* Saved from the app: the camera frame it was saved
-                              from. Otherwise the card's photo, or the makeup
-                              itself drawn from the shades it wears. */}
-                          {(
+                          {/* A look saved from the app carries the frame it was
+                              wearing. Anything else is described by the shades
+                              it is made of, which says more than a drawing. */}
+                          {look.coverImage ? (
                             <div className="w-full h-32 rounded-xl overflow-hidden relative bg-stone-200 shadow-inner">
                               <img
-                                src={lookCoverImage(look as any)}
+                                src={look.coverImage}
                                 alt={look.name}
                                 referrerPolicy="no-referrer"
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
-                              <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded-full text-[9px] font-bold text-white flex items-center gap-1">
-                                <Sparkles className="w-2.5 h-2.5 text-[#ff2f68]" />
-                                <span>{look.filter || 'Look'}</span>
-                              </div>
+                            </div>
+                          ) : (
+                            <div className="w-full rounded-xl bg-[#f6f2ee] border border-white/70 shadow-inner px-3 py-2.5 space-y-1.5">
+                              {lookShadeLines(look as any).map((line, index) => (
+                                <div key={`${line.label}-${index}`} className="flex items-center gap-2">
+                                  <span
+                                    className="w-3.5 h-3.5 rounded-full border border-white shadow-xs shrink-0"
+                                    style={{ backgroundColor: line.hex || '#d8cec5' }}
+                                  />
+                                  <span className="text-[10px] text-stone-500 font-medium leading-tight truncate">
+                                    <span className="text-stone-900 font-bold">{line.label}</span>
+                                    {line.shade ? ` in ${line.shade}` : ''}
+                                  </span>
+                                </div>
+                              ))}
+                              {lookShadeLines(look as any).length === 0 && (
+                                <span className="text-[10px] text-stone-400 font-medium">
+                                  No shades recorded
+                                </span>
+                              )}
                             </div>
                           )}
 
@@ -1438,15 +1454,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                             </button>
                           </div>
 
-                          {/* Palette Color Swatches */}
-                          <div className="flex items-center gap-2 pt-1">
-                            <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Palette:</span>
-                            <div className="flex items-center -space-x-1">
-                              <span className="w-4 h-4 rounded-full border-2 border-white shadow-xs" style={{ backgroundColor: look.eyeshadowColor }} title="Eyeshadow" />
-                              <span className="w-4 h-4 rounded-full border-2 border-white shadow-xs" style={{ backgroundColor: look.blushColor }} title="Blush" />
-                              <span className="w-4 h-4 rounded-full border-2 border-white shadow-xs" style={{ backgroundColor: look.lipColor }} title="Lipstick" />
-                            </div>
-                          </div>
+                          {/* The palette row used to repeat these colours with
+                              no names against them; the lines above carry both. */}
                         </div>
 
                         <div className="pt-2 border-t border-stone-300/50 flex items-center gap-2">

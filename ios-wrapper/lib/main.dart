@@ -115,6 +115,10 @@ class _LookLabPageState extends State<LookLabPage> {
   bool _beforeAfter = false;
   bool _tryOnStudioRendererActive = false;
   bool _tryOnStudioReady = false;
+
+  /// Set when the renderer reports a failure, which is the one case where the
+  /// loading screen gives way to the message instead of staying up.
+  bool _tryOnStudioFailed = false;
   double _brightness = 0.10;
   String? _tryOnStudioStatus;
   final Map<String, Timer> _slotDebounceTimers = {};
@@ -395,7 +399,8 @@ class _LookLabPageState extends State<LookLabPage> {
       _tryOnStudioNativeChannel = null;
       _tryOnStudioRendererActive = true;
       _tryOnStudioReady = false;
-      _tryOnStudioStatus = 'Starting native TryOn Studio renderer...';
+      _tryOnStudioFailed = false;
+      _tryOnStudioStatus = 'Getting the camera ready';
       _arViewCreated = false;
       _tryOnStudioViewSerial++;
     });
@@ -412,6 +417,7 @@ class _LookLabPageState extends State<LookLabPage> {
     setState(() {
       _tryOnStudioRendererActive = false;
       _tryOnStudioReady = false;
+      _tryOnStudioFailed = false;
       _tryOnStudioStatus = null;
       _activeTryOnStudioAsset = null;
       _tryOnStudioNativeChannel = null;
@@ -436,6 +442,7 @@ class _LookLabPageState extends State<LookLabPage> {
       if (call.method == 'ready') {
         setState(() {
           _tryOnStudioReady = true;
+          _tryOnStudioFailed = false;
           _tryOnStudioStatus = null;
         });
         return null;
@@ -444,6 +451,7 @@ class _LookLabPageState extends State<LookLabPage> {
         final message = call.arguments?.toString();
         setState(() {
           _tryOnStudioReady = false;
+          _tryOnStudioFailed = true;
           _tryOnStudioStatus = message ?? 'TryOn Studio renderer failed.';
         });
         _snack(_tryOnStudioStatus!);
@@ -583,6 +591,7 @@ class _LookLabPageState extends State<LookLabPage> {
         _presetIndex = shade;
       });
       log('Loaded ${categories.length} filter categories');
+      unawaited(_prewarmFilters());
     } catch (e, st) {
       log('Filter catalog failed to load: $e', stackTrace: st);
     }
@@ -622,6 +631,58 @@ class _LookLabPageState extends State<LookLabPage> {
     _searchController.dispose();
     unawaited(_tryOnStudioNativeChannel?.invokeMethod<void>('stop'));
     super.dispose();
+  }
+
+  /// Filter files are read from the bundle once. The swatch packs are opened
+  /// on every shade change, so re-reading them was pure waiting.
+  final Map<String, String> _filterSourceCache = {};
+
+  /// Built payloads, keyed by filter and shade. These carry their textures, so
+  /// only a handful are kept.
+  final Map<String, String> _payloadCache = {};
+
+  Future<String> _filterSource(String assetPath) async {
+    final cached = _filterSourceCache[assetPath];
+    if (cached != null) return cached;
+    final raw = await rootBundle.loadString(assetPath);
+    _filterSourceCache[assetPath] = raw;
+    return raw;
+  }
+
+  String _payloadKey(LookItem item) =>
+      '${item.assetPath}|${item.shade == null ? '' : jsonEncode(item.shade)}';
+
+  Future<String> _payloadForItem(LookItem item) async {
+    final key = _payloadKey(item);
+    final cached = _payloadCache[key];
+    if (cached != null) return cached;
+
+    final filterData =
+        jsonDecode(await _filterSource(item.assetPath)) as Map<String, dynamic>;
+    if (filterData['schema'] != 'tryonstudio.filter.v1' ||
+        filterData['format'] != 'tryonfilter-json') {
+      throw const FormatException('Unsupported TryOnStudio filter format.');
+    }
+    final payload = _previewPayload(filterData, item);
+    if (_payloadCache.length >= 6) {
+      _payloadCache.remove(_payloadCache.keys.first);
+    }
+    _payloadCache[key] = payload;
+    return payload;
+  }
+
+  /// The packs Mix & Match opens on, read once at startup so the first shade
+  /// lands without waiting on the bundle.
+  Future<void> _prewarmFilters() async {
+    for (final key in const ['lip_swatches', 'blush_swatches']) {
+      final items = _shadesFor(key);
+      if (items.isEmpty) continue;
+      try {
+        await _filterSource(items.first.assetPath);
+      } catch (e) {
+        log('Could not prewarm $key: $e');
+      }
+    }
   }
 
   Future<void> _applyPreset(int index) async {
@@ -727,8 +788,8 @@ class _LookLabPageState extends State<LookLabPage> {
         final region = entry.key;
         final item = entry.value;
         first ??= item;
-        final raw = jsonDecode(await rootBundle.loadString(item.assetPath))
-            as Map<String, dynamic>;
+        final raw =
+            jsonDecode(await _filterSource(item.assetPath)) as Map<String, dynamic>;
         final part =
             jsonDecode(_previewPayload(raw, item)) as Map<String, dynamic>;
         if (merged == null) {
@@ -833,16 +894,7 @@ class _LookLabPageState extends State<LookLabPage> {
     bool showMessage = true,
   }) async {
     try {
-      final filterData =
-          jsonDecode(await rootBundle.loadString(item.assetPath))
-              as Map<String, dynamic>;
-      final schema = filterData['schema'];
-      final format = filterData['format'];
-      if (schema != 'tryonstudio.filter.v1' || format != 'tryonfilter-json') {
-        throw const FormatException('Unsupported TryOnStudio filter format.');
-      }
-
-      final payload = _previewPayload(filterData, item);
+      final payload = await _payloadForItem(item);
       _activeTryOnStudioPayload = payload;
 
       final live = _tryOnStudioNativeChannel;
@@ -1926,8 +1978,8 @@ class _LookLabPageState extends State<LookLabPage> {
     // the SPA in place keeps the signed-in session rather than reloading.
     unawaited(
       _homeWebController.runJavaScript(
-        "if (location.pathname !== '/home') {"
-        "history.pushState(null, '', '/home');"
+        "if (location.pathname !== '/gallery') {"
+        "history.pushState(null, '', '/gallery');"
         "window.dispatchEvent(new PopStateEvent('popstate'));}",
       ),
     );
@@ -2062,27 +2114,22 @@ class _LookLabPageState extends State<LookLabPage> {
       );
     }
 
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xffe1ded4), Color(0xff8d9184), Color(0xff23231f)],
-        ),
-      ),
-      alignment: Alignment.center,
-      child: const Text(
-        'Starting AR camera...',
-        style: TextStyle(fontWeight: FontWeight.w900, color: _muted),
-      ),
-    );
+    // Mix & Match before its first shade is applied: the same loading screen
+    // as Try On, rather than a bare gradient.
+    return _startupOverlay('Getting the camera ready');
   }
 
   /// Shown while the renderer and its face model warm up, so a cold start
   /// reads as loading rather than a black screen.
   Widget _startupOverlay(String message) {
-    return ColoredBox(
-      color: Colors.black,
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xff2b1f24), Color(0xff171114)],
+        ),
+      ),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -2153,9 +2200,12 @@ class _LookLabPageState extends State<LookLabPage> {
             )
           else
             _startupOverlay('Warming up the camera'),
-          if (!_tryOnStudioReady && _tryOnStudioStatus == null)
-            _startupOverlay('Loading filters')
-          else if (_tryOnStudioStatus != null)
+          // The renderer paints nothing until it is ready, so without this the
+          // screen is simply black and reads as a glitch. It stays up, with
+          // whatever the renderer last said, until the camera is live.
+          if (!_tryOnStudioReady && !_tryOnStudioFailed)
+            _startupOverlay(_tryOnStudioStatus ?? 'Loading filters')
+          else if (_tryOnStudioFailed && _tryOnStudioStatus != null)
             Center(
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 28),
