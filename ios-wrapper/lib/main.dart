@@ -306,7 +306,7 @@ class _LookLabPageState extends State<LookLabPage> {
               return;
             }
             final status = decoded['message'] as String?;
-            if (status != null && mounted) _snack(status);
+            if (status != null) log('Web bridge status: $status');
           } catch (_) {
             if (mounted) _snack(message.message);
           }
@@ -929,7 +929,7 @@ class _LookLabPageState extends State<LookLabPage> {
     );
 
     if (!nowSaved) {
-      _snack('Removed $name');
+      _confirmToast(true, 'Removed');
       return;
     }
 
@@ -957,7 +957,7 @@ class _LookLabPageState extends State<LookLabPage> {
         'lipColor': _hex(look.lipColor),
       },
     );
-    _snack(ok ? 'Saved $name to your account' : 'Could not save $name');
+    _confirmToast(ok, ok ? 'Saved' : 'Couldn\'t save');
   }
 
   /// Saved looks are stored as the shade ids behind them, so reopening one
@@ -1236,7 +1236,7 @@ class _LookLabPageState extends State<LookLabPage> {
         ),
       );
     }
-    _snack(share ? 'Shared to the community' : 'Saved to your account');
+    _confirmToast(true, share ? 'Shared' : 'Saved');
   }
 
   String _buildLookName() {
@@ -1745,7 +1745,7 @@ class _LookLabPageState extends State<LookLabPage> {
     } catch (e, st) {
       log('Firestore write failed for users/$uid/$collection/$docId: $e',
           stackTrace: st);
-      if (mounted) _snack('Save failed (uid ${uid.substring(0, 6)}): $e');
+      if (mounted) _confirmToast(false, 'Couldn\'t save');
       return false;
     }
   }
@@ -3062,6 +3062,57 @@ class _LookLabPageState extends State<LookLabPage> {
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// A small confirmation: a tick and one word, not the technical detail.
+  void _confirmToast(bool ok, String message) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context)..clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        duration: const Duration(milliseconds: 1400),
+        margin: const EdgeInsets.only(bottom: 120, left: 90, right: 90),
+        content: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: _line),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.10),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  ok ? Icons.check_circle : Icons.error_outline,
+                  size: 17,
+                  color: ok ? const Color(0xff2e9e63) : _pink,
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
