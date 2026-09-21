@@ -101,6 +101,12 @@ interface TrendingPageProps {
   onNavigate?: (tab: any) => void;
 }
 
+/** Every field in the proposal form, so they are all exactly the same box. */
+const fieldBox =
+  'w-full h-11 rounded-2xl bg-white/70 border border-white/80 px-3.5 text-[13px] font-semibold text-stone-800 placeholder-stone-400 appearance-none focus:outline-none focus:ring-2 focus:ring-[#E91E63]/30';
+const fieldLabel =
+  'block text-[9.5px] font-black text-stone-400 uppercase tracking-widest mb-1.5';
+
 export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery, onSelectProposalForFeed, onNavigate }) => {
   const [requests, setRequests] = useState<LookRequest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -671,8 +677,8 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
               </button>
             </div>
           ) : (
-            /* EXPANDED COMPLETE FORM WITH COLLAPSE X BUTTON */
-            <div className="p-5 sm:p-6 animate-in fade-in slide-in-from-top-2 duration-300">
+            /* EXPANDED FORM */
+            <div className="p-5 animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="flex items-start justify-between gap-3 mb-4">
                 <div>
                   <h3 className="text-xl font-display font-black text-stone-900 tracking-tight">Ask for the one you want</h3>
@@ -681,56 +687,61 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                 <button
                   type="button"
                   onClick={() => setIsFormExpanded(false)}
-                  title="Collapse proposal form"
+                  title="Close"
                   className="w-8 h-8 rounded-full neu-pill text-stone-500 hover:text-stone-900 flex items-center justify-center transition-colors cursor-pointer shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmitRequest} className="space-y-4">
+              <form onSubmit={handleSubmitRequest} className="space-y-3.5">
                 {formSuccess && (
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3 flex items-center gap-2 text-emerald-600 text-xs">
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Proposed successfully! Initial vote credited.</span>
+                  <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2.5 flex items-center gap-2 text-emerald-700 text-[11px] font-bold">
+                    <Check className="w-3.5 h-3.5 shrink-0" />
+                    <span>On the board. Your own vote is counted.</span>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-[9.5px] font-black text-stone-400 uppercase tracking-widest mb-1.5">Look Name / Concept</label>
+                  <label className={fieldLabel}>Look name</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Chrome Prism Violet"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full text-[13px] px-3.5 py-2.5 border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#E91E63]/30 font-semibold text-stone-800 bg-white/70"
+                    className={fieldBox}
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[9.5px] font-black text-stone-400 uppercase tracking-widest mb-1.5">Category</label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="w-full text-xs bg-white/70 border border-white/80 rounded-2xl px-3 py-2.5 font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#E91E63]/30"
-                    >
-                      {categories.map(cat => (
-                        <option key={cat} value={cat} className="bg-white text-stone-800">{cat}</option>
-                      ))}
-                    </select>
+                {/* Two fields, one height: a select and an input do not agree
+                    on their own, so both are set explicitly. */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="min-w-0">
+                    <label className={fieldLabel}>Category</label>
+                    <div className="relative">
+                      <select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className={`${fieldBox} pr-8`}
+                      >
+                        {categories.map(cat => (
+                          <option key={cat} value={cat} className="bg-white text-stone-800">{cat}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[9.5px] font-black text-stone-400 uppercase tracking-widest mb-1.5">Your Name</label>
+                  <div className="min-w-0">
+                    <label className={fieldLabel}>Your name</label>
                     {requestedBy ? (
                       <input
                         type="text"
                         placeholder="designer_99"
                         value={requestedBy}
                         onChange={(e) => setRequestedBy(e.target.value)}
-                        className="w-full text-xs bg-white/70 border border-white/80 rounded-2xl px-3 py-2.5 font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#E91E63]/30"
+                        className={fieldBox}
                       />
                     ) : (
                       /* No account, no name to put on it: offer the way in
@@ -738,7 +749,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                       <button
                         type="button"
                         onClick={() => onNavigate?.('profile')}
-                        className="w-full text-xs bg-[#2A1715] text-white rounded-2xl px-3 py-2.5 font-bold cursor-pointer active:scale-95 transition-transform whitespace-nowrap"
+                        className={`${fieldBox} bg-[#2A1715] text-white font-black text-[11px] uppercase tracking-wider cursor-pointer active:scale-95`}
                       >
                         Sign in
                       </button>
@@ -747,87 +758,76 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                 </div>
 
                 <div>
-                  <label className="block text-[9.5px] font-black text-stone-400 uppercase tracking-widest mb-1.5">Associated Palette Colors (Pick 3)</label>
-                  <div className="flex items-center gap-3 bg-white/70 p-2.5 border border-white/80 rounded-2xl justify-between shadow-xs">
-                    <div className="flex items-center gap-1.5">
-                      <input 
-                        type="color" 
-                        value={color1} 
-                        onChange={(e) => setColor1(e.target.value)} 
-                        className="w-6 h-6 rounded-full border border-stone-200 overflow-hidden cursor-pointer shrink-0"
-                      />
-                      <span className="text-[10px] text-stone-400 font-mono font-bold">{color1.toUpperCase()}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 border-l border-[#B8887A]/15 pl-3">
-                      <input 
-                        type="color" 
-                        value={color2} 
-                        onChange={(e) => setColor2(e.target.value)} 
-                        className="w-6 h-6 rounded-full border border-stone-200 overflow-hidden cursor-pointer shrink-0"
-                      />
-                      <span className="text-[10px] text-stone-400 font-mono font-bold">{color2.toUpperCase()}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 border-l border-[#B8887A]/15 pl-3">
-                      <input 
-                        type="color" 
-                        value={color3} 
-                        onChange={(e) => setColor3(e.target.value)} 
-                        className="w-6 h-6 rounded-full border border-stone-200 overflow-hidden cursor-pointer shrink-0"
-                      />
-                      <span className="text-[10px] text-stone-400 font-mono font-bold">{color3.toUpperCase()}</span>
-                    </div>
+                  <label className={fieldLabel}>Palette</label>
+                  <div className="flex items-center gap-2">
+                    {[
+                      { value: color1, set: setColor1 },
+                      { value: color2, set: setColor2 },
+                      { value: color3, set: setColor3 }
+                    ].map((swatch, index) => (
+                      <label
+                        key={index}
+                        className="grow h-11 rounded-2xl bg-white/70 border border-white/80 flex items-center gap-2 px-3 cursor-pointer min-w-0"
+                      >
+                        <input
+                          type="color"
+                          value={swatch.value}
+                          onChange={(e) => swatch.set(e.target.value)}
+                          className="w-5 h-5 rounded-full border border-stone-200 overflow-hidden cursor-pointer shrink-0 bg-transparent p-0"
+                        />
+                        <span className="text-[9.5px] font-bold text-stone-400 tabular-nums truncate">
+                          {swatch.value.toUpperCase()}
+                        </span>
+                      </label>
+                    ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[9.5px] font-black text-stone-400 uppercase tracking-widest mb-1.5">Describe your Finish Vision</label>
+                  <label className={fieldLabel}>The finish you want</label>
                   <textarea
-                    required
-                    placeholder="Describe texture specifications (e.g., high density chromatic glitter glaze, matte clay)..."
+                    rows={2}
+                    placeholder="Glitter glaze, matte clay, glass shine…"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                    className="w-full text-[13px] px-3.5 py-2.5 border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#E91E63]/30 font-semibold text-stone-800 bg-white/70"
+                    className="w-full rounded-2xl bg-white/70 border border-white/80 px-3.5 py-2.5 text-[13px] font-semibold text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#E91E63]/30 resize-none"
                   />
                 </div>
 
-                {/* PUBLICITY PRIVACY TOGGLE SETTING */}
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide">Visibility Option</label>
-                  <div className="bg-white/70 p-3 rounded-2xl border border-white/80 space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <input 
-                        type="checkbox"
-                        checked={isPublic}
-                        onChange={(e) => setIsPublic(e.target.checked)}
-                        className="w-4 h-4 text-[#2A1715] border-[#B8887A]/35 rounded focus:ring-[#2A1715]/50"
-                      />
-                      <span className="text-xs font-bold text-stone-800">Publish to Community Board</span>
-                    </label>
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(!isPublic)}
+                  className="w-full flex items-center gap-2.5 rounded-2xl bg-white/70 border border-white/80 px-3.5 py-2.5 text-left cursor-pointer"
+                >
+                  <span
+                    className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition-colors ${
+                      isPublic ? 'bg-[#E91E63]' : 'bg-white border border-stone-300'
+                    }`}
+                  >
+                    {isPublic && <Check className="w-3 h-3 text-white stroke-[3]" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[11.5px] font-black text-stone-900 leading-tight">
+                      Put it on the community board
+                    </span>
+                    <span className="block text-[10px] font-medium text-stone-400 leading-snug">
+                      Others can see it and vote it up the list.
+                    </span>
+                  </span>
+                </button>
 
-                    {isPublic ? (
-                      <p className="text-[10px] text-stone-500 font-semibold leading-relaxed">
-                        🌟 This look request will be displayed publicly on the community board so other users can view, share, and vote to increase its development priority.
-                      </p>
-                    ) : (
-                      <p className="text-[10px] text-amber-700/80 font-bold leading-relaxed bg-amber-500/10 border border-amber-500/15 p-2 rounded-2xl">
-                        🔒 Private Submission: This request is set to private. Lab specialists will review your submission confidentially, but it will not appear on the public board for voting.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 pt-0.5">
                   <button
                     type="submit"
-                    className="flex-1 bg-[#E91E63] hover:brightness-105 text-white font-extrabold text-xs tracking-widest uppercase py-3 px-4 rounded-2xl flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all active:scale-[0.99]"
+                    className="grow h-12 rounded-full bg-[#E91E63] text-white text-[11.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
                   >
-                    <Plus className="w-4 h-4" /> Submit Proposal
+                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                    Submit proposal
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsFormExpanded(false)}
-                    className="px-4 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs rounded-2xl transition-colors cursor-pointer"
+                    className="h-12 px-5 rounded-full neu-pill text-stone-600 font-black text-[11.5px] uppercase tracking-wider cursor-pointer active:scale-95 transition-transform"
                   >
                     Cancel
                   </button>
