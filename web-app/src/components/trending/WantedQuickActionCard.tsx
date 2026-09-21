@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Plus, ChevronRight, Flame, ArrowUp, ArrowDown, Crown } from 'lucide-react';
+import { Heart, Plus, ChevronRight, Flame, ArrowUp, ArrowDown, Crown, Sparkles, X, Play } from 'lucide-react';
 import { WantedListViewModal } from './WantedListViewModal';
 import { WANTED_LOOKS_100 } from '../../data/wantedLooks100';
 import { subscribeWantedLooks, voteWantedLookInFirestore } from '../../services/wantedLooksService';
 import { useCountUp } from '../../lib/liveCounters';
 import { DemandOrbs } from './DemandOrbs';
+import { fuseShades, Fusion } from '../../lib/shadeFusion';
+import { openLookInNative } from '../../lib/nativeLooks';
+import { createWantedLookInFirestore } from '../../services/wantedLooksService';
 
 export interface WantedLookItem {
   id: string;
@@ -52,8 +55,9 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
   });
 
   const [animatingId, setAnimatingId] = useState<string | null>(null);
-  /** The orb the viewer last touched, highlighted in both views. */
-  const [focusedId, setFocusedId] = useState<string | null>(null);
+  /** The one or two shades in the fusion tray, by id. */
+  const [fusionIds, setFusionIds] = useState<string[]>([]);
+  const [fusionSaved, setFusionSaved] = useState<string | null>(null);
   /** The opening wave runs once; after that a row only turns on a change. */
   const [hasSettled, setHasSettled] = useState(false);
   const [isSeeMoreModalOpen, setIsSeeMoreModalOpen] = useState<boolean>(false);
@@ -90,6 +94,72 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
     () => items.reduce((sum, item) => sum + (item.numericVotes || 0), 0),
     [items]
   );
+
+  /** The shades picked out of the field, in the order they were picked. */
+  const fusionPicks = useMemo(
+    () =>
+      fusionIds
+        .map((id) => items.find((item) => item.id === id))
+        .filter((item): item is WantedLookItem => Boolean(item)),
+    [fusionIds, items]
+  );
+
+  /** What those two make together. */
+  const fusion: Fusion | null = useMemo(() => {
+    if (fusionPicks.length < 2) return null;
+    const [a, b] = fusionPicks;
+    return fuseShades(
+      { name: a.name, colour: a.colors[0] || '#E91E63', votes: a.numericVotes },
+      { name: b.name, colour: b.colors[0] || '#E91E63', votes: b.numericVotes }
+    );
+  }, [fusionPicks]);
+
+  /** One pick filters the board; two make a shade. */
+  const toggleFusion = (id: string) => {
+    setFusionSaved(null);
+    setFusionIds((prev) => {
+      if (prev.includes(id)) return prev.filter((entry) => entry !== id);
+      if (prev.length >= 2) return [prev[1], id];
+      return [...prev, id];
+    });
+  };
+
+  const wearFusion = () => {
+    if (!fusion) return;
+    const handled = openLookInNative({
+      id: `fusion_${fusion.hex.replace('#', '')}`,
+      name: fusion.name,
+      lipColor: fusion.hex,
+      blushColor: fusion.hex
+    });
+    if (!handled) setFusionSaved('Open the app to wear it on your own face');
+  };
+
+  const requestFusion = async () => {
+    if (!fusion) return;
+    const id = `fusion_${Date.now()}`;
+    try {
+      await createWantedLookInFirestore({
+        id,
+        name: fusion.name,
+        countLabel: '1 want this',
+        numericVotes: 1,
+        category: fusionPicks[0]?.category || 'Other',
+        swatchType: 'gradient',
+        colors: [fusion.hex, fusionPicks[0]?.colors[0] || fusion.hex],
+        description: `Fused from ${fusion.parents[0]} and ${fusion.parents[1]}.`,
+        requestedBy:
+          localStorage.getItem('kobella_username') ||
+          localStorage.getItem('tryon_beauty_username') ||
+          'community'
+      });
+      setFusionSaved(`${fusion.name} is on the board`);
+      setFusionIds([]);
+    } catch (error) {
+      console.error('Could not put the fusion on the board:', error);
+      setFusionSaved('That blend could not be added');
+    }
+  };
   const animatedTotal = useCountUp(totalVotes);
 
   // Watch the board for movement: what climbed, what changed, and when.
@@ -192,7 +262,16 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
     }
   };
 
-  const visibleItems = ranked.slice(0, 7);
+  const visibleItems = useMemo(() => {
+    // One shade picked filters the board to its category, which is what makes
+    // the field a control rather than a picture.
+    if (fusionPicks.length === 1) {
+      const category = fusionPicks[0].category;
+      const inCategory = ranked.filter((item) => item.category === category);
+      return (inCategory.length > 0 ? inCategory : ranked).slice(0, 7);
+    }
+    return ranked.slice(0, 7);
+  }, [ranked, fusionPicks]);
   const leader = ranked[0];
   const leaderNextMilestone = leader
     ? Math.max(
@@ -271,7 +350,21 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
           </div>
         )}
 
-        {/* The board as a shape: size is how many people want it */}
+        {/* SHADE FUSION - the field is where you pick, not just look */}
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <span className="text-[10px] font-black uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[#E91E63]" />
+            Shade Fusion
+          </span>
+          <span className="text-[9.5px] font-bold text-stone-400">
+            {fusionPicks.length === 0
+              ? 'tap one to filter · two to fuse'
+              : fusionPicks.length === 1
+                ? 'tap a second to fuse them'
+                : 'wear it, or put it on the board'}
+          </span>
+        </div>
+
         <DemandOrbs
           orbs={ranked.slice(0, 7).map((item) => ({
             id: item.id,
@@ -279,13 +372,105 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
             votes: item.numericVotes,
             colour: item.colors[0] || '#E91E63'
           }))}
-          selectedId={focusedId}
-          onSelect={(orb) => {
-            setFocusedId(orb.id);
-            const match = items.find((item) => item.id === orb.id);
-            if (match && onSelectLook) onSelectLook(match);
-          }}
+          selectedIds={fusionIds}
+          onSelect={(orb) => toggleFusion(orb.id)}
         />
+
+        {/* The tray: what is picked, and what it makes */}
+        {fusionPicks.length > 0 && (
+          <motion.div
+            layout
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="neu-inset px-3.5 py-3 mt-1"
+          >
+            <div className="flex items-center gap-2.5">
+              {fusionPicks.map((pick, index) => (
+                <React.Fragment key={pick.id}>
+                  {index > 0 && (
+                    <span className="text-xs font-black text-stone-400">+</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => toggleFusion(pick.id)}
+                    title={`Take ${pick.name} out`}
+                    className="flex items-center gap-1.5 cursor-pointer group/pick min-w-0"
+                  >
+                    <span
+                      className="w-6 h-6 rounded-full border-2 border-white shadow-xs shrink-0"
+                      style={{ backgroundColor: pick.colors[0] }}
+                    />
+                    <span className="text-[10.5px] font-bold text-stone-700 truncate max-w-[74px]">
+                      {pick.name}
+                    </span>
+                    <X className="w-3 h-3 text-stone-300 group-hover/pick:text-stone-600 shrink-0" />
+                  </button>
+                </React.Fragment>
+              ))}
+
+              {fusion && (
+                <>
+                  <span className="text-xs font-black text-stone-400">=</span>
+                  <motion.span
+                    key={fusion.hex}
+                    initial={{ scale: 0.6, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 340, damping: 16 }}
+                    className="w-9 h-9 rounded-full shrink-0"
+                    style={{
+                      background: `radial-gradient(circle at 32% 26%, ${fusion.hex}ff 0%, ${fusion.hex}cc 55%, ${fusion.hex}88 100%)`,
+                      boxShadow: `0 0 18px ${fusion.hex}99, inset 0 4px 10px rgba(255,255,255,0.45)`
+                    }}
+                  />
+                </>
+              )}
+            </div>
+
+            {fusion && (
+              <>
+                <div className="mt-2.5">
+                  <p className="text-sm font-display font-black text-stone-900 leading-tight">
+                    {fusion.name}
+                  </p>
+                  <p className="text-[10px] font-bold text-stone-400 tabular-nums">
+                    {fusion.hex.toUpperCase()} · born of{' '}
+                    {fusion.inheritedVotes.toLocaleString()} votes · nobody has this yet
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    type="button"
+                    onClick={wearFusion}
+                    className="grow py-2 rounded-full bg-[#2A1715] text-white text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
+                  >
+                    <Play className="w-3 h-3 fill-current" />
+                    Wear it
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void requestFusion()}
+                    className="grow py-2 rounded-full bg-[#E91E63] text-white text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    Put it on the board
+                  </button>
+                </div>
+              </>
+            )}
+
+            {!fusion && (
+              <p className="text-[10px] font-bold text-stone-400 mt-2">
+                Showing everything in {fusionPicks[0].category}. Pick a second
+                shade to fuse them into one nobody has asked for yet.
+              </p>
+            )}
+
+            {fusionSaved && (
+              <p className="text-[10px] font-black text-[#E91E63] mt-2">{fusionSaved}</p>
+            )}
+          </motion.div>
+        )}
 
         {/* The board */}
         <div className="mt-4 space-y-1">
@@ -302,7 +487,7 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
                 transition={{ type: 'spring', stiffness: 380, damping: 34 }}
                 onClick={() => onSelectLook && onSelectLook(item)}
                 className={`py-2.5 px-2 -mx-2 group rounded-2xl transition-colors cursor-pointer ${
-                  focusedId === item.id ? 'bg-white/70' : 'hover:bg-white/60'
+                  fusionIds.includes(item.id) ? 'bg-white/70' : 'hover:bg-white/60'
                 }`}
                 style={{ perspective: 760 }}
               >

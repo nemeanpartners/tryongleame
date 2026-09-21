@@ -50,7 +50,8 @@ class LookLabPage extends StatefulWidget {
   State<LookLabPage> createState() => _LookLabPageState();
 }
 
-class _LookLabPageState extends State<LookLabPage> {
+class _LookLabPageState extends State<LookLabPage>
+    with WidgetsBindingObserver {
   // Matches the web app so the two halves read as one product:
   // #E91E63 accent, #F7F2EF ground, #EDE7E3 borders, stone text.
   static const _pink = Color(0xffe91e63);
@@ -200,7 +201,9 @@ class _LookLabPageState extends State<LookLabPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _configureWebControllers();
+    unawaited(_checkWebAppVersion());
     unawaited(_loadSfSymbols());
     unawaited(_loadSavedState());
     unawaited(_loadFilterCatalog());
@@ -632,8 +635,20 @@ class _LookLabPageState extends State<LookLabPage> {
     });
   }
 
+  /// A web deploy happens without the app being rebuilt, so an installed app
+  /// can sit on an old page for as long as its web view lives. Coming back to
+  /// the app is the natural moment to pick a new one up.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_checkWebAppVersion());
+    }
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     for (final timer in _slotDebounceTimers.values) {
       timer.cancel();
     }
@@ -1972,6 +1987,51 @@ class _LookLabPageState extends State<LookLabPage> {
     final bytes = await _captureLookFrame();
     if (bytes == null || bytes.isEmpty) return null;
     return _uploadLookImage(lookId, bytes);
+  }
+
+  /// Which build of the web app is live. Every deploy renames the bundle, so
+  /// the name of the script the page loads is the version.
+  Future<String?> _liveWebBuild() async {
+    final client = HttpClient();
+    try {
+      client.connectionTimeout = const Duration(seconds: 8);
+      final request = await client.getUrl(Uri.parse(_liveWebBaseUrl));
+      request.headers.set(HttpHeaders.cacheControlHeader, 'no-cache');
+      final response = await request.close();
+      if (response.statusCode != 200) return null;
+      final html = await response.transform(utf8.decoder).join();
+      final match = RegExp(r'assets/index-[A-Za-z0-9_-]+\.js').firstMatch(html);
+      return match?.group(0);
+    } catch (e) {
+      log('Could not read the live web build: $e');
+      return null;
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Reloads the web views when the site has been redeployed since they were
+  /// loaded, so an installed app is never left on an old build.
+  Future<void> _checkWebAppVersion() async {
+    final build = await _liveWebBuild();
+    if (build == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getString('web_build');
+    await prefs.setString('web_build', build);
+    if (seen == null || seen == build) return;
+
+    log('Web app updated ($seen -> $build); reloading');
+    try {
+      await _homeWebController.clearCache();
+      await _homeWebController.reload();
+      if (_lookLabWebStarted) {
+        await _lookLabWebController.clearCache();
+        await _lookLabWebController.reload();
+      }
+    } catch (e) {
+      log('Reload after a web update failed: $e');
+    }
   }
 
   Future<void> _openExploreTab() async {

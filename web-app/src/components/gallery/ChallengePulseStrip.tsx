@@ -20,7 +20,7 @@ const VOTE_GOAL = 10;
  * The clock used to be four numbers and a progress line, which reads as a
  * readout rather than a month running out. Here the bullet is worn down by as
  * much of the month as has gone: near the start it is new, by the last days
- * there is barely any left. The votes you still have to give are kisses, not
+ * there is barely any left. The votes you still have to give are hearts, not
  * a bar.
  */
 export const ChallengePulseStrip: React.FC<ChallengePulseStripProps> = ({
@@ -159,7 +159,7 @@ export const ChallengePulseStrip: React.FC<ChallengePulseStripProps> = ({
       <div className="mt-4 relative z-10">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-black uppercase tracking-wider text-stone-500">
-            Your kisses this month
+            Your votes this month
           </span>
           <span className="text-[10px] font-black text-stone-400 tabular-nums">
             {votedCount}/{VOTE_GOAL}
