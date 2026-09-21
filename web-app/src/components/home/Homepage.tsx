@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { auth } from '../../firebase';
 import { saveLookToAccount, removeLookFromAccount } from '../../lib/nativeLooks';
+import { SignatureLipsBoard } from './SignatureLipsBoard';
 
 /** The hero look's picture, shared by the card and the saved copy. */
 const HERO_LOOK_IMAGE =
@@ -1455,6 +1456,11 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate, onLoadPreset, us
             </div>
           </div>
         </div>
+      </section>
+
+      {/* SIGNATURE LIPS - the wall of kisses, under the inspiration wall */}
+      <section id="signature-lips-board">
+        <SignatureLipsBoard />
       </section>
 
       {/* Shade Interest Modal for Explore page */}

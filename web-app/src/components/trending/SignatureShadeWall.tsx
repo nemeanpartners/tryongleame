@@ -1,15 +1,57 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play } from 'lucide-react';
+import { Play, Send, Check } from 'lucide-react';
 import { openLookInNative } from '../../lib/nativeLooks';
+import { db, collection as firestoreCollection, setDoc, doc, auth } from '../../firebase';
 
-/** A shade anyone can claim as theirs. */
+/** A shade someone can claim as theirs. */
 export type SignatureShade = { id: string; name: string; hex: string };
 
+/** The two kiss prints, photographed and turned into masks so any shade can
+    be stamped with them. */
+export const PRINT_STYLES = [
+  { id: 'print-1', label: 'Classic', src: '/lips/print-1.png' },
+  { id: 'print-2', label: 'Soft', src: '/lips/print-2.png' }
+] as const;
+
+export type PrintStyle = (typeof PRINT_STYLES)[number]['id'];
+
+/** The blank lips a collection is filled in on. */
+export const LIP_OUTLINE = '/lips/outline.png';
+
 /**
- * The wall people pick from. Real lip colours rather than invented ones, so a
- * signature means something outside the app too.
+ * A kiss print in one shade. The print is a photograph used as a mask, so the
+ * texture is real ink and the colour is whatever shade it stands for.
  */
+export const KissPrint: React.FC<{
+  hex: string;
+  style?: PrintStyle;
+  width?: number;
+  className?: string;
+}> = ({ hex, style = 'print-1', width = 64, className = '' }) => {
+  const src = PRINT_STYLES.find((entry) => entry.id === style)?.src || PRINT_STYLES[0].src;
+  return (
+    <span
+      aria-hidden
+      className={`block ${className}`}
+      style={{
+        width,
+        height: width * 0.74,
+        backgroundColor: hex,
+        WebkitMaskImage: `url(${src})`,
+        maskImage: `url(${src})`,
+        WebkitMaskSize: 'contain',
+        maskSize: 'contain',
+        WebkitMaskRepeat: 'no-repeat',
+        maskRepeat: 'no-repeat',
+        WebkitMaskPosition: 'center',
+        maskPosition: 'center'
+      }}
+    />
+  );
+};
+
+/** The shades the wall starts from, so a signature can be claimed on day one. */
 const CURATED: SignatureShade[] = [
   { id: 'sig_ruby', name: 'Ruby Woo', hex: '#C3172B' },
   { id: 'sig_pillow', name: 'Pillow Talk', hex: '#C08272' },
@@ -26,53 +68,26 @@ const CURATED: SignatureShade[] = [
 ];
 
 const STORE_KEY = 'tryon_signature_shades';
+const COLLECTION_KEY = 'tryon_lipstick_collection';
+const STYLE_KEY = 'tryon_signature_print_style';
 const MAX_SIGNATURES = 3;
 
-/**
- * A kiss print in one shade.
- *
- * A round swatch tells you the colour; a print tells you what it looks like
- * worn. The gloss lines are what make it a print rather than a shape.
- */
-const KissPrint: React.FC<{ hex: string; size?: number }> = ({ hex, size = 64 }) => (
-  <svg width={size} height={size * 0.78} viewBox="0 0 100 78" aria-hidden>
-    <defs>
-      <linearGradient id={`kiss-${hex.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor={hex} stopOpacity="0.95" />
-        <stop offset="48%" stopColor={hex} />
-        <stop offset="100%" stopColor={hex} stopOpacity="0.82" />
-      </linearGradient>
-      <mask id={`gloss-${hex.replace('#', '')}`}>
-        <rect width="100" height="78" fill="#fff" />
-        {/* The creases a real print leaves */}
-        {Array.from({ length: 13 }, (_, i) => (
-          <rect
-            key={i}
-            x={9 + i * 6.4}
-            y="4"
-            width="1.5"
-            height="70"
-            fill="#000"
-            opacity={i % 2 ? 0.55 : 0.32}
-          />
-        ))}
-        <path d="M6 38 Q50 30 94 38 Q50 46 6 38 Z" fill="#000" opacity="0.85" />
-      </mask>
-    </defs>
-    <g mask={`url(#gloss-${hex.replace('#', '')})`}>
-      {/* Upper lip */}
-      <path
-        d="M50 12 C58 -2 78 0 86 10 C92 18 88 28 78 33 C68 37 56 36 50 34 C44 36 32 37 22 33 C12 28 8 18 14 10 C22 0 42 -2 50 12 Z"
-        fill={`url(#kiss-${hex.replace('#', '')})`}
-      />
-      {/* Lower lip */}
-      <path
-        d="M50 38 C60 36 74 36 84 40 C90 43 88 56 78 66 C68 75 56 77 50 77 C44 77 32 75 22 66 C12 56 10 43 16 40 C26 36 40 36 50 38 Z"
-        fill={`url(#kiss-${hex.replace('#', '')})`}
-      />
-    </g>
-  </svg>
-);
+/** The collection ladder: something to fill in, and a reason to keep trying
+    shades on. */
+export const LEVELS = [
+  { level: 1, target: 50, title: 'Collector' },
+  { level: 2, target: 100, title: 'Curator' }
+];
+
+export type CollectedShade = SignatureShade & { collectedAt: number };
+
+export const readCollection = (): CollectedShade[] => {
+  try {
+    return JSON.parse(localStorage.getItem(COLLECTION_KEY) || '[]');
+  } catch {
+    return [];
+  }
+};
 
 interface SignatureShadeWallProps {
   /** Shades the person has saved, offered alongside the curated wall. */
@@ -80,11 +95,12 @@ interface SignatureShadeWallProps {
 }
 
 /**
- * Signature Shades: the two or three lip colours someone is known for.
+ * Signature Shades: the two or three lip colours someone is known for, plus
+ * the collection they are filling in.
  *
- * A saved look is a thing you made; a signature is a thing you are. Picking
- * one stamps it as a kiss print, and a print can be worn straight away or left
- * on the wall for other people to find.
+ * A saved look is a thing you made; a signature is a thing you are. Stamping
+ * one puts it on your wall, posting it puts it on everyone's, and every shade
+ * you try on fills another pair of lips on the board.
  */
 export const SignatureShadeWall: React.FC<SignatureShadeWallProps> = ({ savedShades = [] }) => {
   const [mine, setMine] = useState<SignatureShade[]>(() => {
@@ -94,6 +110,12 @@ export const SignatureShadeWall: React.FC<SignatureShadeWallProps> = ({ savedSha
       return [];
     }
   });
+  const [style, setStyle] = useState<PrintStyle>(() => {
+    const saved = localStorage.getItem(STYLE_KEY);
+    return saved === 'print-2' ? 'print-2' : 'print-1';
+  });
+  const [collection, setCollection] = useState<CollectedShade[]>(() => readCollection());
+  const [posted, setPosted] = useState<string | null>(null);
 
   const wall = useMemo(() => {
     const seen = new Set<string>();
@@ -105,18 +127,33 @@ export const SignatureShadeWall: React.FC<SignatureShadeWallProps> = ({ savedSha
     });
   }, [savedShades]);
 
+  const level = collection.length >= LEVELS[1].target ? LEVELS[1] : LEVELS[0];
+  const progress = Math.min(100, Math.round((collection.length / level.target) * 100));
+
+  const remember = (shade: SignatureShade) => {
+    // Every shade that goes on the wall also goes in the collection.
+    setCollection((prev) => {
+      if (prev.some((entry) => entry.hex.toLowerCase() === shade.hex.toLowerCase())) return prev;
+      const next = [...prev, { ...shade, collectedAt: Date.now() }];
+      try {
+        localStorage.setItem(COLLECTION_KEY, JSON.stringify(next));
+      } catch {
+        /* the collection still shows, it just will not be remembered */
+      }
+      return next;
+    });
+  };
+
   const toggle = (shade: SignatureShade) => {
+    remember(shade);
     setMine((prev) => {
       const without = prev.filter((entry) => entry.id !== shade.id);
-      // Already a signature: tapping again takes it off the shelf.
       const next =
-        without.length === prev.length
-          ? [...prev, shade].slice(-MAX_SIGNATURES)
-          : without;
+        without.length === prev.length ? [...prev, shade].slice(-MAX_SIGNATURES) : without;
       try {
         localStorage.setItem(STORE_KEY, JSON.stringify(next));
       } catch {
-        /* the wall still works, it just will not be remembered */
+        /* nothing to remember it with */
       }
       return next;
     });
@@ -126,24 +163,70 @@ export const SignatureShadeWall: React.FC<SignatureShadeWallProps> = ({ savedSha
     openLookInNative({ id: shade.id, name: shade.name, lipColor: shade.hex });
   };
 
+  /** Puts a print on the board everyone sees, under the person who made it. */
+  const post = async (shade: SignatureShade) => {
+    const user = auth.currentUser;
+    const creator =
+      user?.displayName ||
+      localStorage.getItem('kobella_username') ||
+      localStorage.getItem('tryon_beauty_username') ||
+      'anonymous';
+    const id = `${creator}_${shade.hex.replace('#', '')}`.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    try {
+      await setDoc(doc(firestoreCollection(db, 'signature_lips'), id), {
+        id,
+        name: shade.name,
+        hex: shade.hex,
+        printStyle: style,
+        creator,
+        userId: user?.uid || null,
+        postedAt: Date.now()
+      });
+      setPosted(shade.id);
+      window.setTimeout(() => setPosted(null), 2400);
+    } catch (error) {
+      console.error('Could not post the signature:', error);
+    }
+  };
+
   return (
     <div className="glass-card rounded-[28px] p-5 sm:p-6 text-left font-montserrat">
       <div className="flex items-start justify-between gap-3">
         <div>
           <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-500 block">
-            Signature Shades
+            Signature Lips
           </span>
           <h3 className="text-2xl font-display font-black text-stone-900 tracking-tight mt-0.5">
             The lips you&apos;re known for
           </h3>
           <p className="text-[11px] text-stone-500 font-medium mt-1">
-            Pick up to {MAX_SIGNATURES}. They stay on your wall.
+            Pick up to {MAX_SIGNATURES}. Post one to the board on Discover.
           </p>
+        </div>
+
+        {/* Which print the stamp is made with */}
+        <div className="neu-pill flex items-center gap-1 p-1 shrink-0">
+          {PRINT_STYLES.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              onClick={() => {
+                setStyle(entry.id);
+                localStorage.setItem(STYLE_KEY, entry.id);
+              }}
+              title={`${entry.label} print`}
+              className={`px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider cursor-pointer transition-colors ${
+                style === entry.id ? 'bg-[#2A1715] text-white' : 'text-stone-500'
+              }`}
+            >
+              {entry.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Your own, stamped */}
-      <div className="mt-4 neu-inset px-4 py-4 min-h-[132px] flex items-center justify-center">
+      <div className="mt-4 neu-inset px-4 py-4 min-h-[140px] flex items-center justify-center">
         <AnimatePresence mode="popLayout">
           {mine.length === 0 ? (
             <motion.p
@@ -156,7 +239,7 @@ export const SignatureShadeWall: React.FC<SignatureShadeWallProps> = ({ savedSha
               No signature yet. Tap a shade below to stamp it here.
             </motion.p>
           ) : (
-            <div className="flex flex-col items-center -space-y-5">
+            <div className="flex flex-col items-center -space-y-6">
               {mine.map((shade, index) => (
                 <motion.button
                   key={shade.id}
@@ -167,13 +250,13 @@ export const SignatureShadeWall: React.FC<SignatureShadeWallProps> = ({ savedSha
                   animate={{
                     opacity: 1,
                     scale: 1,
-                    rotate: index === 1 ? 3 : index === 2 ? -4 : 0
+                    rotate: index === 1 ? 4 : index === 2 ? -5 : 0
                   }}
                   exit={{ opacity: 0, scale: 0.6 }}
                   transition={{ type: 'spring', stiffness: 260, damping: 18 }}
                   className="cursor-pointer"
                 >
-                  <KissPrint hex={shade.hex} size={78} />
+                  <KissPrint hex={shade.hex} style={style} width={96} />
                 </motion.button>
               ))}
             </div>
@@ -182,27 +265,106 @@ export const SignatureShadeWall: React.FC<SignatureShadeWallProps> = ({ savedSha
       </div>
 
       {mine.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <div className="mt-3 space-y-1.5">
           {mine.map((shade) => (
-            <button
-              key={shade.id}
-              type="button"
-              onClick={() => wear(shade)}
-              className="neu-pill px-3 py-1.5 flex items-center gap-2 cursor-pointer active:scale-95 transition-transform"
-            >
-              <span
-                className="w-3.5 h-3.5 rounded-full border border-white shadow-xs"
-                style={{ backgroundColor: shade.hex }}
-              />
-              <span className="text-[10.5px] font-black text-stone-900">{shade.name}</span>
-              <span className="text-[9.5px] font-bold text-stone-400 tabular-nums">
-                {shade.hex.toUpperCase()}
-              </span>
-              <Play className="w-2.5 h-2.5 fill-current text-[#E91E63]" />
-            </button>
+            <div key={shade.id} className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => wear(shade)}
+                className="neu-pill grow px-3 py-1.5 flex items-center gap-2 cursor-pointer active:scale-95 transition-transform min-w-0"
+              >
+                <span
+                  className="w-3.5 h-3.5 rounded-full border border-white shadow-xs shrink-0"
+                  style={{ backgroundColor: shade.hex }}
+                />
+                <span className="text-[10.5px] font-black text-stone-900 truncate">
+                  {shade.name}
+                </span>
+                <span className="text-[9.5px] font-bold text-stone-400 tabular-nums ml-auto shrink-0">
+                  {shade.hex.toUpperCase()}
+                </span>
+                <Play className="w-2.5 h-2.5 fill-current text-[#E91E63] shrink-0" />
+              </button>
+              <button
+                type="button"
+                onClick={() => void post(shade)}
+                title="Post to the Signature Lips board"
+                className="w-9 h-9 rounded-full bg-[#2A1715] text-white flex items-center justify-center cursor-pointer active:scale-95 transition-transform shrink-0"
+              >
+                {posted === shade.id ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <Send className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
           ))}
         </div>
       )}
+
+      {/* The collection ladder */}
+      <div className="mt-5 neu-inset px-3.5 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-wider text-stone-500">
+            My lipstick collection · Level {level.level} {level.title}
+          </span>
+          <span className="text-[10px] font-black text-stone-500 tabular-nums">
+            {collection.length}/{level.target}
+          </span>
+        </div>
+        <div className="mt-1.5 h-2 rounded-full bg-white/70 overflow-hidden">
+          <motion.div
+            className="h-full rounded-full bg-gradient-to-r from-[#F7C6D7] to-[#E91E63]"
+            initial={false}
+            animate={{ width: `${progress}%` }}
+            transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+          />
+        </div>
+
+        {/* The blank lips the collection fills in */}
+        <div className="mt-3 grid grid-cols-6 sm:grid-cols-8 gap-1.5">
+          {Array.from({ length: 24 }, (_, index) => {
+            const filled = collection[index];
+            return (
+              <div key={index} className="flex flex-col items-center gap-0.5">
+                {filled ? (
+                  <button
+                    type="button"
+                    onClick={() => wear(filled)}
+                    title={`${filled.name} · ${filled.hex.toUpperCase()}`}
+                    className="cursor-pointer active:scale-95 transition-transform"
+                  >
+                    <KissPrint hex={filled.hex} style={style} width={34} />
+                  </button>
+                ) : (
+                  <span
+                    aria-hidden
+                    className="block opacity-30"
+                    style={{
+                      width: 34,
+                      height: 25,
+                      backgroundColor: '#8b7d75',
+                      WebkitMaskImage: `url(${LIP_OUTLINE})`,
+                      maskImage: `url(${LIP_OUTLINE})`,
+                      WebkitMaskSize: 'contain',
+                      maskSize: 'contain',
+                      WebkitMaskRepeat: 'no-repeat',
+                      maskRepeat: 'no-repeat',
+                      WebkitMaskPosition: 'center',
+                      maskPosition: 'center'
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[9.5px] font-bold text-stone-400 mt-2">
+          {collection.length >= level.target
+            ? 'Level complete. The next one needs 100.'
+            : `${level.target - collection.length} more shades to reach Level ${level.level} ${level.title}`}
+        </p>
+      </div>
 
       {/* The wall to pick from */}
       <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-5">
@@ -221,7 +383,7 @@ export const SignatureShadeWall: React.FC<SignatureShadeWallProps> = ({ savedSha
                 picked ? 'bg-white/80 ring-2 ring-[#E91E63]' : 'hover:bg-white/60'
               }`}
             >
-              <KissPrint hex={shade.hex} size={44} />
+              <KissPrint hex={shade.hex} style={style} width={48} />
               <span className="text-[8.5px] font-bold text-stone-500 leading-tight text-center px-1 truncate w-full">
                 {shade.name}
               </span>

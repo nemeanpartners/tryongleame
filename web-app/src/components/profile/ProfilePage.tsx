@@ -82,6 +82,7 @@ import {
 import { PhotoUploadModal } from './PhotoUploadModal';
 import { getEffectiveAvatar, getEffectiveCover, clearCachedProfileMedia, hasProfilePhoto } from '../../lib/userProfileService';
 import { lookShadeLines } from '../../lib/lookShades';
+import { SignatureShadeWall } from '../trending/SignatureShadeWall';
 
 interface ProfilePageProps {
   onLoadPreset?: (preset: any) => void;
@@ -1381,6 +1382,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                   </div>
                 ) : (
                   <div className="space-y-3 pt-1">
+                    {/* SIGNATURE LIPS - the shades this person is known for */}
+                    <SignatureShadeWall />
+
                     {savedLookGroups.map((group) => (
                       <div key={group.key} className="space-y-2.5">
                         <button

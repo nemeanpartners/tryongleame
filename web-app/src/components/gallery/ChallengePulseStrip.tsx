@@ -18,10 +18,10 @@ const VOTE_GOAL = 10;
  * How long is left in the challenge, as an hourglass of lip gloss.
  *
  * The clock used to be four numbers and a progress line, which reads as a
- * readout rather than a month running out. Here the top bulb holds what is
- * left of the month and the bottom holds what has gone, with a thread of gloss
- * running between them - so how long you have is a glance, not a sum. The
- * votes you still have to give are hearts, not a bar.
+ * readout rather than a month running out. The glass is the photograph, with
+ * its own sand taken out of it; what sits in each bulb is drawn behind it at
+ * the level the month is really at. The votes you still have to give are
+ * hearts, not a bar.
  */
 export const ChallengePulseStrip: React.FC<ChallengePulseStripProps> = ({
   submissions,
@@ -40,26 +40,9 @@ export const ChallengePulseStrip: React.FC<ChallengePulseStripProps> = ({
   const animatedEntries = useCountUp(submissions.length);
 
   const votedCount = Math.min(votedIds.length, VOTE_GOAL);
-
-  /* The gloss in each bulb, as paths.
-     Top: a pile with the dip in the middle that a draining one always has.
-     Bottom: a mound rising as it collects. Both are driven by `worn`, which is
-     the real fraction of the month that has passed. */
-  const TOP_FLOOR = 90;   // where the top bulb narrows into the waist
-  const TOP_CEILING = 14; // a full bulb
-  const BOTTOM_FLOOR = 160;
-  const BOTTOM_CEILING = 86;
   const closingSoon = countdown.days <= 3;
-  const worn = Math.min(0.92, Math.max(0, countdown.elapsed));
-
-  const topLevel = TOP_FLOOR - (1 - worn) * (TOP_FLOOR - TOP_CEILING);
-  const topSand =
-    worn >= 0.995
-      ? `M14 ${TOP_FLOOR} L86 ${TOP_FLOOR} Z`
-      : `M10 ${topLevel} Q50 ${topLevel + 16} 90 ${topLevel} L90 ${TOP_FLOOR} L10 ${TOP_FLOOR} Z`;
-
-  const moundTop = BOTTOM_FLOOR - worn * (BOTTOM_FLOOR - BOTTOM_CEILING);
-  const bottomSand = `M6 ${BOTTOM_FLOOR} L94 ${BOTTOM_FLOOR} L94 ${moundTop + 18} Q50 ${moundTop - 10} 6 ${moundTop + 18} Z`;
+  /** How much of the month has run out, which is what the glass shows. */
+  const worn = Math.min(1, Math.max(0, countdown.elapsed));
 
   const closesOn = new Date(deadline).toLocaleDateString(undefined, {
     month: 'short',
@@ -91,92 +74,64 @@ export const ChallengePulseStrip: React.FC<ChallengePulseStripProps> = ({
       </div>
 
       <div className="mt-4 flex items-end gap-4 relative z-10">
-        {/* A real hourglass: two glass bulbs, a clear waist, and lip gloss
-            instead of sand. How much sits in each bulb is how much of the
-            month has actually gone. */}
-        <div className="shrink-0 relative" style={{ width: 84, height: 132 }}>
-          <svg width="84" height="132" viewBox="0 0 100 170">
-            <defs>
-              <linearGradient id="glossSand" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#E7A9B4" />
-                <stop offset="38%" stopColor="#D98B9B" />
-                <stop offset="100%" stopColor="#BF6C7E" />
-              </linearGradient>
-              <radialGradient id="bulbGlass" cx="0.34" cy="0.28" r="0.85">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.72" />
-                <stop offset="58%" stopColor="#ffffff" stopOpacity="0.14" />
-                <stop offset="100%" stopColor="#c9bdb8" stopOpacity="0.3" />
-              </radialGradient>
-              <clipPath id="topGlass">
-                <ellipse cx="50" cy="52" rx="40" ry="42" />
-              </clipPath>
-              <clipPath id="bottomGlass">
-                <ellipse cx="50" cy="120" rx="40" ry="42" />
-              </clipPath>
-            </defs>
-
-            {/* Glass */}
-            <ellipse cx="50" cy="52" rx="40" ry="42" fill="url(#bulbGlass)" />
-            <ellipse cx="50" cy="120" rx="40" ry="42" fill="url(#bulbGlass)" />
-            {/* The waist, where the two bulbs are drawn together */}
-            <path
-              d="M32 78 C40 84 44 84 46 88 L46 92 C44 96 40 96 32 102
-                 L68 102 C60 96 56 96 54 92 L54 88 C56 84 60 84 68 78 Z"
-              fill="#ffffff"
-              opacity="0.55"
+        {/* The hourglass itself, photographed. Its glass was emptied so the
+            gloss behind it can sit at the level the month is actually at. */}
+        <div className="shrink-0 relative" style={{ width: 76, height: 150 }}>
+          {/* What is left of the month, in the top bulb */}
+          <div
+            className="absolute overflow-hidden"
+            style={{ left: '8%', top: '7%', width: '84%', height: '42%', borderRadius: '50%' }}
+          >
+            <motion.div
+              className="absolute inset-x-0 bottom-0"
+              initial={false}
+              animate={{ height: `${Math.max(0, (1 - worn) * 100)}%` }}
+              transition={{ type: 'spring', stiffness: 70, damping: 22 }}
+              style={{ background: 'linear-gradient(180deg, #D98B9B 0%, #C2707F 100%)' }}
             />
+          </div>
 
-            {/* What is left of the month, resting in the top bulb with the dip
-                a draining pile always has in the middle */}
-            <g clipPath="url(#topGlass)">
-              <motion.path
-                initial={false}
-                animate={{ d: topSand }}
-                transition={{ type: 'spring', stiffness: 70, damping: 22 }}
-                fill="url(#glossSand)"
-              />
-            </g>
+          {/* The thread through the waist */}
+          {!countdown.done && (
+            <div
+              className="absolute overflow-hidden"
+              style={{ left: '46%', top: '48%', width: '8%', height: '16%' }}
+            >
+              <div className="absolute inset-x-[42%] inset-y-0 bg-[#D98B9B] opacity-70" />
+              {[0, 1, 2].map((drop) => (
+                <motion.span
+                  key={drop}
+                  className="absolute left-1/2 -translate-x-1/2 w-[3px] h-[3px] rounded-full bg-[#C2707F]"
+                  initial={{ top: '0%', opacity: 0 }}
+                  animate={{ top: ['0%', '100%'], opacity: [0, 1, 1, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, delay: drop * 0.5, ease: 'easeIn' }}
+                />
+              ))}
+            </div>
+          )}
 
-            {/* The thread running through the waist */}
-            {!countdown.done && (
-              <g>
-                <rect x="48.6" y="88" width="2.8" height="34" fill="url(#glossSand)" opacity="0.6" />
-                {[0, 1, 2].map((drop) => (
-                  <motion.circle
-                    key={drop}
-                    cx="50"
-                    r="2.2"
-                    fill="#D98B9B"
-                    initial={{ cy: 90, opacity: 0 }}
-                    animate={{ cy: [90, 148], opacity: [0, 1, 1, 0] }}
-                    transition={{
-                      duration: 1.6,
-                      repeat: Infinity,
-                      delay: drop * 0.53,
-                      ease: 'easeIn'
-                    }}
-                  />
-                ))}
-              </g>
-            )}
+          {/* What has gone, pooled in the bottom bulb */}
+          <div
+            className="absolute overflow-hidden"
+            style={{ left: '8%', top: '58%', width: '84%', height: '37%', borderRadius: '50%' }}
+          >
+            <motion.div
+              className="absolute inset-x-0 bottom-0"
+              initial={false}
+              animate={{ height: `${Math.max(4, worn * 100)}%` }}
+              transition={{ type: 'spring', stiffness: 70, damping: 22 }}
+              style={{ background: 'linear-gradient(180deg, #D98B9B 0%, #B9677A 100%)' }}
+            />
+          </div>
 
-            {/* What has gone, piled up in the bottom bulb */}
-            <g clipPath="url(#bottomGlass)">
-              <motion.path
-                initial={false}
-                animate={{ d: bottomSand }}
-                transition={{ type: 'spring', stiffness: 70, damping: 22 }}
-                fill="url(#glossSand)"
-              />
-            </g>
-
-            {/* Glass edges and highlights, over everything */}
-            <ellipse cx="50" cy="52" rx="40" ry="42" fill="none" stroke="rgba(120,104,98,0.3)" strokeWidth="1.6" />
-            <ellipse cx="50" cy="120" rx="40" ry="42" fill="none" stroke="rgba(120,104,98,0.3)" strokeWidth="1.6" />
-            <path d="M22 34 C16 46 16 60 22 72" stroke="#fff" strokeWidth="4" fill="none" strokeLinecap="round" opacity="0.85" />
-            <path d="M22 102 C16 114 16 128 22 140" stroke="#fff" strokeWidth="4" fill="none" strokeLinecap="round" opacity="0.7" />
-            <path d="M74 38 C78 46 79 54 77 62" stroke="#fff" strokeWidth="2.4" fill="none" strokeLinecap="round" opacity="0.5" />
-          </svg>
+          {/* The glass, over the gloss */}
+          <img
+            src="/challenge/hourglass-glass.png"
+            alt=""
+            aria-hidden
+            draggable={false}
+            className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+          />
         </div>
 
         {/* How long that is in days */}
