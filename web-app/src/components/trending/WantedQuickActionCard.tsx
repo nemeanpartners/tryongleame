@@ -222,7 +222,7 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
               </span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-display font-black text-stone-900 tracking-tight">
-              What&apos;s Wanted Now
+              What&apos;s Wanted
             </h2>
             <p className="text-xs text-stone-500 font-medium mt-1 leading-relaxed">
               <span className="font-black text-stone-900 tabular-nums">

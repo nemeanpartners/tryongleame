@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles } from 'lucide-react';
 
@@ -19,16 +19,6 @@ const ROWS = 4;
 const TILE_COUNT = COLUMNS * ROWS;
 /** Once this much has been taken away, the rest falls on its own. */
 const CASCADE_AT = 0.45;
-const STORAGE_KEY = 'tryon_revealed_podium';
-
-const readRevealed = (): string[] => {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  } catch {
-    return [];
-  }
-};
-
 /**
  * A place on the podium, tiled over until the viewer takes the tiles off.
  *
@@ -45,11 +35,10 @@ export const RevealCard: React.FC<RevealCardProps> = ({
   accent = '#E91E63',
   children
 }) => {
-  const alreadyOpen = useMemo(() => readRevealed().includes(id), [id]);
-  const [taken, setTaken] = useState<Set<number>>(
-    () => new Set(alreadyOpen ? Array.from({ length: TILE_COUNT }, (_, i) => i) : [])
-  );
-  const [revealed, setRevealed] = useState<boolean>(alreadyOpen);
+  // Tiled over again every time the page is opened: uncovering it is the part
+  // worth coming back for, so it is not spent after one visit.
+  const [taken, setTaken] = useState<Set<number>>(() => new Set());
+  const [revealed, setRevealed] = useState<boolean>(false);
   const [justOpened, setJustOpened] = useState(false);
 
   const remaining = TILE_COUNT - taken.size;
@@ -63,15 +52,7 @@ export const RevealCard: React.FC<RevealCardProps> = ({
     setJustOpened(true);
     window.setTimeout(() => setJustOpened(false), 1600);
     setTaken(new Set(Array.from({ length: TILE_COUNT }, (_, i) => i)));
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(Array.from(new Set([...readRevealed(), id])))
-      );
-    } catch {
-      /* the card simply tiles over again next time */
-    }
-  }, [taken, revealed, id]);
+  }, [taken, revealed]);
 
   /** Whichever tile is under this point, taken off. */
   const brushAt = (x: number, y: number) => {

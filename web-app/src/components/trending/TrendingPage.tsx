@@ -139,6 +139,21 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
   const [pulseUpdatedAt, setPulseUpdatedAt] = useState<number>(Date.now());
   const [pulseSecondsAgo, setPulseSecondsAgo] = useState<number>(0);
 
+  /**
+   * The bag fills the first time this board is opened after the app is
+   * launched. sessionStorage is cleared when the app is closed, so it plays
+   * again on the next launch but not every time the tab is tapped.
+   */
+  const [playBagDrop, setPlayBagDrop] = useState<boolean>(() => {
+    try {
+      if (sessionStorage.getItem('tryon_bag_dropped')) return false;
+      sessionStorage.setItem('tryon_bag_dropped', '1');
+      return true;
+    } catch {
+      return true;
+    }
+  });
+
   const categories = ['Eyes', 'Lips', 'Blush', 'Highlight', 'Full Face', 'Other'];
 
   const currentUser = requestedBy.trim() || localStorage.getItem('tryon_beauty_username') || localStorage.getItem('kobella_username') || '';
@@ -529,6 +544,8 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
             setTimeout(() => setPulseToast(null), 2500);
           }}
           toast={pulseToast}
+          playDrop={playBagDrop}
+          onDropFinished={() => setPlayBagDrop(false)}
         />
         {/* 2. WANTED QUICK ACTION CARD (MATCHING DESIGN WITH WANT BUTTONS, SWATCHES & SEE MORE) */}
         <WantedQuickActionCard

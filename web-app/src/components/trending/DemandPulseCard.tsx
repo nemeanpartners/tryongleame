@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowUpRight, RefreshCw, X } from 'lucide-react';
-import { useCountUp } from '../../lib/liveCounters';
+import { MakeupBagFill } from './MakeupBagFill';
 
 export interface DemandCategoryStat {
   name: string;
@@ -26,6 +26,9 @@ interface DemandPulseCardProps {
   onApplyHotFormula: () => void;
   onInspectTotal: () => void;
   toast: string | null;
+  /** True the first time the board is opened in this app session. */
+  playDrop: boolean;
+  onDropFinished: () => void;
 }
 
 /** Each category keeps its own dot colour across the card. */
@@ -39,12 +42,6 @@ const CATEGORY_COLOURS: Record<string, string> = {
 };
 
 const colourFor = (name: string) => CATEGORY_COLOURS[name] || '#C9BDB6';
-
-/** A ring that fills to a fraction, drawn as a stroked circle. */
-const RING_SIZE = 132;
-const RING_STROKE = 9;
-const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
-const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 
 /**
  * The state of demand, as one instrument rather than a row of boxes: a ring
@@ -68,11 +65,11 @@ export const DemandPulseCard: React.FC<DemandPulseCardProps> = ({
   onSelectTopRising,
   onApplyHotFormula,
   onInspectTotal,
-  toast
+  toast,
+  playDrop,
+  onDropFinished
 }) => {
-  const animatedTotal = useCountUp(totalVotes);
   const [secondsAgo, setSecondsAgo] = useState(0);
-  const [ripples, setRipples] = useState<number[]>([]);
   const lastTotal = useRef(totalVotes);
   const [changedAt, setChangedAt] = useState(Date.now());
 
@@ -81,14 +78,6 @@ export const DemandPulseCard: React.FC<DemandPulseCardProps> = ({
     if (lastTotal.current !== totalVotes) {
       lastTotal.current = totalVotes;
       setChangedAt(Date.now());
-      // Every change leaves a ring behind it, so movement is visible even if
-      // you look away for a second.
-      const id = Date.now();
-      setRipples((prev) => [...prev, id]);
-      window.setTimeout(
-        () => setRipples((prev) => prev.filter((r) => r !== id)),
-        1200
-      );
     }
   }, [totalVotes]);
 
@@ -167,85 +156,18 @@ export const DemandPulseCard: React.FC<DemandPulseCardProps> = ({
         </button>
       </div>
 
-      {/* The instrument: ring, curve, ticker */}
-      <div className="mt-4 flex flex-col sm:flex-row items-center gap-4 sm:gap-5 relative z-10">
-        {/* Ring */}
-        <button
-          type="button"
-          onClick={onInspectTotal}
-          className="relative shrink-0 cursor-pointer active:scale-95 transition-transform"
-          style={{ width: RING_SIZE, height: RING_SIZE }}
-          title="Tap to track the whole board"
-        >
-          {/* Each new vote leaves a ring expanding out of the dial */}
-          <AnimatePresence>
-            {ripples.map((id) => (
-              <motion.span
-                key={id}
-                className="absolute inset-0 rounded-full border border-[#E91E63]/50 pointer-events-none"
-                initial={{ scale: 0.82, opacity: 0.8 }}
-                animate={{ scale: 1.25, opacity: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1.1, ease: 'easeOut' }}
-              />
-            ))}
-          </AnimatePresence>
+      {/* What is wanted, as a bag filling up */}
+      <div className="mt-2 relative z-10">
+        <MakeupBagFill
+          totalVotes={totalVotes}
+          votesToday={votesToday}
+          categories={categories}
+          play={playDrop}
+          onFinished={onDropFinished}
+        />
+      </div>
 
-          <svg
-            width={RING_SIZE}
-            height={RING_SIZE}
-            viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
-            className="-rotate-90"
-          >
-            <defs>
-              <linearGradient id="pulseRing" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#F7C6D7" />
-                <stop offset="55%" stopColor="#E91E63" />
-                <stop offset="100%" stopColor="#2A1715" />
-              </linearGradient>
-            </defs>
-            <circle
-              cx={RING_SIZE / 2}
-              cy={RING_SIZE / 2}
-              r={RING_RADIUS}
-              fill="none"
-              stroke="rgba(255,255,255,0.75)"
-              strokeWidth={RING_STROKE}
-            />
-            <motion.circle
-              cx={RING_SIZE / 2}
-              cy={RING_SIZE / 2}
-              r={RING_RADIUS}
-              fill="none"
-              stroke="url(#pulseRing)"
-              strokeWidth={RING_STROKE}
-              strokeLinecap="round"
-              strokeDasharray={RING_LENGTH}
-              initial={false}
-              animate={{ strokeDashoffset: RING_LENGTH * (1 - ringFraction) }}
-              transition={{ type: 'spring', stiffness: 90, damping: 20 }}
-            />
-          </svg>
-
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[9px] font-black uppercase tracking-[0.16em] text-stone-400">
-              Total votes
-            </span>
-            <span className="text-2xl font-display font-black text-stone-900 tabular-nums leading-none mt-0.5">
-              {animatedTotal.toLocaleString()}
-            </span>
-            <span className="text-[9.5px] font-bold text-[#E91E63] tabular-nums mt-1">
-              +{votesToday} today
-            </span>
-            {/* Say what the ring is measuring, or it is just a shape. */}
-            {top && top.percentage > 0 && (
-              <span className="text-[8.5px] font-bold uppercase tracking-wider text-stone-400 mt-1">
-                {top.name} leads {top.percentage}%
-              </span>
-            )}
-          </div>
-        </button>
-
+      <div className="mt-3 relative z-10">
         {/* Curve and ticker */}
         <div className="grow min-w-0 w-full">
           <button
