@@ -9,8 +9,8 @@ interface TargetBoardProps {
   onSelect?: (item: WantedLookItem) => void;
 }
 
-/** How many land on the target. Six reads; ten was a pile. */
-const SHOTS = 6;
+/** The same seven as the list underneath, so the two agree. */
+const SHOTS = 7;
 
 /** The product that stands for each part of the face. */
 const ART_FOR: Record<string, string> = {
@@ -53,24 +53,47 @@ export const TargetBoard: React.FC<TargetBoardProps> = ({ items, onSelect }) => 
       </div>
 
       <div className="relative w-full mt-3 mx-auto" style={{ aspectRatio: '1 / 1', maxWidth: 340 }}>
-        {/* A plain target: three rings and a black centre, nothing else */}
+        {/* A target in glass: a lens with rings cut into it, rather than a
+            printed paper one */}
         <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
-          <circle cx="50" cy="50" r="49" fill="#f7f4f1" />
-          {[49, 40].map((r) => (
-            <circle key={r} cx="50" cy="50" r={r} fill="none" stroke="#d5c9c0" strokeWidth="0.6" />
+          <defs>
+            <radialGradient id="targetGlass" cx="0.36" cy="0.3" r="0.78">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+              <stop offset="55%" stopColor="#ffffff" stopOpacity="0.45" />
+              <stop offset="100%" stopColor="#d9cec8" stopOpacity="0.55" />
+            </radialGradient>
+            <radialGradient id="targetCore" cx="0.38" cy="0.32" r="0.8">
+              <stop offset="0%" stopColor="#4a3b36" stopOpacity="0.82" />
+              <stop offset="70%" stopColor="#241b18" stopOpacity="0.88" />
+              <stop offset="100%" stopColor="#12100f" stopOpacity="0.92" />
+            </radialGradient>
+          </defs>
+
+          <circle cx="50" cy="50" r="49" fill="url(#targetGlass)" />
+          <circle cx="50" cy="50" r="49" fill="none" stroke="#ffffff" strokeWidth="1.1" opacity="0.9" />
+          <circle cx="50" cy="50" r="49" fill="none" stroke="#bfb1a8" strokeWidth="0.4" opacity="0.6" />
+
+          {[40, 31].map((r) => (
+            <circle key={r} cx="50" cy="50" r={r} fill="none" stroke="#ffffff" strokeWidth="0.9" opacity="0.75" />
           ))}
-          <circle cx="50" cy="50" r="30" fill="#1b1512" />
-          <circle cx="50" cy="50" r="17" fill="none" stroke="#ffffff" strokeWidth="0.6" opacity="0.6" />
-          <circle cx="50" cy="50" r="7" fill="none" stroke="#ffffff" strokeWidth="0.6" opacity="0.6" />
+
+          <circle cx="50" cy="50" r="22" fill="url(#targetCore)" />
+          <circle cx="50" cy="50" r="12" fill="none" stroke="#ffffff" strokeWidth="0.6" opacity="0.45" />
+          <circle cx="50" cy="50" r="4.5" fill="#ffffff" opacity="0.28" />
+
+          {/* The light on the glass */}
+          <ellipse cx="34" cy="26" rx="17" ry="10" fill="#ffffff" opacity="0.4" transform="rotate(-28 34 26)" />
+          <path d="M14 66 A40 40 0 0 0 44 88" fill="none" stroke="#ffffff" strokeWidth="2.4" opacity="0.4" strokeLinecap="round" />
         </svg>
 
         {/* Where each one landed: rank sets the distance from the black */}
         {top.map((item, index) => {
-          const radius = index === 0 ? 0 : 15 + (index - 1) * 7;
-          const angle = (-90 + index * 61) * (Math.PI / 180);
+          // One in the black, the rest evenly around it, further out by rank.
+          const radius = index === 0 ? 0 : 18 + (index - 1) * 4.4;
+          const angle = (-90 + (index - 1) * 60) * (Math.PI / 180);
           const x = 50 + Math.cos(angle) * radius;
           const y = 50 + Math.sin(angle) * radius;
-          const tilt = ((index * 53) % 60) - 30;
+          const tilt = ((index * 53) % 44) - 22;
 
           return (
             <motion.button
@@ -82,7 +105,7 @@ export const TargetBoard: React.FC<TargetBoardProps> = ({ items, onSelect }) => 
               }}
               title={`${index + 1}. ${item.name}`}
               className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer"
-              style={{ left: `${x}%`, top: `${y}%`, height: '26%' }}
+              style={{ left: `${x}%`, top: `${y}%`, height: '12%' }}
               initial={{ opacity: 0, scale: 0.5, rotate: tilt * 2 }}
               animate={{ opacity: 1, scale: 1, rotate: tilt }}
               transition={{ type: 'spring', stiffness: 190, damping: 16, delay: index * 0.07 }}
@@ -95,7 +118,7 @@ export const TargetBoard: React.FC<TargetBoardProps> = ({ items, onSelect }) => 
                 className="h-full w-auto drop-shadow-[0_4px_5px_rgba(40,28,24,0.45)]"
               />
               <span
-                className="absolute -top-1.5 -right-2 w-[15px] h-[15px] rounded-full text-[8px] font-black flex items-center justify-center shadow-md text-white"
+                className="absolute -top-1 -right-1.5 w-[13px] h-[13px] rounded-full text-[7.5px] font-black flex items-center justify-center shadow-md text-white"
                 style={{ backgroundColor: item.colors[0] || '#E91E63' }}
               >
                 {index + 1}
