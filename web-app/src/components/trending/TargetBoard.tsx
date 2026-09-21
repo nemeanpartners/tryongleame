@@ -28,8 +28,9 @@ const artFor = (item: WantedLookItem) => ART_FOR[item.category] || ART_FOR.Other
  * The shades closest to being made, as shots on a target.
  *
  * A list tells you the order. This tells you the gap: the one people want most
- * is in the black, and the rest are as far out as they are behind. Tapping a
- * product opens what was proposed, and lets it be worn.
+ * is in the black, and the rest are as far out as they are behind. The names
+ * are on the board below it, so the target carries none - tapping a product
+ * opens what was proposed, and lets it be worn.
  */
 export const TargetBoard: React.FC<TargetBoardProps> = ({ items, onSelect }) => {
   const [open, setOpen] = useState<WantedLookItem | null>(null);
@@ -126,22 +127,6 @@ export const TargetBoard: React.FC<TargetBoardProps> = ({ items, onSelect }) => 
             </motion.button>
           );
         })}
-      </div>
-
-      {/* Who is where, because a target shows the gap but not the names */}
-      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1">
-        {top.map((item, index) => (
-          <div key={item.id} className="flex items-center gap-1.5 min-w-0">
-            <span className="text-[10px] font-black text-stone-400 tabular-nums w-3 shrink-0">
-              {index + 1}
-            </span>
-            <span
-              className="w-2 h-2 rounded-full shrink-0 border border-white shadow-xs"
-              style={{ backgroundColor: item.colors[0] }}
-            />
-            <span className="text-[10px] font-bold text-stone-700 truncate">{item.name}</span>
-          </div>
-        ))}
       </div>
 
       {/* What was proposed, when one is tapped */}

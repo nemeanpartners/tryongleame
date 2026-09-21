@@ -48,8 +48,9 @@ import { trackDwellTime } from './lib/analytics';
 import { getEffectiveAvatar, loadUserProfileFromFirestore, hasProfilePhoto } from './lib/userProfileService';
 import { openLookInNative, isNativeApp } from './lib/nativeLooks';
 import { SignatureLipsPage } from './components/home/SignatureLipsPage';
+import { CapsuleMachine } from './components/game/CapsuleMachine';
 
-type LabNavTarget = 'sandbox' | 'gallery' | 'gallery-looks' | 'gallery-challenges' | 'gallery-inspiration' | 'gallery-wanted' | 'wanted-list' | 'wanted-scrollfeed' | 'hall-of-fame' | 'trending' | 'built-looks' | 'votes' | 'profile' | 'looks' | 'tiktok-effects' | 'inspiration-wall' | 'signature-lips' | 'inspirationlooks-scrollfeed' | 'shade-edit' | 'admin';
+type LabNavTarget = 'sandbox' | 'gallery' | 'gallery-looks' | 'gallery-challenges' | 'gallery-inspiration' | 'gallery-wanted' | 'wanted-list' | 'wanted-scrollfeed' | 'hall-of-fame' | 'trending' | 'built-looks' | 'votes' | 'profile' | 'looks' | 'tiktok-effects' | 'inspiration-wall' | 'signature-lips' | 'capsule-game' | 'inspirationlooks-scrollfeed' | 'shade-edit' | 'admin';
 
 /**
  * In the iOS wrapper the Try On and Create dock tabs open the app's own native
@@ -156,6 +157,9 @@ export default function App() {
         return 'looks';
       case '/tiktok-effects':
         return 'tiktok-effects';
+      case '/capsule':
+      case '/shade-machine':
+        return 'capsule-game';
       case '/signature-lips':
       case '/wall-of-kisses':
         return 'signature-lips';
@@ -218,6 +222,8 @@ export default function App() {
         return '/inspiration-wall';
       case 'signature-lips':
         return '/signature-lips';
+      case 'capsule-game':
+        return '/capsule';
       case 'inspirationlooks-scrollfeed':
         return '/inspirationlooks-scrollfeed';
       case 'shade-edit':
@@ -456,6 +462,8 @@ export default function App() {
         return 'Inspiration Wall';
       case 'signature-lips':
         return 'Signature Lips';
+      case 'capsule-game':
+        return 'The Shade Machine';
       case 'gallery-wanted':
       case 'wanted-list':
       case 'wanted-scrollfeed':
@@ -842,6 +850,13 @@ export default function App() {
 
         {activeTab === 'tiktok-effects' && (
           <TiktokEffectsPage />
+        )}
+
+        {activeTab === 'capsule-game' && (
+          <CapsuleMachine
+            onBack={() => handleNavigate('home')}
+            onLoadPreset={handleSelectPresetForTryOn}
+          />
         )}
 
         {activeTab === 'signature-lips' && (
