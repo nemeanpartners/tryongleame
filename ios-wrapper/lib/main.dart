@@ -12,6 +12,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import 'onboarding.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const GleameApp());
@@ -117,6 +119,9 @@ class _LookLabPageState extends State<LookLabPage>
   bool _tryOnStudioRendererActive = false;
   bool _tryOnStudioReady = false;
 
+  /// Shown once, on a fresh install, before anything else.
+  bool _showOnboarding = false;
+
   /// Set when the renderer reports a failure, which is the one case where the
   /// loading screen gives way to the message instead of staying up.
   bool _tryOnStudioFailed = false;
@@ -202,6 +207,7 @@ class _LookLabPageState extends State<LookLabPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(_checkFirstRun());
     _configureWebControllers();
     unawaited(_checkWebAppVersion());
     unawaited(_loadSfSymbols());
@@ -1989,6 +1995,28 @@ class _LookLabPageState extends State<LookLabPage>
     return _uploadLookImage(lookId, bytes);
   }
 
+  /// Bumping this shows the opening again after it has been redesigned.
+  static const _onboardingVersion = '1';
+
+  /// A fresh install has never been opened, so the box is still wrapped. An
+  /// upgrade keeps everything else it had, and only sees this when the opening
+  /// itself is new.
+  Future<void> _checkFirstRun() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString('onboarded_version') == _onboardingVersion) return;
+    if (mounted) setState(() => _showOnboarding = true);
+  }
+
+  Future<void> _closeOnboarding({required bool signIn}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('onboarded_version', _onboardingVersion);
+    if (!mounted) return;
+    setState(() => _showOnboarding = false);
+    // Saving and voting need an account, so offer it rather than leaving the
+    // person to find it.
+    if (signIn) unawaited(_runNativeGoogleSignIn());
+  }
+
   /// Which build of the web app is live. Every deploy renames the bundle, so
   /// the name of the script the page loads is the version.
   Future<String?> _liveWebBuild() async {
@@ -2078,7 +2106,14 @@ class _LookLabPageState extends State<LookLabPage>
           ),
           if (!_isWebTab) SafeArea(child: _topBar()),
           Align(alignment: Alignment.bottomCenter, child: _bottomWorkspace()),
-          if (!_isWebTab)
+          if (_showOnboarding)
+            Positioned.fill(
+              child: OnboardingOverlay(
+                onSignIn: () => unawaited(_closeOnboarding(signIn: true)),
+                onExplore: () => unawaited(_closeOnboarding(signIn: false)),
+              ),
+            ),
+          if (!_isWebTab && !_showOnboarding)
             SafeArea(
               child: Align(
                 alignment: Alignment.topLeft,
