@@ -23,19 +23,22 @@ interface DemandOrbsProps {
  * drifts on its own, so the cluster is never quite the same twice.
  */
 const ORB_MIN = 54;
-const ORB_MAX = 104;
+const ORB_MAX = 94;
 
 /** Fixed seats around the middle, so the cluster never overlaps itself. */
+/**
+ * Every seat is far enough from the edge to hold the largest orb, because an
+ * orb is drawn from its centre: the field is 248 tall and 94 across at most,
+ * so nothing sits above 24% or below 76%, or outside 18% to 82%.
+ */
 const SEATS = [
-  { x: 50, y: 52 },
-  { x: 20, y: 34 },
-  { x: 79, y: 31 },
-  { x: 84, y: 68 },
-  { x: 17, y: 74 },
-  { x: 50, y: 90 },
-  // Kept clear of the top edge: the largest orb is drawn from its centre, so
-  // a seat any higher pushes it up into the heading above the field.
-  { x: 50, y: 15 }
+  { x: 50, y: 50 },
+  { x: 22, y: 33 },
+  { x: 78, y: 32 },
+  { x: 81, y: 67 },
+  { x: 19, y: 69 },
+  { x: 50, y: 76 },
+  { x: 50, y: 24 }
 ];
 
 export const DemandOrbs: React.FC<DemandOrbsProps> = ({
@@ -50,7 +53,7 @@ export const DemandOrbs: React.FC<DemandOrbsProps> = ({
   const span = Math.max(1, max - min);
 
   return (
-    <div className="relative w-full h-[228px] sm:h-[244px] mt-1">
+    <div className="relative w-full h-[248px] sm:h-[268px] mt-1 mb-2">
       {orbs.slice(0, SEATS.length).map((orb, index) => {
         const seat = SEATS[index];
         const weight = (orb.votes - min) / span;
