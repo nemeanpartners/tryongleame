@@ -15,13 +15,13 @@ interface ChallengePulseStripProps {
 const VOTE_GOAL = 10;
 
 /**
- * How long is left in the challenge, as a lipstick wearing down.
+ * How long is left in the challenge, as an hourglass of lip gloss.
  *
  * The clock used to be four numbers and a progress line, which reads as a
- * readout rather than a month running out. Here the bullet is worn down by as
- * much of the month as has gone: near the start it is new, by the last days
- * there is barely any left. The votes you still have to give are hearts, not
- * a bar.
+ * readout rather than a month running out. Here the top bulb holds what is
+ * left of the month and the bottom holds what has gone, with a thread of gloss
+ * running between them - so how long you have is a glance, not a sum. The
+ * votes you still have to give are hearts, not a bar.
  */
 export const ChallengePulseStrip: React.FC<ChallengePulseStripProps> = ({
   submissions,
@@ -42,10 +42,6 @@ export const ChallengePulseStrip: React.FC<ChallengePulseStripProps> = ({
   const votedCount = Math.min(votedIds.length, VOTE_GOAL);
   const closingSoon = countdown.days <= 3;
   const worn = Math.min(0.92, Math.max(0, countdown.elapsed));
-
-  // The bullet: full height when the month opens, a stub by the end of it.
-  const BULLET_MAX = 58;
-  const bulletHeight = Math.max(6, BULLET_MAX * (1 - worn));
 
   const closesOn = new Date(deadline).toLocaleDateString(undefined, {
     month: 'short',
@@ -77,47 +73,108 @@ export const ChallengePulseStrip: React.FC<ChallengePulseStripProps> = ({
       </div>
 
       <div className="mt-4 flex items-end gap-4 relative z-10">
-        {/* The lipstick, worn down by however much of the month has gone */}
-        <div className="shrink-0 relative" style={{ width: 66, height: 116 }}>
-          <svg width="66" height="116" viewBox="0 0 66 116">
+        {/* An hourglass of lip gloss: the top bulb empties as the month
+            goes, the bottom fills, and it keeps running while you watch. */}
+        <div className="shrink-0 relative" style={{ width: 74, height: 124 }}>
+          <svg width="74" height="124" viewBox="0 0 70 120">
             <defs>
-              <linearGradient id="bulletFace" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#F7C6D7" />
-                <stop offset="45%" stopColor="#E91E63" />
-                <stop offset="100%" stopColor="#AD1457" />
+              <linearGradient id="glossPink" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#F9C9D8" />
+                <stop offset="42%" stopColor="#F4A6BE" />
+                <stop offset="100%" stopColor="#E0819F" />
               </linearGradient>
-              <linearGradient id="tubeFace" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#ffffff" />
-                <stop offset="40%" stopColor="#efe7e2" />
-                <stop offset="100%" stopColor="#cbbcb3" />
+              <linearGradient id="capPink" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#FBD5E0" />
+                <stop offset="55%" stopColor="#F2A9C0" />
+                <stop offset="100%" stopColor="#D98AA5" />
               </linearGradient>
+              <linearGradient id="glassBody" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+                <stop offset="45%" stopColor="#ffffff" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#e7dcd8" stopOpacity="0.55" />
+              </linearGradient>
+              <clipPath id="topBulb">
+                <path d="M12 15 H58 C58 39 45 53 36 61 C27 53 12 39 12 15 Z" />
+              </clipPath>
+              <clipPath id="bottomBulb">
+                <path d="M36 61 C45 69 58 83 58 105 H12 C12 83 27 69 36 61 Z" />
+              </clipPath>
             </defs>
 
-            {/* What is left of the bullet. Its base stays at the tube's
-                mouth and the top comes down as the month is used up. */}
-            <motion.rect
-              x="21"
-              width="24"
-              rx="5"
-              fill="url(#bulletFace)"
-              initial={false}
-              animate={{ y: 62 - bulletHeight, height: bulletHeight }}
-              transition={{ type: 'spring', stiffness: 80, damping: 20 }}
+            {/* Glass */}
+            <path
+              d="M12 15 H58 C58 39 45 53 36 61 C27 53 12 39 12 15 Z"
+              fill="url(#glassBody)"
             />
-            <motion.ellipse
-              cx="33"
-              rx="12"
-              ry="4.5"
-              fill="#F7C6D7"
-              initial={false}
-              animate={{ cy: 62 - bulletHeight }}
-              transition={{ type: 'spring', stiffness: 80, damping: 20 }}
+            <path
+              d="M36 61 C45 69 58 83 58 105 H12 C12 83 27 69 36 61 Z"
+              fill="url(#glassBody)"
             />
 
-            {/* The tube */}
-            <rect x="17" y="60" width="32" height="50" rx="6" fill="url(#tubeFace)" />
-            <rect x="17" y="60" width="32" height="7" rx="3" fill="#B8887A" opacity="0.35" />
-            <rect x="22" y="74" width="4" height="26" rx="2" fill="#ffffff" opacity="0.75" />
+            {/* What is left of the month, still in the top */}
+            <g clipPath="url(#topBulb)">
+              <motion.rect
+                x="10"
+                width="50"
+                fill="url(#glossPink)"
+                initial={false}
+                animate={{ y: 15 + worn * 46, height: Math.max(0, 46 - worn * 46) + 2 }}
+                transition={{ type: 'spring', stiffness: 70, damping: 22 }}
+              />
+            </g>
+
+            {/* The thread of gloss running through the neck */}
+            {!countdown.done && (
+              <g clipPath="url(#bottomBulb)">
+                <rect x="34.4" y="61" width="3.2" height="30" fill="url(#glossPink)" opacity="0.55" />
+                {[0, 1, 2].map((drop) => (
+                  <motion.circle
+                    key={drop}
+                    cx="36"
+                    r="2.4"
+                    fill="#F2A9C0"
+                    initial={{ cy: 62, opacity: 0 }}
+                    animate={{ cy: [62, 100], opacity: [0, 1, 1, 0] }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      delay: drop * 0.5,
+                      ease: 'easeIn'
+                    }}
+                  />
+                ))}
+              </g>
+            )}
+
+            {/* What has already gone, pooled in the bottom */}
+            <g clipPath="url(#bottomBulb)">
+              <motion.rect
+                x="10"
+                width="50"
+                fill="url(#glossPink)"
+                initial={false}
+                animate={{ y: 105 - worn * 42, height: worn * 42 + 2 }}
+                transition={{ type: 'spring', stiffness: 70, damping: 22 }}
+              />
+              <motion.ellipse
+                rx="21"
+                ry="7"
+                fill="url(#glossPink)"
+                initial={false}
+                animate={{ cx: 35, cy: 105 - worn * 42 }}
+                transition={{ type: 'spring', stiffness: 70, damping: 22 }}
+              />
+            </g>
+
+            {/* Caps */}
+            <rect x="5" y="2" width="60" height="12" rx="6" fill="url(#capPink)" />
+            <rect x="3" y="104" width="64" height="14" rx="7" fill="url(#capPink)" />
+            <rect x="12" y="4.5" width="22" height="3" rx="1.5" fill="#fff" opacity="0.6" />
+            <rect x="10" y="107" width="26" height="3.5" rx="1.75" fill="#fff" opacity="0.55" />
+
+            {/* Glass highlights */}
+            <path d="M17 18 C17 34 24 45 30 52" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.75" />
+            <path d="M17 100 C17 86 23 74 29 68" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.6" />
           </svg>
         </div>
 
@@ -133,7 +190,7 @@ export const ChallengePulseStrip: React.FC<ChallengePulseStripProps> = ({
               {countdown.days}
             </motion.span>
             <span className="text-sm font-black text-stone-500">
-              {countdown.days === 1 ? 'day' : 'days'} of wear left
+              {countdown.days === 1 ? 'day' : 'days'} left to enter
             </span>
           </div>
           <p className="text-[11px] font-bold text-stone-400 mt-1 tabular-nums">

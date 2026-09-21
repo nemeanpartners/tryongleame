@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowUpRight, RefreshCw, X } from 'lucide-react';
+import { RefreshCw, X } from 'lucide-react';
 import { MakeupBagFill } from './MakeupBagFill';
 
 export interface DemandCategoryStat {
@@ -165,15 +165,20 @@ export const DemandPulseCard: React.FC<DemandPulseCardProps> = ({
           type="button"
           onClick={onSelectTopRising}
           title={`Filter the board for '${topRising}'`}
-          className="group neu-pill w-full px-3.5 py-2 flex items-center gap-2 text-left cursor-pointer transition-all active:scale-[0.99]"
+          className="group neu-pill w-full px-3.5 py-2.5 flex items-start gap-2 text-left cursor-pointer transition-all active:scale-[0.99]"
         >
           <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 shrink-0">
             Top rising
           </span>
-          <span className="text-[11.5px] font-black text-stone-900 truncate grow">
+          {/* Wraps rather than truncating: the name of what is rising is the
+              whole point of the line. */}
+          <span className="text-[11.5px] font-black text-stone-900 grow leading-snug">
             {topRising}
           </span>
-          <ArrowUpRight className="w-3.5 h-3.5 text-stone-400 group-hover:text-[#E91E63] transition-colors shrink-0" />
+          {/* Says what the tap does: it filters the board below to this one. */}
+          <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 group-hover:text-[#E91E63] transition-colors shrink-0">
+            Filter
+          </span>
         </button>
 
         {/* What is climbing, scrolling past */}

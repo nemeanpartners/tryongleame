@@ -661,3 +661,16 @@ input[type="range"] {
   background-size: 220% 100%;
   animation: shimmerSweep 2.6s ease-in-out infinite;
 }
+
+/*
+ * iOS zooms the whole page in when a field smaller than 16px is focused, and
+ * the page does not come back on its own. Every field is at least 16px on a
+ * touch screen, whatever the utility class on it says.
+ */
+@media (hover: none) and (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

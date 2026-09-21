@@ -124,6 +124,15 @@ export const CommunityChallengesView: React.FC<CommunityChallengesViewProps> = (
   const [newLashes, setNewLashes] = useState<'none' | 'natural' | 'glam' | 'wispy'>('natural');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  /** The entries this person has submitted, by id, so their own card knows. */
+  const [myEntryIds, setMyEntryIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('tryon_my_challenge_entries') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
   // Vote tracking
   const [votedSubIds, setVotedSubIds] = useState<string[]>(() => {
     try {
@@ -252,6 +261,11 @@ export const CommunityChallengesView: React.FC<CommunityChallengesViewProps> = (
       };
 
       setSubmissions(prev => [newSub, ...prev]);
+
+      // The entry is now this person's, so every card for it says so.
+      const mine = Array.from(new Set([...myEntryIds, newSub.id]));
+      setMyEntryIds(mine);
+      localStorage.setItem('tryon_my_challenge_entries', JSON.stringify(mine));
 
       const newVoted = [...votedSubIds, newSub.id];
       setVotedSubIds(newVoted);
@@ -440,15 +454,23 @@ export const CommunityChallengesView: React.FC<CommunityChallengesViewProps> = (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredSubmissions.map((sub, idx) => {
             const hasVoted = votedSubIds.includes(sub.id);
+            const isMine = myEntryIds.includes(sub.id);
             const coverImg = COSMETIC_COVERS[sub.lookName] || DEFAULT_COVERS[idx % DEFAULT_COVERS.length];
 
             return (
               <div 
                 key={sub.id}
-                className="bg-white rounded-3xl border border-[#EDE7E3] overflow-hidden shadow-xs hover:shadow-md hover:border-black/20 transition-all duration-300 flex flex-col justify-between group"
+                className={`bg-white rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between group border ${
+                  isMine ? 'border-[#E91E63] ring-2 ring-[#F7C6D7]' : 'border-[#EDE7E3] hover:border-black/20'
+                }`}
               >
                 {/* Cover Image */}
                 <div className="relative h-44 w-full overflow-hidden bg-stone-100">
+                  {isMine && (
+                    <span className="absolute top-2.5 left-2.5 z-10 px-2.5 py-1 rounded-full bg-[#E91E63] text-white text-[9px] font-black uppercase tracking-wider shadow-sm">
+                      Your entry
+                    </span>
+                  )}
                   <img 
                     src={coverImg} 
                     alt={sub.lookName}
@@ -483,15 +505,15 @@ export const CommunityChallengesView: React.FC<CommunityChallengesViewProps> = (
                   <div className="flex items-center gap-2 pt-2 border-t border-stone-100">
                     <button
                       onClick={(e) => handleVote(sub.id, e)}
-                      disabled={hasVoted}
+                      disabled={hasVoted || isMine}
                       className={`flex-1 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer ${
-                        hasVoted
+                        hasVoted || isMine
                           ? 'bg-stone-100 text-stone-400'
                           : 'bg-stone-100 hover:bg-stone-200 text-stone-800'
                       }`}
                     >
                       <Heart className={`w-3.5 h-3.5 ${hasVoted ? 'fill-current' : ''}`} />
-                      <span>{hasVoted ? 'Voted' : 'Vote'}</span>
+                      <span>{isMine ? 'Your entry' : hasVoted ? 'Voted' : 'Vote'}</span>
                     </button>
 
                     <button
