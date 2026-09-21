@@ -1,20 +1,27 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Plus, ChevronRight, Flame, ArrowUp, ArrowDown, Crown, Sparkles, X, Play } from 'lucide-react';
+import { Heart, Plus, ChevronRight, Flame, ArrowUp, ArrowDown, Crown, Sparkles, X, Play, Lock } from 'lucide-react';
 import { WantedListViewModal } from './WantedListViewModal';
 import { WANTED_LOOKS_100 } from '../../data/wantedLooks100';
-import { subscribeWantedLooks, voteWantedLookInFirestore } from '../../services/wantedLooksService';
+import {
+  subscribeWantedLooks,
+  voteWantedLookInFirestore,
+  pledgeWantedLookInFirestore,
+  createWantedLookInFirestore
+} from '../../services/wantedLooksService';
 import { useCountUp } from '../../lib/liveCounters';
 import { DemandOrbs } from './DemandOrbs';
 import { fuseShades, Fusion } from '../../lib/shadeFusion';
 import { openLookInNative } from '../../lib/nativeLooks';
-import { createWantedLookInFirestore } from '../../services/wantedLooksService';
+
 
 export interface WantedLookItem {
   id: string;
   name: string;
   countLabel: string;
   numericVotes: number;
+  /** How many people have said they would buy it, not just want it. */
+  pledges?: number;
   category: string;
   swatchType: 'concentric' | 'gradient' | 'solid';
   colors: string[];
@@ -34,6 +41,9 @@ interface WantedQuickActionCardProps {
 
 /** Votes needed for the next production milestone. */
 const MILESTONE_STEP = 250;
+
+/** Pledges that turn a wanted shade into one that actually gets made. */
+const ESCROW_GOAL = 500;
 
 const formatVotes = (votes: number) =>
   votes >= 1000 ? `${(votes / 1000).toFixed(1)}k` : `${votes}`;
@@ -55,6 +65,15 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
   });
 
   const [animatingId, setAnimatingId] = useState<string | null>(null);
+  /** Shades this person has pledged to buy, by id. */
+  const [pledgedMap, setPledgedMap] = useState<Record<string, boolean>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('tryon_shade_escrow') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
   /** The one or two shades in the fusion tray, by id. */
   const [fusionIds, setFusionIds] = useState<string[]>([]);
   const [fusionSaved, setFusionSaved] = useState<string | null>(null);
@@ -262,6 +281,28 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
     }
   };
 
+  /**
+   * Shade Escrow. A want is an opinion; a pledge is an order book. Once enough
+   * people have said they would buy one, it stops being a request.
+   */
+  const handleTogglePledge = async (e: React.MouseEvent, item: WantedLookItem) => {
+    e.stopPropagation();
+    const pledging = !pledgedMap[item.id];
+    const next = { ...pledgedMap, [item.id]: pledging };
+    setPledgedMap(next);
+    localStorage.setItem('tryon_shade_escrow', JSON.stringify(next));
+
+    const count = Math.max(0, (item.pledges || 0) + (pledging ? 1 : -1));
+    setItems((prev) =>
+      prev.map((entry) => (entry.id === item.id ? { ...entry, pledges: count } : entry))
+    );
+    try {
+      await pledgeWantedLookInFirestore(item.id, count);
+    } catch (error) {
+      console.warn('Could not sync the pledge:', error);
+    }
+  };
+
   const visibleItems = useMemo(() => {
     // One shade picked filters the board to its category, which is what makes
     // the field a control rather than a picture.
@@ -283,6 +324,8 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
     ? Math.min(100, Math.round((leader.numericVotes / leaderNextMilestone) * 100))
     : 0;
   const votedCount = Object.values(votedMap).filter(Boolean).length;
+  const leaderPledges = leader?.pledges || 0;
+  const escrowProgress = Math.min(100, Math.round((leaderPledges / ESCROW_GOAL) * 100));
 
   return (
     <>
@@ -347,6 +390,48 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
             <p className="text-[9.5px] font-bold text-stone-400 mt-1.5">
               {leaderProgress}% of the way to {leaderNextMilestone} votes
             </p>
+
+            {/* SHADE ESCROW - what the wanting is actually worth */}
+            <div className="mt-3 pt-3 border-t border-white/70">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+                  <Lock className="w-3 h-3 text-[#2A1715]" />
+                  Shade Escrow
+                </span>
+                <span className="text-[10px] font-black text-stone-500 tabular-nums">
+                  {leaderPledges}/{ESCROW_GOAL} would buy
+                </span>
+              </div>
+              <div className="mt-1.5 h-2 rounded-full bg-white/70 overflow-hidden relative">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-[#B8887A] to-[#2A1715]"
+                  initial={false}
+                  animate={{ width: `${escrowProgress}%` }}
+                  transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+                />
+                {escrowProgress >= 100 && (
+                  <div className="absolute inset-0 shimmer-sweep pointer-events-none" />
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-2 mt-2">
+                <p className="text-[9.5px] font-bold text-stone-400 leading-snug">
+                  {escrowProgress >= 100
+                    ? 'Funded. This one gets made.'
+                    : `${ESCROW_GOAL - leaderPledges} more pledges and it goes into production`}
+                </p>
+                <button
+                  type="button"
+                  onClick={(e) => void handleTogglePledge(e, leader)}
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 cursor-pointer active:scale-95 transition-all border ${
+                    pledgedMap[leader.id]
+                      ? 'bg-[#2A1715] text-white border-[#2A1715]'
+                      : 'bg-white text-[#2A1715] border-stone-200 hover:border-[#2A1715]'
+                  }`}
+                >
+                  {pledgedMap[leader.id] ? 'Pledged' : "I'd buy this"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -585,6 +670,11 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
                       }`}
                     >
                       {formatVotes(item.numericVotes)} want this
+                      {(item.pledges || 0) > 0 && (
+                        <span className="text-[#2A1715]">
+                          {' '}· {item.pledges} would buy
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>

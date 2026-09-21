@@ -40,8 +40,26 @@ export const ChallengePulseStrip: React.FC<ChallengePulseStripProps> = ({
   const animatedEntries = useCountUp(submissions.length);
 
   const votedCount = Math.min(votedIds.length, VOTE_GOAL);
+
+  /* The gloss in each bulb, as paths.
+     Top: a pile with the dip in the middle that a draining one always has.
+     Bottom: a mound rising as it collects. Both are driven by `worn`, which is
+     the real fraction of the month that has passed. */
+  const TOP_FLOOR = 90;   // where the top bulb narrows into the waist
+  const TOP_CEILING = 14; // a full bulb
+  const BOTTOM_FLOOR = 160;
+  const BOTTOM_CEILING = 86;
   const closingSoon = countdown.days <= 3;
   const worn = Math.min(0.92, Math.max(0, countdown.elapsed));
+
+  const topLevel = TOP_FLOOR - (1 - worn) * (TOP_FLOOR - TOP_CEILING);
+  const topSand =
+    worn >= 0.995
+      ? `M14 ${TOP_FLOOR} L86 ${TOP_FLOOR} Z`
+      : `M10 ${topLevel} Q50 ${topLevel + 16} 90 ${topLevel} L90 ${TOP_FLOOR} L10 ${TOP_FLOOR} Z`;
+
+  const moundTop = BOTTOM_FLOOR - worn * (BOTTOM_FLOOR - BOTTOM_CEILING);
+  const bottomSand = `M6 ${BOTTOM_FLOOR} L94 ${BOTTOM_FLOOR} L94 ${moundTop + 18} Q50 ${moundTop - 10} 6 ${moundTop + 18} Z`;
 
   const closesOn = new Date(deadline).toLocaleDateString(undefined, {
     month: 'short',
@@ -73,72 +91,68 @@ export const ChallengePulseStrip: React.FC<ChallengePulseStripProps> = ({
       </div>
 
       <div className="mt-4 flex items-end gap-4 relative z-10">
-        {/* An hourglass of lip gloss: the top bulb empties as the month
-            goes, the bottom fills, and it keeps running while you watch. */}
-        <div className="shrink-0 relative" style={{ width: 74, height: 124 }}>
-          <svg width="74" height="124" viewBox="0 0 70 120">
+        {/* A real hourglass: two glass bulbs, a clear waist, and lip gloss
+            instead of sand. How much sits in each bulb is how much of the
+            month has actually gone. */}
+        <div className="shrink-0 relative" style={{ width: 84, height: 132 }}>
+          <svg width="84" height="132" viewBox="0 0 100 170">
             <defs>
-              <linearGradient id="glossPink" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#F9C9D8" />
-                <stop offset="42%" stopColor="#F4A6BE" />
-                <stop offset="100%" stopColor="#E0819F" />
+              <linearGradient id="glossSand" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#E7A9B4" />
+                <stop offset="38%" stopColor="#D98B9B" />
+                <stop offset="100%" stopColor="#BF6C7E" />
               </linearGradient>
-              <linearGradient id="capPink" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#FBD5E0" />
-                <stop offset="55%" stopColor="#F2A9C0" />
-                <stop offset="100%" stopColor="#D98AA5" />
-              </linearGradient>
-              <linearGradient id="glassBody" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
-                <stop offset="45%" stopColor="#ffffff" stopOpacity="0.35" />
-                <stop offset="100%" stopColor="#e7dcd8" stopOpacity="0.55" />
-              </linearGradient>
-              <clipPath id="topBulb">
-                <path d="M12 15 H58 C58 39 45 53 36 61 C27 53 12 39 12 15 Z" />
+              <radialGradient id="bulbGlass" cx="0.34" cy="0.28" r="0.85">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.72" />
+                <stop offset="58%" stopColor="#ffffff" stopOpacity="0.14" />
+                <stop offset="100%" stopColor="#c9bdb8" stopOpacity="0.3" />
+              </radialGradient>
+              <clipPath id="topGlass">
+                <ellipse cx="50" cy="52" rx="40" ry="42" />
               </clipPath>
-              <clipPath id="bottomBulb">
-                <path d="M36 61 C45 69 58 83 58 105 H12 C12 83 27 69 36 61 Z" />
+              <clipPath id="bottomGlass">
+                <ellipse cx="50" cy="120" rx="40" ry="42" />
               </clipPath>
             </defs>
 
             {/* Glass */}
+            <ellipse cx="50" cy="52" rx="40" ry="42" fill="url(#bulbGlass)" />
+            <ellipse cx="50" cy="120" rx="40" ry="42" fill="url(#bulbGlass)" />
+            {/* The waist, where the two bulbs are drawn together */}
             <path
-              d="M12 15 H58 C58 39 45 53 36 61 C27 53 12 39 12 15 Z"
-              fill="url(#glassBody)"
-            />
-            <path
-              d="M36 61 C45 69 58 83 58 105 H12 C12 83 27 69 36 61 Z"
-              fill="url(#glassBody)"
+              d="M32 78 C40 84 44 84 46 88 L46 92 C44 96 40 96 32 102
+                 L68 102 C60 96 56 96 54 92 L54 88 C56 84 60 84 68 78 Z"
+              fill="#ffffff"
+              opacity="0.55"
             />
 
-            {/* What is left of the month, still in the top */}
-            <g clipPath="url(#topBulb)">
-              <motion.rect
-                x="10"
-                width="50"
-                fill="url(#glossPink)"
+            {/* What is left of the month, resting in the top bulb with the dip
+                a draining pile always has in the middle */}
+            <g clipPath="url(#topGlass)">
+              <motion.path
                 initial={false}
-                animate={{ y: 15 + worn * 46, height: Math.max(0, 46 - worn * 46) + 2 }}
+                animate={{ d: topSand }}
                 transition={{ type: 'spring', stiffness: 70, damping: 22 }}
+                fill="url(#glossSand)"
               />
             </g>
 
-            {/* The thread of gloss running through the neck */}
+            {/* The thread running through the waist */}
             {!countdown.done && (
-              <g clipPath="url(#bottomBulb)">
-                <rect x="34.4" y="61" width="3.2" height="30" fill="url(#glossPink)" opacity="0.55" />
+              <g>
+                <rect x="48.6" y="88" width="2.8" height="34" fill="url(#glossSand)" opacity="0.6" />
                 {[0, 1, 2].map((drop) => (
                   <motion.circle
                     key={drop}
-                    cx="36"
-                    r="2.4"
-                    fill="#F2A9C0"
-                    initial={{ cy: 62, opacity: 0 }}
-                    animate={{ cy: [62, 100], opacity: [0, 1, 1, 0] }}
+                    cx="50"
+                    r="2.2"
+                    fill="#D98B9B"
+                    initial={{ cy: 90, opacity: 0 }}
+                    animate={{ cy: [90, 148], opacity: [0, 1, 1, 0] }}
                     transition={{
-                      duration: 1.5,
+                      duration: 1.6,
                       repeat: Infinity,
-                      delay: drop * 0.5,
+                      delay: drop * 0.53,
                       ease: 'easeIn'
                     }}
                   />
@@ -146,35 +160,22 @@ export const ChallengePulseStrip: React.FC<ChallengePulseStripProps> = ({
               </g>
             )}
 
-            {/* What has already gone, pooled in the bottom */}
-            <g clipPath="url(#bottomBulb)">
-              <motion.rect
-                x="10"
-                width="50"
-                fill="url(#glossPink)"
+            {/* What has gone, piled up in the bottom bulb */}
+            <g clipPath="url(#bottomGlass)">
+              <motion.path
                 initial={false}
-                animate={{ y: 105 - worn * 42, height: worn * 42 + 2 }}
+                animate={{ d: bottomSand }}
                 transition={{ type: 'spring', stiffness: 70, damping: 22 }}
-              />
-              <motion.ellipse
-                rx="21"
-                ry="7"
-                fill="url(#glossPink)"
-                initial={false}
-                animate={{ cx: 35, cy: 105 - worn * 42 }}
-                transition={{ type: 'spring', stiffness: 70, damping: 22 }}
+                fill="url(#glossSand)"
               />
             </g>
 
-            {/* Caps */}
-            <rect x="5" y="2" width="60" height="12" rx="6" fill="url(#capPink)" />
-            <rect x="3" y="104" width="64" height="14" rx="7" fill="url(#capPink)" />
-            <rect x="12" y="4.5" width="22" height="3" rx="1.5" fill="#fff" opacity="0.6" />
-            <rect x="10" y="107" width="26" height="3.5" rx="1.75" fill="#fff" opacity="0.55" />
-
-            {/* Glass highlights */}
-            <path d="M17 18 C17 34 24 45 30 52" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.75" />
-            <path d="M17 100 C17 86 23 74 29 68" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.6" />
+            {/* Glass edges and highlights, over everything */}
+            <ellipse cx="50" cy="52" rx="40" ry="42" fill="none" stroke="rgba(120,104,98,0.3)" strokeWidth="1.6" />
+            <ellipse cx="50" cy="120" rx="40" ry="42" fill="none" stroke="rgba(120,104,98,0.3)" strokeWidth="1.6" />
+            <path d="M22 34 C16 46 16 60 22 72" stroke="#fff" strokeWidth="4" fill="none" strokeLinecap="round" opacity="0.85" />
+            <path d="M22 102 C16 114 16 128 22 140" stroke="#fff" strokeWidth="4" fill="none" strokeLinecap="round" opacity="0.7" />
+            <path d="M74 38 C78 46 79 54 77 62" stroke="#fff" strokeWidth="2.4" fill="none" strokeLinecap="round" opacity="0.5" />
           </svg>
         </div>
 
@@ -194,8 +195,8 @@ export const ChallengePulseStrip: React.FC<ChallengePulseStripProps> = ({
             </span>
           </div>
           <p className="text-[11px] font-bold text-stone-400 mt-1 tabular-nums">
-            closes {closesOn} · {String(countdown.hours).padStart(2, '0')}h{' '}
-            {String(countdown.minutes).padStart(2, '0')}m {String(countdown.seconds).padStart(2, '0')}s
+            closes {closesOn} · {countdown.days}d {countdown.hours}h{' '}
+            {countdown.minutes}m left
           </p>
 
           {/* Who is in, without a table of figures */}

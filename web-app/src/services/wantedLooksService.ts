@@ -77,6 +77,7 @@ export function subscribeWantedLooks(
               name: data.name,
               countLabel: data.countLabel || `${data.numericVotes || 0} want this`,
               numericVotes: typeof data.numericVotes === 'number' ? data.numericVotes : 0,
+              pledges: typeof data.pledges === 'number' ? data.pledges : 0,
               category: data.category || 'Eyes',
               swatchType: data.swatchType || 'gradient',
               colors: Array.isArray(data.colors) ? data.colors : ['#732729'],
@@ -114,6 +115,22 @@ export function subscribeWantedLooks(
 /**
  * Updates vote count for a wanted look in Firestore.
  */
+/**
+ * Shade Escrow: a pledge is a promise to buy, which is a different thing from
+ * a vote. A shade that reaches the threshold has a real order book behind it.
+ */
+export async function pledgeWantedLookInFirestore(
+  lookId: string,
+  nextPledges: number
+): Promise<void> {
+  const docPath = `${COLLECTION_NAME}/${lookId}`;
+  try {
+    await updateDoc(doc(db, COLLECTION_NAME, lookId), { pledges: nextPledges });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, docPath);
+  }
+}
+
 export async function voteWantedLookInFirestore(
   id: string, 
   newVotes: number, 

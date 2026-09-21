@@ -26,6 +26,7 @@ import { db, collection, getDocs, addDoc, updateDoc, doc, increment } from '../.
 import { LookRequest } from '../../types';
 import { GlitterConfetti } from '../common/GlitterConfetti';
 import { DemandPulseCard } from './DemandPulseCard';
+import { SignatureShadeWall } from './SignatureShadeWall';
 import { WantedQuickActionCard } from './WantedQuickActionCard';
 import { useCountUp } from '../../lib/liveCounters';
 
@@ -547,6 +548,9 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
           playDrop={playBagDrop}
           onDropFinished={() => setPlayBagDrop(false)}
         />
+        {/* SIGNATURE SHADES - the lips a person is known for */}
+        <SignatureShadeWall />
+
         {/* 2. WANTED QUICK ACTION CARD (MATCHING DESIGN WITH WANT BUTTONS, SWATCHES & SEE MORE) */}
         <WantedQuickActionCard
           onSeeMore={() => {
