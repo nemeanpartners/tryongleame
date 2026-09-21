@@ -54,37 +54,42 @@ export const TargetBoard: React.FC<TargetBoardProps> = ({ items, onSelect }) => 
       </div>
 
       <div className="relative w-full mt-3 mx-auto" style={{ aspectRatio: '1 / 1', maxWidth: 340 }}>
-        {/* A target in glass: a lens with rings cut into it, rather than a
-            printed paper one */}
+        {/* A target in glass: white at the edge, grey, then black in the
+            middle, the way a target actually reads */}
         <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
           <defs>
-            <radialGradient id="targetGlass" cx="0.36" cy="0.3" r="0.78">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
-              <stop offset="55%" stopColor="#ffffff" stopOpacity="0.45" />
-              <stop offset="100%" stopColor="#d9cec8" stopOpacity="0.55" />
+            <radialGradient id="targetWhite" cx="0.36" cy="0.3" r="0.8">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="100%" stopColor="#efe9e5" />
             </radialGradient>
-            <radialGradient id="targetCore" cx="0.38" cy="0.32" r="0.8">
-              <stop offset="0%" stopColor="#4a3b36" stopOpacity="0.82" />
-              <stop offset="70%" stopColor="#241b18" stopOpacity="0.88" />
-              <stop offset="100%" stopColor="#12100f" stopOpacity="0.92" />
+            <radialGradient id="targetGrey" cx="0.38" cy="0.32" r="0.8">
+              <stop offset="0%" stopColor="#c8bfb9" />
+              <stop offset="100%" stopColor="#a1968f" />
+            </radialGradient>
+            <radialGradient id="targetCore" cx="0.38" cy="0.32" r="0.82">
+              <stop offset="0%" stopColor="#3d322d" />
+              <stop offset="70%" stopColor="#221b18" />
+              <stop offset="100%" stopColor="#100d0c" />
             </radialGradient>
           </defs>
 
-          <circle cx="50" cy="50" r="49" fill="url(#targetGlass)" />
-          <circle cx="50" cy="50" r="49" fill="none" stroke="#ffffff" strokeWidth="1.1" opacity="0.9" />
-          <circle cx="50" cy="50" r="49" fill="none" stroke="#bfb1a8" strokeWidth="0.4" opacity="0.6" />
+          {/* The three bands */}
+          <circle cx="50" cy="50" r="49" fill="url(#targetWhite)" />
+          <circle cx="50" cy="50" r="36" fill="url(#targetGrey)" />
+          <circle cx="50" cy="50" r="21" fill="url(#targetCore)" />
 
-          {[40, 31].map((r) => (
-            <circle key={r} cx="50" cy="50" r={r} fill="none" stroke="#ffffff" strokeWidth="0.9" opacity="0.75" />
-          ))}
+          {/* The scoring lines cut between them */}
+          <circle cx="50" cy="50" r="43" fill="none" stroke="#ffffff" strokeWidth="0.7" opacity="0.8" />
+          <circle cx="50" cy="50" r="36" fill="none" stroke="#ffffff" strokeWidth="0.9" opacity="0.65" />
+          <circle cx="50" cy="50" r="28.5" fill="none" stroke="#ffffff" strokeWidth="0.7" opacity="0.5" />
+          <circle cx="50" cy="50" r="21" fill="none" stroke="#ffffff" strokeWidth="0.9" opacity="0.5" />
+          <circle cx="50" cy="50" r="9" fill="none" stroke="#ffffff" strokeWidth="0.7" opacity="0.4" />
 
-          <circle cx="50" cy="50" r="22" fill="url(#targetCore)" />
-          <circle cx="50" cy="50" r="12" fill="none" stroke="#ffffff" strokeWidth="0.6" opacity="0.45" />
-          <circle cx="50" cy="50" r="4.5" fill="#ffffff" opacity="0.28" />
-
-          {/* The light on the glass */}
-          <ellipse cx="34" cy="26" rx="17" ry="10" fill="#ffffff" opacity="0.4" transform="rotate(-28 34 26)" />
-          <path d="M14 66 A40 40 0 0 0 44 88" fill="none" stroke="#ffffff" strokeWidth="2.4" opacity="0.4" strokeLinecap="round" />
+          {/* The glass over all of it */}
+          <circle cx="50" cy="50" r="49" fill="none" stroke="#ffffff" strokeWidth="1.2" opacity="0.9" />
+          <circle cx="50" cy="50" r="49" fill="none" stroke="#b7aaa3" strokeWidth="0.4" opacity="0.65" />
+          <ellipse cx="34" cy="25" rx="18" ry="10" fill="#ffffff" opacity="0.3" transform="rotate(-28 34 25)" />
+          <path d="M14 66 A40 40 0 0 0 44 88" fill="none" stroke="#ffffff" strokeWidth="2.2" opacity="0.32" strokeLinecap="round" />
         </svg>
 
         {/* Where each one landed: rank sets the distance from the black */}

@@ -31,6 +31,8 @@ import { WANTED_LOOKS_100 } from '../../data/wantedLooks100';
 import { subscribeWantedLooks } from '../../services/wantedLooksService';
 import { productTally } from '../../lib/wantedProducts';
 import { openLookInNative } from '../../lib/nativeLooks';
+import { auth } from '../../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { useCountUp } from '../../lib/liveCounters';
 
 const CATEGORY_COVERS: Record<string, string> = {
@@ -109,7 +111,22 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [category, setCategory] = useState<string>('Eyes');
-  const [requestedBy, setRequestedBy] = useState<string>(() => localStorage.getItem('tryon_beauty_username') || '');
+  const [requestedBy, setRequestedBy] = useState<string>(
+    () =>
+      auth.currentUser?.displayName ||
+      localStorage.getItem('kobella_username') ||
+      localStorage.getItem('tryon_beauty_username') ||
+      ''
+  );
+
+  // The name arrives with the account, which may sign in after this mounts.
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const name = user?.displayName || user?.email?.split('@')[0] || '';
+      if (name) setRequestedBy((current) => current || name);
+    });
+    return () => unsubscribe();
+  }, []);
   const [color1, setColor1] = useState<string>('#db2777');
   const [color2, setColor2] = useState<string>('#9333ea');
   const [color3, setColor3] = useState<string>('#f59e0b');
@@ -707,13 +724,25 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
 
                   <div>
                     <label className="block text-[9.5px] font-black text-stone-400 uppercase tracking-widest mb-1.5">Your Name</label>
-                    <input
-                      type="text"
-                      placeholder="designer_99"
-                      value={requestedBy}
-                      onChange={(e) => setRequestedBy(e.target.value)}
-                      className="w-full text-[13px] px-3.5 py-2.5 border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#E91E63]/30 font-semibold text-stone-800 bg-white/70"
-                    />
+                    {requestedBy ? (
+                      <input
+                        type="text"
+                        placeholder="designer_99"
+                        value={requestedBy}
+                        onChange={(e) => setRequestedBy(e.target.value)}
+                        className="w-full text-xs bg-white/70 border border-white/80 rounded-2xl px-3 py-2.5 font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#E91E63]/30"
+                      />
+                    ) : (
+                      /* No account, no name to put on it: offer the way in
+                         rather than an empty box. */
+                      <button
+                        type="button"
+                        onClick={() => onNavigate?.('profile')}
+                        className="w-full text-xs bg-[#2A1715] text-white rounded-2xl px-3 py-2.5 font-bold cursor-pointer active:scale-95 transition-transform whitespace-nowrap"
+                      >
+                        Sign in
+                      </button>
+                    )}
                   </div>
                 </div>
 
