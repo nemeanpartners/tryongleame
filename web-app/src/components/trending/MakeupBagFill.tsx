@@ -64,13 +64,20 @@ const PRODUCT_HEIGHT: Record<ProductKind, number> = {
   eyeshadow: 20
 };
 
-/** What a category puts in the bag. Several, so a big share is not one object
-    repeated across the whole row. */
+/** What each line in the tally puts in the bag. */
 const KINDS_FOR: Record<string, ProductKind[]> = {
+  Lipstick: ['lipstick'],
+  'Lip gloss': ['gloss'],
+  'Lip liner': ['lipliner'],
+  Eyeliner: ['eyeliner'],
+  Eyeshadow: ['eyeshadow'],
+  Mascara: ['mascara'],
+  Blush: ['blush'],
+  Bronzer: ['bronzer'],
+  // The older, broader names, in case anything still sends them.
   Lips: ['lipstick', 'gloss', 'lipliner'],
-  Blush: ['blush', 'bronzer'],
   Eyes: ['mascara', 'eyeshadow', 'eyeliner'],
-  Highlight: ['bronzer', 'blush'],
+  Highlight: ['bronzer'],
   'Full Face': ['eyeshadow', 'bronzer'],
   Other: ['lipliner', 'gloss']
 };

@@ -14,17 +14,9 @@ interface CategorySquareProps {
   onSelectCategory: (name: string | null) => void;
 }
 
-/** Each category keeps its own dot colour wherever it appears. */
-const CATEGORY_COLOURS: Record<string, string> = {
-  Eyes: '#2A1715',
-  Lips: '#E91E63',
-  Blush: '#B8887A',
-  Highlight: '#D8A7B1',
-  'Full Face': '#7A5C52',
-  Other: '#C9BDB6'
-};
+import { PRODUCT_COLOURS, Product } from '../../lib/wantedProducts';
 
-const colourFor = (name: string) => CATEGORY_COLOURS[name] || '#C9BDB6';
+const colourFor = (name: string) => PRODUCT_COLOURS[name as Product] || '#C9BDB6';
 
 /**
  * Which part of the face the board is asking for, as bars that reorder as they
@@ -39,7 +31,7 @@ export const CategoryBars: React.FC<CategorySquareProps> = ({
   <div className="space-y-2">
     <div className="flex items-center justify-between">
       <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-400">
-        What is in the bag
+        Wanted popularity
       </span>
       {activeCategoryFilter && (
         <button
@@ -53,7 +45,7 @@ export const CategoryBars: React.FC<CategorySquareProps> = ({
       )}
     </div>
 
-    {categories.slice(0, 5).map((stat) => {
+    {categories.map((stat) => {
       const isSelected = activeCategoryFilter === stat.name;
       return (
         <motion.button
@@ -70,7 +62,7 @@ export const CategoryBars: React.FC<CategorySquareProps> = ({
             className="w-2 h-2 rounded-full shrink-0"
             style={{ backgroundColor: colourFor(stat.name) }}
           />
-          <span className="text-[11px] font-bold text-stone-700 w-16 shrink-0 text-left">
+          <span className="text-[11px] font-bold text-stone-700 w-[74px] shrink-0 text-left">
             {stat.name}
           </span>
           <span className="grow h-2 rounded-full bg-white/70 overflow-hidden relative">

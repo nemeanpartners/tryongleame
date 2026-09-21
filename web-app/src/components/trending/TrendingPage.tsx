@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, 
@@ -29,6 +29,8 @@ import { DemandPulseCard } from './DemandPulseCard';
 import { WantedQuickActionCard } from './WantedQuickActionCard';
 import { WANTED_LOOKS_100 } from '../../data/wantedLooks100';
 import { subscribeWantedLooks } from '../../services/wantedLooksService';
+import { productTally } from '../../lib/wantedProducts';
+import { openLookInNative } from '../../lib/nativeLooks';
 import { useCountUp } from '../../lib/liveCounters';
 
 const CATEGORY_COVERS: Record<string, string> = {
@@ -361,6 +363,15 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
     .filter((req) => (req.createdAt || 0) >= startOfToday)
     .reduce((sum, req) => sum + (req.votes || 0), 0);
   const animatedTotalVotes = useCountUp(trendingStats.totalVotes);
+
+  /** The four products being asked for most, which is what the bag holds. */
+  const wantedProducts = useMemo(() => productTally(wantedLooks, 4), [wantedLooks]);
+
+  /** The shade climbing fastest, which is what Top rising names and wears. */
+  const wantedLeader = useMemo(
+    () => [...wantedLooks].sort((a, b) => b.numericVotes - a.numericVotes)[0],
+    [wantedLooks]
+  );
   const backedByYou = requests.filter(
     (req) => currentUser && req.votedUsers?.includes(currentUser)
   ).length;
@@ -522,8 +533,8 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
           votesToday={votesToday}
           proposalsToday={proposalsToday}
           backedByYou={backedByYou}
-          categories={trendingStats.categories}
-          topRising={topRisingProposal}
+          categories={wantedProducts}
+          topRising={wantedLeader?.name || topRisingProposal}
           leaders={[...requests]
             .sort((a, b) => b.votes - a.votes)
             .slice(0, 12)
@@ -538,10 +549,13 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
             );
             setTimeout(() => setPulseToast(null), 2500);
           }}
-          onSelectTopRising={() => {
-            setSearchQuery(topRisingProposal);
-            setPulseToast(`Filtered to Top Rising: ${topRisingProposal}`);
-            setTimeout(() => setPulseToast(null), 2500);
+          onTryTopRising={() => {
+            if (!wantedLeader) return;
+            openLookInNative({
+              id: wantedLeader.id,
+              name: wantedLeader.name,
+              lipColor: wantedLeader.colors[0]
+            });
           }}
           onApplyHotFormula={handleApplyHotFormula}
           onInspectTotal={() => {
@@ -579,25 +593,52 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
         />
 
         {/* 3. PROPOSE NEXT SHADES SUBMISSION FORM (COMPACT COLLAPSIBLE WITH X BUTTON) */}
-        <div id="proposal-form" className="bg-white rounded-2xl border border-[#B8887A]/25 shadow-md text-left overflow-hidden transition-all duration-300">
+        <div id="proposal-form" className="glass-card rounded-[28px] text-left overflow-hidden transition-all duration-300">
           {!isFormExpanded ? (
             /* COMPACT COLLAPSED CARD */
-            <div 
+            <div
               onClick={() => setIsFormExpanded(true)}
-              className="p-5 sm:p-6 hover:bg-[#faf6f5]/60 cursor-pointer transition-colors group flex items-center justify-between gap-4"
+              className="p-5 sm:p-6 cursor-pointer group"
             >
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-[#2A1715]/10 text-[#2A1715] flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-[#2A1715] group-hover:text-white transition-all shadow-xs">
-                  <Sparkles className="w-5 h-5" />
-                </div>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-500 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-[#E91E63]" />
+                Propose next shades
+              </span>
+              <h3 className="text-2xl font-display font-black text-stone-900 tracking-tight mt-0.5">
+                Ask for the one you want
+              </h3>
+              <p className="text-[11px] text-stone-500 font-medium mt-1 leading-relaxed">
+                Name a shade nobody has made yet and it goes on the board for
+                everyone else to vote on. Takes about a minute.
+              </p>
+
+              {/* Whose it will be, so it is clearly yours before you start */}
+              <div className="flex items-center gap-2.5 mt-4">
+                <span className="w-9 h-9 rounded-full bg-[#2A1715] text-white text-[11px] font-black flex items-center justify-center shrink-0 uppercase">
+                  {(currentUser || 'you').slice(0, 2)}
+                </span>
                 <div className="min-w-0">
-                  <h3 className="text-sm sm:text-base font-display font-bold text-[#2A1715] group-hover:text-[#1C1917] transition-colors truncate">
-                    Propose Next Shades
-                  </h3>
-                  <p className="text-[11px] text-stone-500 font-medium line-clamp-1">
-                    Request a specific makeup shade or finishing formula to be modeled next.
+                  <p className="text-[11px] font-black text-stone-900 truncate">
+                    {currentUser ? `Proposing as ${currentUser}` : 'Proposing as you'}
+                  </p>
+                  <p className="text-[10px] font-bold text-stone-400">
+                    {requests.length} shades proposed so far
                   </p>
                 </div>
+              </div>
+
+              {/* The colours it starts from, which is most of the work done */}
+              <div className="flex items-center gap-2 mt-3.5">
+                <span className="text-[9.5px] font-black uppercase tracking-wider text-stone-400">
+                  Starts with
+                </span>
+                {[color1, color2, color3].map((hex, index) => (
+                  <span
+                    key={index}
+                    className="w-6 h-6 rounded-full border-2 border-white shadow-xs"
+                    style={{ backgroundColor: hex }}
+                  />
+                ))}
               </div>
 
               <button
@@ -606,10 +647,10 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                   e.stopPropagation();
                   setIsFormExpanded(true);
                 }}
-                className="px-3 py-1.5 bg-[#2A1715] hover:bg-[#1C1917] text-white text-xs font-bold rounded-xl flex items-center gap-1 shrink-0 shadow-xs cursor-pointer active:scale-95 transition-all"
+                className="w-full mt-4 py-3 rounded-full bg-[#E91E63] text-white text-[11.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Propose</span>
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                Propose a shade
               </button>
             </div>
           ) : (

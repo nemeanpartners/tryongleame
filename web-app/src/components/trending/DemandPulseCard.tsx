@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { RefreshCw, X } from 'lucide-react';
+import { RefreshCw, Play } from 'lucide-react';
 import { MakeupBagFill } from './MakeupBagFill';
 import { CategoryBars } from './CategorySquare';
 
@@ -23,7 +23,8 @@ interface DemandPulseCardProps {
   isRefreshing: boolean;
   onRefresh: () => void;
   onSelectCategory: (name: string | null) => void;
-  onSelectTopRising: () => void;
+  /** Wear the shade that is climbing, before deciding to vote for it. */
+  onTryTopRising: () => void;
   onApplyHotFormula: () => void;
   onInspectTotal: () => void;
   toast: string | null;
@@ -63,7 +64,7 @@ export const DemandPulseCard: React.FC<DemandPulseCardProps> = ({
   isRefreshing,
   onRefresh,
   onSelectCategory,
-  onSelectTopRising,
+  onTryTopRising,
   onApplyHotFormula,
   onInspectTotal,
   toast,
@@ -164,21 +165,22 @@ export const DemandPulseCard: React.FC<DemandPulseCardProps> = ({
       <div className="mt-3 relative z-10">
         <button
           type="button"
-          onClick={onSelectTopRising}
-          title={`Filter the board for '${topRising}'`}
-          className="group neu-pill w-full px-3.5 py-2.5 flex items-start gap-2 text-left cursor-pointer transition-all active:scale-[0.99]"
+          onClick={onTryTopRising}
+          title={`Try on ${topRising}`}
+          className="group neu-pill w-full px-3.5 py-2.5 text-left cursor-pointer transition-all active:scale-[0.99]"
         >
-          <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 shrink-0">
-            Top rising
-          </span>
-          {/* Wraps rather than truncating: the name of what is rising is the
-              whole point of the line. */}
-          <span className="text-[11.5px] font-black text-stone-900 grow leading-snug">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[9px] font-black uppercase tracking-wider text-stone-400">
+              Top rising
+            </span>
+            {/* Wearing it is how you decide whether to vote for it */}
+            <span className="text-[9px] font-black uppercase tracking-wider text-[#E91E63] flex items-center gap-1 shrink-0">
+              <Play className="w-2.5 h-2.5 fill-current" />
+              Try on
+            </span>
+          </div>
+          <span className="block text-[12.5px] font-black text-stone-900 leading-snug mt-1">
             {topRising}
-          </span>
-          {/* Says what the tap does: it filters the board below to this one. */}
-          <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 group-hover:text-[#E91E63] transition-colors shrink-0">
-            Filter
           </span>
         </button>
 

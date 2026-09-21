@@ -6,8 +6,7 @@ import { WANTED_LOOKS_100 } from '../../data/wantedLooks100';
 import {
   subscribeWantedLooks,
   voteWantedLookInFirestore,
-  pledgeWantedLookInFirestore,
-  createWantedLookInFirestore
+  pledgeWantedLookInFirestore
 } from '../../services/wantedLooksService';
 import { useCountUp } from '../../lib/liveCounters';
 import { DemandOrbs } from './DemandOrbs';
@@ -155,31 +154,6 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
     if (!handled) setFusionSaved('Open the app to wear it on your own face');
   };
 
-  const requestFusion = async () => {
-    if (!fusion) return;
-    const id = `fusion_${Date.now()}`;
-    try {
-      await createWantedLookInFirestore({
-        id,
-        name: fusion.name,
-        countLabel: '1 want this',
-        numericVotes: 1,
-        category: fusionPicks[0]?.category || 'Other',
-        swatchType: 'gradient',
-        colors: [fusion.hex, fusionPicks[0]?.colors[0] || fusion.hex],
-        description: `Fused from ${fusion.parents[0]} and ${fusion.parents[1]}.`,
-        requestedBy:
-          localStorage.getItem('kobella_username') ||
-          localStorage.getItem('tryon_beauty_username') ||
-          'community'
-      });
-      setFusionSaved(`${fusion.name} is on the board`);
-      setFusionIds([]);
-    } catch (error) {
-      console.error('Could not put the fusion on the board:', error);
-      setFusionSaved('That blend could not be added');
-    }
-  };
   const animatedTotal = useCountUp(totalVotes);
 
   // Watch the board for movement: what climbed, what changed, and when.
@@ -653,16 +627,15 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
             Make one of your own
           </h3>
           <p className="text-[11px] text-stone-500 font-medium mt-1 leading-relaxed">
-            Blend two shades from the board above into one nobody has yet. Wear
-            it on your own face, or add it to the requested shades for everyone
-            else to vote on.
+            Blend two shades from the board above into a look of your own and
+            wear it. It is yours to try, not another request on the board.
           </p>
           <p className="text-[10px] font-black uppercase tracking-wider text-[#E91E63] mt-2">
             {fusionPicks.length === 0
               ? 'Tap one to filter · two to fuse'
               : fusionPicks.length === 1
                 ? 'Tap a second to fuse them'
-                : 'Wear it, or put it on the board'}
+                : 'Wear what the two make'}
           </p>
         </div>
 
@@ -735,28 +708,18 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
                   </p>
                   <p className="text-[10px] font-bold text-stone-400 tabular-nums">
                     {fusion.hex.toUpperCase()} · born of{' '}
-                    {fusion.inheritedVotes.toLocaleString()} votes · nobody has this yet
+                    {fusion.inheritedVotes.toLocaleString()} votes
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 mt-3">
-                  <button
-                    type="button"
-                    onClick={wearFusion}
-                    className="grow py-2 rounded-full bg-[#2A1715] text-white text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
-                  >
-                    <Play className="w-3 h-3 fill-current" />
-                    Wear it
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void requestFusion()}
-                    className="grow py-2 rounded-full bg-[#E91E63] text-white text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
-                  >
-                    <Sparkles className="w-3 h-3" />
-                    Put it on the board
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={wearFusion}
+                  className="w-full mt-3 py-2.5 rounded-full bg-[#E91E63] text-white text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
+                >
+                  <Play className="w-3 h-3 fill-current" />
+                  Wear this blend
+                </button>
               </>
             )}
 
