@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RefreshCw, Play } from 'lucide-react';
-import { MakeupBagFill } from './MakeupBagFill';
+import { MakeupBagFill, BagItem } from './MakeupBagFill';
 import { CategoryBars } from './CategorySquare';
 
 export interface DemandCategoryStat {
@@ -28,6 +28,10 @@ interface DemandPulseCardProps {
   onApplyHotFormula: () => void;
   onInspectTotal: () => void;
   toast: string | null;
+  /** The most wanted looks, which are the things in the bag. */
+  bagItems: BagItem[];
+  /** A look voted for just now, which falls into the bag on its own. */
+  incoming?: BagItem | null;
   /** True the first time the board is opened in this app session. */
   playDrop: boolean;
   onDropFinished: () => void;
@@ -68,6 +72,8 @@ export const DemandPulseCard: React.FC<DemandPulseCardProps> = ({
   onApplyHotFormula,
   onInspectTotal,
   toast,
+  bagItems,
+  incoming,
   playDrop,
   onDropFinished
 }) => {
@@ -155,7 +161,8 @@ export const DemandPulseCard: React.FC<DemandPulseCardProps> = ({
         <MakeupBagFill
           totalVotes={totalVotes}
           votesToday={votesToday}
-          categories={categories}
+          items={bagItems}
+          incoming={incoming}
           play={playDrop}
           onFinished={onDropFinished}
         />

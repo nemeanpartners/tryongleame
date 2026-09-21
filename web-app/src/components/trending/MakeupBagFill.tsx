@@ -2,145 +2,129 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 
-export interface BagCategory {
+/** One thing people have asked for, sitting in the bag. */
+export interface BagItem {
+  id: string;
   name: string;
-  percentage: number;
+  /** Which product it is, which decides the object shown. */
+  product: string;
+  colour: string;
 }
 
 interface MakeupBagFillProps {
   totalVotes: number;
   votesToday: number;
-  categories: BagCategory[];
+  /** The most wanted looks, in order. Each one is an object in the pouch. */
+  items: BagItem[];
   /** Runs the drop; false settles everything where it lands. */
   play: boolean;
+  /** A look that has just been voted for, which falls in on its own. */
+  incoming?: BagItem | null;
   onFinished?: () => void;
 }
 
 /* -------------------------------------------------------------------------
-   HOW FULL THE BAG GETS
-   One product per hundred votes. A quiet board still shows a few pieces, and
-   a busy one fills the bag without ever spilling out of it: the slots below
-   are a hard limit, so the count can never exceed the room there is for it.
+   THE POUCH
+   Soft vinyl rather than a box: the sides bow out, the corners are pillowy,
+   and the bottom has a gusset it can stand on. Everything below is in the
+   pouch's own coordinates.
    ------------------------------------------------------------------------- */
-const VOTES_PER_PRODUCT = 100;
-const MIN_PRODUCTS = 6;
+const BAG_W = 252;
+const BAG_H = 172;
+const LIP = 34; // where the zip sits
+const FLOOR = BAG_H - 20;
 
-const BAG_W = 248;
-const BAG_H = 168;
-/** The inside of the pouch, in bag coordinates. */
-const INNER_LEFT = 30;
-const INNER_RIGHT = BAG_W - 30;
-const INNER_BOTTOM = BAG_H - 18;
-const INNER_TOP = 52;
-const SLOT_W = 30;
-const SLOT_H = 40;
-const COLUMNS = Math.floor((INNER_RIGHT - INNER_LEFT) / SLOT_W);
-const ROWS = Math.floor((INNER_BOTTOM - INNER_TOP) / SLOT_H);
-const CAPACITY = COLUMNS * ROWS;
+/** The outline of the pouch, bowed out at the sides the way vinyl gives. */
+const POUCH = `
+  M 26 ${LIP + 6}
+  Q 18 ${BAG_H / 2} 24 ${FLOOR - 16}
+  Q 26 ${FLOOR} 48 ${FLOOR}
+  L ${BAG_W - 48} ${FLOOR}
+  Q ${BAG_W - 26} ${FLOOR} ${BAG_W - 24} ${FLOOR - 16}
+  Q ${BAG_W - 18} ${BAG_H / 2} ${BAG_W - 26} ${LIP + 6}
+  Q ${BAG_W / 2} ${LIP - 2} 26 ${LIP + 6}
+  Z
+`;
 
-/** The photographs, cut out and sitting in /public/products. */
-const PRODUCT_ART = {
-  lipstick: '/products/lipstick.png',
-  gloss: '/products/gloss.png',
-  lipliner: '/products/lipliner.png',
-  blush: '/products/blush.png',
-  bronzer: '/products/bronzer.png',
-  mascara: '/products/mascara.png',
-  eyeliner: '/products/eyeliner.png',
-  eyeshadow: '/products/eyeshadow.png'
-} as const;
+/** How many things fit before the pouch is full. */
+const CAPACITY = 6;
 
-type ProductKind = keyof typeof PRODUCT_ART;
-
-/** How tall each one stands in the bag. Tubes are tall, pans are flat. */
-const PRODUCT_HEIGHT: Record<ProductKind, number> = {
-  lipstick: 38,
-  gloss: 38,
-  lipliner: 36,
-  blush: 24,
-  bronzer: 25,
-  mascara: 40,
-  eyeliner: 36,
-  eyeshadow: 20
+/** The object shown for each product. */
+const ART_FOR: Record<string, string> = {
+  Lipstick: '/products/lipstick.png',
+  'Lip gloss': '/products/gloss.png',
+  'Lip liner': '/products/lipliner.png',
+  Eyeliner: '/products/eyeliner.png',
+  Eyeshadow: '/products/eyeshadow.png',
+  Mascara: '/products/mascara.png',
+  Blush: '/products/blush.png',
+  Bronzer: '/products/bronzer.png'
 };
 
-/** What each line in the tally puts in the bag. */
-const KINDS_FOR: Record<string, ProductKind[]> = {
-  Lipstick: ['lipstick'],
-  'Lip gloss': ['gloss'],
-  'Lip liner': ['lipliner'],
-  Eyeliner: ['eyeliner'],
-  Eyeshadow: ['eyeshadow'],
-  Mascara: ['mascara'],
-  Blush: ['blush'],
-  Bronzer: ['bronzer'],
-  // The older, broader names, in case anything still sends them.
-  Lips: ['lipstick', 'gloss', 'lipliner'],
-  Eyes: ['mascara', 'eyeshadow', 'eyeliner'],
-  Highlight: ['bronzer'],
-  'Full Face': ['eyeshadow', 'bronzer'],
-  Other: ['lipliner', 'gloss']
+/** How tall each one stands. Tubes are tall, pans are flat. */
+const HEIGHT_FOR: Record<string, number> = {
+  Lipstick: 52,
+  'Lip gloss': 52,
+  'Lip liner': 50,
+  Eyeliner: 50,
+  Eyeshadow: 30,
+  Mascara: 54,
+  Blush: 34,
+  Bronzer: 35
 };
 
-/** Repeatable jitter, so the jumble is the same every time it is drawn. */
-const wobble = (index: number, spread: number, salt = 1) =>
-  (((index * 37 + salt * 11) % 100) / 100 - 0.5) * 2 * spread;
+const artFor = (item: BagItem) => ART_FOR[item.product] || ART_FOR.Lipstick;
+const heightFor = (item: BagItem) => HEIGHT_FOR[item.product] || 40;
 
 /**
- * What the community is asking for, as a clear pouch filling up.
+ * Where each thing lies in the pouch. Not a grid: they lean, they sit at
+ * different depths, and they overlap, the way things do when they have been
+ * dropped in rather than arranged.
+ */
+const PLACES = [
+  { x: 74, lift: 0, tilt: -9, depth: 1 },
+  { x: 118, lift: 4, tilt: 6, depth: 0.9 },
+  { x: 160, lift: 1, tilt: -4, depth: 1 },
+  { x: 96, lift: 14, tilt: 12, depth: 0.82 },
+  { x: 186, lift: 9, tilt: -13, depth: 0.86 },
+  { x: 52, lift: 11, tilt: 8, depth: 0.84 }
+];
+
+/**
+ * What the community is asking for, as a pouch filling up.
  *
- * A ring and a row of percentages say the same thing, but you have to read
- * them. Here every product that drops in is a hundred votes, and which
- * products they are is the category mix - so a bag of lipsticks means lips are
- * winning. It plays when the app is opened, then settles.
+ * Every object in it is a look someone has voted for, so the bag is the board
+ * in physical form: vote for a brown liner and a brown liner is what is in the
+ * bag. It fills when the app is opened, and anything voted for afterwards
+ * drops in on its own.
  */
 export const MakeupBagFill: React.FC<MakeupBagFillProps> = ({
   totalVotes,
   votesToday,
-  categories,
+  items,
   play,
+  incoming,
   onFinished
 }) => {
   const [dropped, setDropped] = useState(!play);
   const bagRef = useRef<HTMLDivElement | null>(null);
   const [bagRect, setBagRect] = useState<DOMRect | null>(null);
 
-  // Hand out the products in proportion to the vote, largest share first.
-  const products = useMemo(() => {
-    const wanted = Math.min(
-      CAPACITY,
-      Math.max(MIN_PRODUCTS, Math.round(totalVotes / VOTES_PER_PRODUCT))
-    );
-    const ranked = [...categories]
-      .filter((category) => category.percentage > 0)
-      .sort((a, b) => b.percentage - a.percentage);
+  /** What is in the pouch: the most wanted, plus anything just voted for. */
+  const contents = useMemo(() => {
+    const top = items.slice(0, CAPACITY);
+    if (!incoming) return top;
+    const without = top.filter((item) => item.id !== incoming.id);
+    return [incoming, ...without].slice(0, CAPACITY);
+  }, [items, incoming]);
 
-    const pool = ranked.length > 0 ? ranked : [{ name: 'Other', percentage: 100 }];
-    const out: { kind: ProductKind; index: number }[] = [];
-
-    pool.forEach((category) => {
-      const kinds = KINDS_FOR[category.name] || KINDS_FOR.Other;
-      const count = Math.max(1, Math.round((category.percentage / 100) * wanted));
-      for (let i = 0; i < count && out.length < wanted; i++) {
-        out.push({ kind: kinds[i % kinds.length], index: out.length });
-      }
-    });
-    return out.slice(0, wanted);
-  }, [categories, totalVotes]);
-
-  /** Where each product ends up: a slot in the bag, filled from the floor up,
-      nudged so the pile looks tipped in rather than lined up. */
-  const slotFor = (index: number) => {
-    const row = Math.floor(index / COLUMNS);
-    const column = index % COLUMNS;
-    const inRow = Math.min(COLUMNS, products.length - row * COLUMNS);
-    const rowWidth = inRow * SLOT_W;
-    const left = INNER_LEFT + (INNER_RIGHT - INNER_LEFT - rowWidth) / 2 + column * SLOT_W;
+  const placeOf = (index: number) => {
+    const place = PLACES[index % PLACES.length];
     return {
-      x: left + wobble(index, 3),
-      y: INNER_BOTTOM - (row + 1) * SLOT_H + wobble(index, 2, 3),
-      // Tipped either way, the way things land when they are dropped in.
-      tilt: wobble(index, 26, 7)
+      left: place.x,
+      top: FLOOR - heightFor(contents[index]) * place.depth - place.lift,
+      tilt: place.tilt,
+      depth: place.depth
     };
   };
 
@@ -166,7 +150,7 @@ export const MakeupBagFill: React.FC<MakeupBagFillProps> = ({
       document.body.style.overflow = previousOverflow;
       setDropped(true);
       finishRef.current?.();
-    }, 2600);
+    }, 2400);
 
     return () => {
       window.clearTimeout(done);
@@ -176,41 +160,44 @@ export const MakeupBagFill: React.FC<MakeupBagFillProps> = ({
 
   const falling = play && !dropped && bagRect !== null;
 
-  const renderProduct = (product: { kind: ProductKind; index: number }) => (
-    <img
-      src={PRODUCT_ART[product.kind]}
-      alt=""
-      draggable={false}
-      style={{ height: PRODUCT_HEIGHT[product.kind], width: 'auto' }}
-      className="object-contain drop-shadow-[0_2px_3px_rgba(60,44,38,0.25)]"
-    />
-  );
+  const renderItem = (item: BagItem, index: number) => {
+    const place = placeOf(index);
+    return (
+      <img
+        src={artFor(item)}
+        alt=""
+        title={item.name}
+        draggable={false}
+        style={{ height: heightFor(item) * place.depth }}
+        className="w-auto object-contain drop-shadow-[0_3px_4px_rgba(70,52,46,0.3)]"
+      />
+    );
+  };
 
   return (
-    <div className="relative w-full flex items-end justify-center" style={{ height: 224 }}>
-      {/* The studio surface it stands on */}
+    <div className="relative w-full flex items-end justify-center" style={{ height: 232 }}>
+      {/* The surface it stands on */}
       <div
         className="absolute inset-x-2 bottom-0 rounded-[28px]"
         style={{
-          top: 6,
-          background:
-            'linear-gradient(180deg, #fdfcfb 0%, #f2eeeb 58%, #e4dcd6 78%, #efe9e5 100%)'
+          top: 8,
+          background: 'linear-gradient(180deg, #fefdfc 0%, #f6f2ef 62%, #ece5e0 100%)'
         }}
       />
 
-      <div ref={bagRef} className="relative" style={{ width: BAG_W, height: BAG_H + 22 }}>
-        {/* Contact shadow */}
+      <div ref={bagRef} className="relative" style={{ width: BAG_W, height: BAG_H + 26 }}>
+        {/* Contact shadow, soft and close */}
         <div
           className="absolute left-1/2 -translate-x-1/2 rounded-[50%] pointer-events-none"
           style={{
-            bottom: 8,
-            width: BAG_W - 54,
-            height: 18,
-            background: 'radial-gradient(ellipse, rgba(74,54,46,0.30) 0%, rgba(74,54,46,0) 72%)'
+            bottom: 14,
+            width: BAG_W - 76,
+            height: 14,
+            background: 'radial-gradient(ellipse, rgba(74,54,46,0.26) 0%, rgba(74,54,46,0) 72%)'
           }}
         />
 
-        {/* The back wall of the pouch, seen through the front */}
+        {/* The back of the pouch, seen through the front */}
         <svg
           width={BAG_W}
           height={BAG_H}
@@ -219,44 +206,49 @@ export const MakeupBagFill: React.FC<MakeupBagFillProps> = ({
         >
           <defs>
             <linearGradient id="vinylBack" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.72" />
-              <stop offset="62%" stopColor="#f3eeea" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#d9cec7" stopOpacity="0.62" />
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.34" />
+              <stop offset="70%" stopColor="#ffffff" stopOpacity="0.14" />
+              <stop offset="100%" stopColor="#e8e2de" stopOpacity="0.3" />
             </linearGradient>
           </defs>
-          <rect x="22" y="34" width={BAG_W - 44} height={BAG_H - 48} rx="14" fill="url(#vinylBack)" />
-          {/* The seam where the back panel meets the base */}
-          <rect x="30" y={BAG_H - 26} width={BAG_W - 60} height="5" rx="2.5" fill="#cbbdb4" opacity="0.5" />
+          <path d={POUCH} fill="url(#vinylBack)" />
         </svg>
 
-        {/* The products, once they have landed */}
+        {/* What is in it */}
         <motion.div
           className="absolute inset-0"
           initial={false}
           animate={{ opacity: dropped ? 1 : 0 }}
           transition={{ duration: 0.01 }}
         >
-          {products.map((product) => {
-            const slot = slotFor(product.index);
+          {contents.map((item, index) => {
+            const place = placeOf(index);
+            // Something just voted for falls in rather than appearing.
+            const isNew = incoming?.id === item.id && dropped;
             return (
-              <div
-                key={product.index}
+              <motion.div
+                key={item.id}
                 className="absolute flex items-end justify-center"
                 style={{
-                  left: slot.x,
-                  top: slot.y,
-                  width: SLOT_W,
-                  height: SLOT_H,
-                  transform: `rotate(${slot.tilt}deg)`
+                  left: place.left,
+                  top: place.top,
+                  transformOrigin: 'bottom center'
                 }}
+                initial={
+                  isNew
+                    ? { x: '-50%', y: -150, opacity: 0, rotate: place.tilt * 3 }
+                    : { x: '-50%', y: 0, opacity: 1, rotate: place.tilt }
+                }
+                animate={{ x: '-50%', y: 0, opacity: 1, rotate: place.tilt }}
+                transition={{ type: 'spring', stiffness: 140, damping: 15 }}
               >
-                {renderProduct(product)}
-              </div>
+                {renderItem(item, index)}
+              </motion.div>
             );
           })}
         </motion.div>
 
-        {/* The clear front: what makes them look like they are inside it */}
+        {/* The clear front, which is what puts them inside it */}
         <svg
           width={BAG_W}
           height={BAG_H}
@@ -264,132 +256,148 @@ export const MakeupBagFill: React.FC<MakeupBagFillProps> = ({
           className="absolute bottom-0 left-0 pointer-events-none"
         >
           <defs>
-            <linearGradient id="vinylFront" x1="0.1" y1="0" x2="0.9" y2="1">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.62" />
-              <stop offset="18%" stopColor="#ffffff" stopOpacity="0.12" />
-              <stop offset="50%" stopColor="#ffffff" stopOpacity="0.04" />
-              <stop offset="82%" stopColor="#ffffff" stopOpacity="0.14" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.55" />
+            <linearGradient id="vinylFront" x1="0.08" y1="0" x2="0.92" y2="1">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.44" />
+              <stop offset="22%" stopColor="#ffffff" stopOpacity="0.06" />
+              <stop offset="55%" stopColor="#ffffff" stopOpacity="0.02" />
+              <stop offset="84%" stopColor="#ffffff" stopOpacity="0.1" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.38" />
             </linearGradient>
-            <linearGradient id="zipMetal" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#fdfbf9" />
-              <stop offset="34%" stopColor="#d5cac1" />
-              <stop offset="62%" stopColor="#a1928a" />
-              <stop offset="100%" stopColor="#efe8e2" />
+            <linearGradient id="zipTape" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#fdfcfb" />
+              <stop offset="40%" stopColor="#e4ddd8" />
+              <stop offset="100%" stopColor="#c3b8b1" />
             </linearGradient>
-            <linearGradient id="topFace" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.85" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.35" />
+            <linearGradient id="silver" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="35%" stopColor="#d7d2ce" />
+              <stop offset="60%" stopColor="#a9a29d" />
+              <stop offset="100%" stopColor="#efecea" />
             </linearGradient>
           </defs>
 
-          {/* Front panel */}
-          <rect
-            x="22"
-            y="34"
-            width={BAG_W - 44}
-            height={BAG_H - 48}
-            rx="14"
-            fill="url(#vinylFront)"
-            stroke="rgba(112,94,86,0.5)"
-            strokeWidth="1.5"
-          />
-          {/* The bright edge the vinyl catches on its left and base */}
+          {/* The vinyl itself */}
+          <path d={POUCH} fill="url(#vinylFront)" />
+          {/* Its thickness: a bright inner edge just inside the outline */}
+          <path d={POUCH} fill="none" stroke="#ffffff" strokeWidth="2.6" opacity="0.72" />
+          <path d={POUCH} fill="none" stroke="rgba(120,102,94,0.34)" strokeWidth="1" />
+
+          {/* The gusset: the side and bottom the pouch stands on */}
           <path
-            d={`M23 48 V${BAG_H - 28} Q23 ${BAG_H - 15} 36 ${BAG_H - 15} H${BAG_W - 36}`}
+            d={`M ${BAG_W - 52} ${LIP + 8} Q ${BAG_W - 36} ${BAG_H / 2} ${BAG_W - 50} ${FLOOR - 4}`}
             fill="none"
             stroke="#ffffff"
-            strokeWidth="2"
-            opacity="0.8"
-          />
-          {/* The base, where the vinyl doubles over and goes darker */}
-          <path
-            d={`M24 ${BAG_H - 40} H${BAG_W - 24} V${BAG_H - 16} Q${BAG_W - 24} ${BAG_H - 14} ${BAG_W - 36} ${BAG_H - 14} H36 Q24 ${BAG_H - 14} 24 ${BAG_H - 16} Z`}
-            fill="rgba(120,100,92,0.13)"
+            strokeWidth="1.4"
+            opacity="0.5"
           />
           <path
-            d={`M34 ${BAG_H - 21} H${BAG_W - 34}`}
-            stroke="rgba(255,255,255,0.75)"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          {/* Long specular streaks */}
-          <path
-            d={`M48 48 L62 ${BAG_H - 40}`}
+            d={`M 46 ${FLOOR - 12} Q ${BAG_W / 2} ${FLOOR - 3} ${BAG_W - 46} ${FLOOR - 12}`}
+            fill="none"
             stroke="#ffffff"
-            strokeWidth="6"
-            strokeLinecap="round"
-            opacity="0.3"
+            strokeWidth="1.6"
+            opacity="0.55"
           />
+
+          {/* Folds, where soft vinyl creases */}
           <path
-            d={`M${BAG_W - 58} 52 L${BAG_W - 50} ${BAG_H - 50}`}
+            d={`M 42 ${LIP + 22} Q 52 ${BAG_H / 2} 44 ${FLOOR - 22}`}
+            fill="none"
             stroke="#ffffff"
             strokeWidth="3"
+            strokeLinecap="round"
+            opacity="0.4"
+          />
+          <path
+            d={`M ${BAG_W - 68} ${LIP + 30} Q ${BAG_W - 58} ${BAG_H / 2 + 10} ${BAG_W - 66} ${FLOOR - 26}`}
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            opacity="0.28"
+          />
+          {/* A long highlight down the face */}
+          <path
+            d={`M 62 ${LIP + 14} L 84 ${FLOOR - 30}`}
+            stroke="#ffffff"
+            strokeWidth="6"
             strokeLinecap="round"
             opacity="0.22"
           />
 
-          {/* The zip: tape, teeth and two pulls */}
-          <rect x="20" y="28" width={BAG_W - 40} height="12" rx="6" fill="url(#zipMetal)" />
-          <line
-            x1="28"
-            y1="34"
-            x2={BAG_W - 28}
-            y2="34"
-            stroke="#6f625a"
-            strokeWidth="1.6"
-            strokeDasharray="1.4 2.4"
-            opacity="0.85"
+          {/* The zip: a tape with teeth and two small pulls */}
+          <path
+            d={`M 26 ${LIP} Q ${BAG_W / 2} ${LIP - 8} ${BAG_W - 26} ${LIP}`}
+            fill="none"
+            stroke="url(#zipTape)"
+            strokeWidth="7"
+            strokeLinecap="round"
+          />
+          <path
+            d={`M 32 ${LIP - 0.5} Q ${BAG_W / 2} ${LIP - 8.5} ${BAG_W - 32} ${LIP - 0.5}`}
+            fill="none"
+            stroke="#8d8078"
+            strokeWidth="1.4"
+            strokeDasharray="1 2.2"
+            opacity="0.8"
           />
           <g>
-            <rect x={BAG_W / 2 - 15} y="22" width="13" height="12" rx="2.5" fill="url(#zipMetal)" stroke="#9b8d84" strokeWidth="0.6" />
-            <rect x={BAG_W / 2 + 2} y="22" width="13" height="12" rx="2.5" fill="url(#zipMetal)" stroke="#9b8d84" strokeWidth="0.6" />
+            {/* Two small polished pulls, sitting together */}
+            <rect x={BAG_W / 2 - 10} y={LIP - 9} width="8" height="7" rx="1.6" fill="url(#silver)" />
+            <rect x={BAG_W / 2 + 2} y={LIP - 9} width="8" height="7" rx="1.6" fill="url(#silver)" />
             <path
-              d={`M${BAG_W / 2 - 11} 23 v-8 a4.5 4.5 0 0 1 9 0 v8`}
+              d={`M ${BAG_W / 2 - 8} ${LIP - 9} v-5 a2.6 2.6 0 0 1 5.2 0 v5`}
               fill="none"
-              stroke="url(#zipMetal)"
-              strokeWidth="3"
+              stroke="url(#silver)"
+              strokeWidth="1.8"
             />
             <path
-              d={`M${BAG_W / 2 + 6} 23 v-8 a4.5 4.5 0 0 1 9 0 v8`}
+              d={`M ${BAG_W / 2 + 4} ${LIP - 9} v-5 a2.6 2.6 0 0 1 5.2 0 v5`}
               fill="none"
-              stroke="url(#zipMetal)"
-              strokeWidth="3"
+              stroke="url(#silver)"
+              strokeWidth="1.8"
             />
           </g>
         </svg>
 
-        {/* The reflection it casts on the surface */}
+        {/* Its reflection on the surface */}
         <div
           className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
           style={{
-            bottom: -6,
-            width: BAG_W - 60,
-            height: 22,
-            background: 'linear-gradient(180deg, rgba(210,198,190,0.5) 0%, rgba(210,198,190,0) 100%)',
-            filter: 'blur(3px)',
-            borderRadius: '0 0 16px 16px'
+            bottom: -2,
+            width: BAG_W - 70,
+            height: 24,
+            background:
+              'linear-gradient(180deg, rgba(206,196,190,0.42) 0%, rgba(206,196,190,0) 100%)',
+            filter: 'blur(4px)',
+            borderRadius: '0 0 30px 30px'
           }}
         />
 
-        {/* The count, once everything has landed */}
+        {/* What is in the bag, counted */}
         <motion.div
           className="absolute inset-x-0 flex flex-col items-center pointer-events-none"
-          style={{ top: -12 }}
+          style={{ top: -6 }}
           initial={play ? { opacity: 0, y: 6 } : false}
           animate={{ opacity: dropped ? 1 : 0, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <span className="px-3 py-1 rounded-full bg-white/92 border border-white shadow-xs flex items-baseline gap-1.5">
-            <span className="text-base font-display font-black text-stone-900 tabular-nums leading-none">
+          <span
+            className="px-2.5 py-1 rounded-full flex items-baseline gap-1.5"
+            style={{
+              background: 'rgba(255,255,255,0.82)',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 2px 8px rgba(90,70,62,0.12)'
+            }}
+          >
+            <span className="text-[13px] font-display font-black text-stone-900 tabular-nums leading-none">
               {totalVotes.toLocaleString()}
             </span>
-            <span className="text-[9px] font-black uppercase tracking-wider text-stone-400">
+            <span className="text-[8.5px] font-bold uppercase tracking-wider text-stone-400">
               votes in the bag
             </span>
           </span>
           {votesToday > 0 && (
-            <span className="mt-1 text-[9.5px] font-bold text-[#E91E63] tabular-nums">
+            <span className="mt-1 text-[9px] font-bold text-[#E91E63] tabular-nums">
               +{votesToday} dropped in today
             </span>
           )}
@@ -403,29 +411,34 @@ export const MakeupBagFill: React.FC<MakeupBagFillProps> = ({
       {falling &&
         createPortal(
           <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 70 }}>
-            {products.map((product) => {
-              const slot = slotFor(product.index);
-              const targetX = bagRect.left + slot.x;
-              const targetY = bagRect.top + slot.y;
+            {contents.map((item, index) => {
+              const place = placeOf(index);
+              const targetX = bagRect.left + place.left;
+              const targetY = bagRect.top + place.top;
               return (
                 <motion.div
-                  key={product.index}
+                  key={item.id}
                   className="absolute flex items-end justify-center"
-                  style={{ left: targetX, top: targetY, width: SLOT_W, height: SLOT_H }}
-                  initial={{
-                    y: -(targetY + SLOT_H + 80),
-                    opacity: 0,
-                    rotate: slot.tilt * 4
+                  style={{
+                    left: targetX,
+                    top: targetY,
+                    transformOrigin: 'bottom center'
                   }}
-                  animate={{ y: 0, opacity: 1, rotate: slot.tilt }}
+                  initial={{
+                    x: '-50%',
+                    y: -(targetY + 90),
+                    opacity: 0,
+                    rotate: place.tilt * 4
+                  }}
+                  animate={{ x: '-50%', y: 0, opacity: 1, rotate: place.tilt }}
                   transition={{
                     type: 'spring',
                     stiffness: 130,
                     damping: 14,
-                    delay: product.index * 0.08
+                    delay: index * 0.09
                   }}
                 >
-                  {renderProduct(product)}
+                  {renderItem(item, index)}
                 </motion.div>
               );
             })}

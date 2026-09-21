@@ -29,7 +29,7 @@ import { DemandPulseCard } from './DemandPulseCard';
 import { WantedQuickActionCard } from './WantedQuickActionCard';
 import { WANTED_LOOKS_100 } from '../../data/wantedLooks100';
 import { subscribeWantedLooks } from '../../services/wantedLooksService';
-import { productTally, PRODUCTS } from '../../lib/wantedProducts';
+import { productTally, productOf, PRODUCTS } from '../../lib/wantedProducts';
 import { openLookInNative } from '../../lib/nativeLooks';
 import { auth } from '../../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -399,6 +399,29 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
   /** The four products being asked for most, which is what the bag holds. */
   const wantedProducts = useMemo(() => productTally(wantedLooks, 4), [wantedLooks]);
 
+  /** The things in the bag: the most wanted looks, as objects. */
+  const bagItems = useMemo(
+    () =>
+      [...wantedLooks]
+        .sort((a, b) => b.numericVotes - a.numericVotes)
+        .slice(0, 6)
+        .map((look) => ({
+          id: look.id,
+          name: look.name,
+          product: productOf(look),
+          colour: look.colors[0] || '#E91E63'
+        })),
+    [wantedLooks]
+  );
+
+  /** The last thing voted for, which drops into the bag. */
+  const [justWanted, setJustWanted] = useState<{
+    id: string;
+    name: string;
+    product: string;
+    colour: string;
+  } | null>(null);
+
   /** The shade climbing fastest, which is what Top rising names and wears. */
   const wantedLeader = useMemo(
     () => [...wantedLooks].sort((a, b) => b.numericVotes - a.numericVotes)[0],
@@ -566,6 +589,8 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
           proposalsToday={proposalsToday}
           backedByYou={backedByYou}
           categories={wantedProducts}
+          bagItems={bagItems}
+          incoming={justWanted}
           topRising={wantedLeader?.name || topRisingProposal}
           leaders={[...requests]
             .sort((a, b) => b.votes - a.votes)
@@ -602,6 +627,14 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
 
         {/* 2. WANTED QUICK ACTION CARD (MATCHING DESIGN WITH WANT BUTTONS, SWATCHES & SEE MORE) */}
         <WantedQuickActionCard
+          onWant={(look) =>
+            setJustWanted({
+              id: look.id,
+              name: look.name,
+              product: productOf(look),
+              colour: look.colors[0] || '#E91E63'
+            })
+          }
           onOpenMixMatch={() => onNavigate?.('sandbox')}
           onSeeMore={() => {
             if (onNavigate) {

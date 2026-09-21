@@ -36,6 +36,8 @@ interface WantedQuickActionCardProps {
   onRequestClick: () => void;
   /** Used in a browser, where there is no native Mix & Match to open. */
   onOpenMixMatch?: () => void;
+  /** Something has just been wanted, so it can drop into the bag above. */
+  onWant?: (item: WantedLookItem) => void;
   onSelectLook?: (item: WantedLookItem) => void;
   onSeeMore?: () => void;
   onNavigate?: (tab: any) => void;
@@ -53,6 +55,7 @@ const formatVotes = (votes: number) =>
 export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
   onRequestClick,
   onOpenMixMatch,
+  onWant,
   onSelectLook,
   onSeeMore,
   onNavigate
@@ -228,6 +231,11 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
     // Update local state and localStorage
     const newMap = { ...votedMap, [id]: newVotedState };
     setVotedMap(newMap);
+    // Wanting something puts it in the bag at the top of the page.
+    if (newVotedState) {
+      const wanted = items.find((entry) => entry.id === id);
+      if (wanted) onWant?.(wanted);
+    }
     localStorage.setItem('tryon_beauty_wanted_voted_items', JSON.stringify(newMap));
 
     let updatedVotes = 0;
