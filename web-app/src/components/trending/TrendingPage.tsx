@@ -27,6 +27,9 @@ import { LookRequest } from '../../types';
 import { GlitterConfetti } from '../common/GlitterConfetti';
 import { DemandPulseCard } from './DemandPulseCard';
 import { WantedQuickActionCard } from './WantedQuickActionCard';
+import { TargetBoard } from './TargetBoard';
+import { WANTED_LOOKS_100 } from '../../data/wantedLooks100';
+import { subscribeWantedLooks } from '../../services/wantedLooksService';
 import { useCountUp } from '../../lib/liveCounters';
 
 const CATEGORY_COVERS: Record<string, string> = {
@@ -144,6 +147,14 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
    * launched. sessionStorage is cleared when the app is closed, so it plays
    * again on the next launch but not every time the tab is tapped.
    */
+  /** The wanted board, for the target view. */
+  const [wantedLooks, setWantedLooks] = useState(WANTED_LOOKS_100);
+
+  useEffect(() => {
+    const unsubscribe = subscribeWantedLooks(setWantedLooks);
+    return () => unsubscribe();
+  }, []);
+
   const [playBagDrop, setPlayBagDrop] = useState<boolean>(() => {
     try {
       if (sessionStorage.getItem('tryon_bag_dropped')) return false;
@@ -547,6 +558,11 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
           playDrop={playBagDrop}
           onDropFinished={() => setPlayBagDrop(false)}
         />
+        {/* ON TARGET - the top ten, by how close they are to being made */}
+        <TargetBoard
+          items={[...wantedLooks].sort((a, b) => b.numericVotes - a.numericVotes)}
+        />
+
         {/* 2. WANTED QUICK ACTION CARD (MATCHING DESIGN WITH WANT BUTTONS, SWATCHES & SEE MORE) */}
         <WantedQuickActionCard
           onSeeMore={() => {

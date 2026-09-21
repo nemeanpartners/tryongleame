@@ -93,6 +93,7 @@ type SettingsCategory =
   | 'profile'
   | 'account'
   | 'saved'
+  | 'signature'
   | 'notification'
   | 'display'
   | 'privacy'
@@ -105,6 +106,7 @@ const getCategoryFromPath = (path: string): SettingsCategory | null => {
   if (clean === '/profile') return 'profile';
   if (clean === '/settings-account' || clean === '/settings/account') return 'account';
   if (clean === '/settings-saved' || clean === '/settings/saved') return 'saved';
+  if (clean === '/settings-signature' || clean === '/settings/signature') return 'signature';
   if (clean === '/settings-notification' || clean === '/settings-notifications' || clean === '/settings/notification') return 'notification';
   if (clean === '/settings-display' || clean === '/settings/display') return 'display';
   if (clean === '/settings-privacy' || clean === '/settings/privacy') return 'privacy';
@@ -721,6 +723,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
     { id: 'profile', label: 'Profile', icon: UserIcon },
     { id: 'account', label: 'Account', icon: CircleUser },
     { id: 'saved', label: 'Saved', icon: Bookmark },
+    { id: 'signature', label: 'Signature Lips', icon: Heart },
     { id: 'notification', label: 'Notification', icon: Bell },
     { id: 'display', label: 'Display', icon: Monitor },
     { id: 'privacy', label: 'Privacy', icon: Lock },
@@ -759,6 +762,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
       case 'profile': return 'Profile';
       case 'account': return 'Account';
       case 'saved': return 'Saved';
+      case 'signature': return 'Signature Lips';
       case 'notification': return 'Notification';
       case 'display': return 'Display';
       case 'privacy': return 'Privacy';
@@ -1382,9 +1386,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
                   </div>
                 ) : (
                   <div className="space-y-3 pt-1">
-                    {/* SIGNATURE LIPS - the shades this person is known for */}
-                    <SignatureShadeWall />
-
                     {savedLookGroups.map((group) => (
                       <div key={group.key} className="space-y-2.5">
                         <button
@@ -1499,6 +1500,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onLoadPreset, onNaviga
               </div>
             </div>
           )}
+
+          {/* 3b. SIGNATURE LIPS - its own page, not part of saved looks */}
+          {activeCategory === 'signature' && <SignatureShadeWall />}
 
           {/* 4. NOTIFICATION CATEGORY VIEW */}
           {activeCategory === 'notification' && (
