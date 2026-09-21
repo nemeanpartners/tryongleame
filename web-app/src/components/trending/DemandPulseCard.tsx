@@ -46,7 +46,7 @@ const colourFor = (name: string) => CATEGORY_COLOURS[name] || '#C9BDB6';
 /**
  * The state of demand, as one instrument rather than a row of boxes: a ring
  * that fills as the leading category pulls ahead, a curve of the board behind
- * it, category bars that reorder as they move, and a ticker of what is
+ * category bars that reorder as they move, and a ticker of what is
  * climbing. Everything on it is the real board - nothing here is decoration
  * standing in for data.
  */
@@ -91,14 +91,6 @@ export const DemandPulseCard: React.FC<DemandPulseCardProps> = ({
 
   const top = categories[0];
   const ringFraction = top && totalVotes > 0 ? Math.min(1, top.value / totalVotes) : 0;
-
-  // The board's leading proposals as bars. A line looked broken whenever
-  // several proposals sat on the same count, which is most of the time.
-  const bars = useMemo(() => {
-    const points = leaders.slice(0, 14).map((entry) => entry.votes);
-    const max = Math.max(...points, 1);
-    return points.map((value) => Math.max(0.12, value / max));
-  }, [leaders]);
 
   const ticker = leaders.slice(0, 5);
 
@@ -167,70 +159,46 @@ export const DemandPulseCard: React.FC<DemandPulseCardProps> = ({
         />
       </div>
 
+      {/* Top rising, kept to one line so the bag is what the card is about */}
       <div className="mt-3 relative z-10">
-        {/* Curve and ticker */}
-        <div className="grow min-w-0 w-full">
-          <button
-            type="button"
-            onClick={onSelectTopRising}
-            title={`Filter the board for '${topRising}'`}
-            className="group neu-inset w-full px-3.5 py-3 text-left cursor-pointer transition-all active:scale-[0.99]"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-stone-400 tracking-wider uppercase">
-                Top rising
-              </span>
-              <ArrowUpRight className="w-3 h-3 text-stone-400 group-hover:text-[#E91E63] transition-colors" />
-            </div>
-            <div className="text-sm sm:text-base font-black text-stone-900 tracking-tight leading-snug mt-1 line-clamp-2">
-              {topRising}
-            </div>
+        <button
+          type="button"
+          onClick={onSelectTopRising}
+          title={`Filter the board for '${topRising}'`}
+          className="group neu-pill w-full px-3.5 py-2 flex items-center gap-2 text-left cursor-pointer transition-all active:scale-[0.99]"
+        >
+          <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 shrink-0">
+            Top rising
+          </span>
+          <span className="text-[11.5px] font-black text-stone-900 truncate grow">
+            {topRising}
+          </span>
+          <ArrowUpRight className="w-3.5 h-3.5 text-stone-400 group-hover:text-[#E91E63] transition-colors shrink-0" />
+        </button>
 
-            {/* The shape of the board behind it */}
-            {bars.length > 1 && (
-              <div className="flex items-end gap-[3px] h-8 mt-2.5">
-                {bars.map((height, index) => (
-                  <motion.span
-                    key={index}
-                    className="grow rounded-full bg-gradient-to-t from-[#F7C6D7] to-[#E91E63]"
-                    initial={{ height: 2, opacity: 0.35 }}
-                    animate={{ height: `${height * 100}%`, opacity: 1 }}
-                    transition={{
-                      type: 'spring',
-                      stiffness: 140,
-                      damping: 18,
-                      delay: index * 0.035
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </button>
-
-          {/* What is climbing, scrolling past */}
-          {ticker.length > 0 && (
-            <div className="mt-2.5 overflow-hidden relative h-5">
-              <motion.div
-                className="flex items-center gap-4 absolute whitespace-nowrap"
-                animate={{ x: ['0%', '-50%'] }}
-                transition={{ duration: 26, repeat: Infinity, ease: 'linear' }}
-              >
-                {[...ticker, ...ticker].map((entry, index) => (
-                  <span
-                    key={`${entry.title}-${index}`}
-                    className="text-[10.5px] font-bold text-stone-500 flex items-center gap-1.5"
-                  >
-                    <span className="w-1 h-1 rounded-full bg-[#E91E63]" />
-                    <span className="text-stone-900">{entry.title}</span>
-                    <span className="tabular-nums text-stone-400">
-                      {entry.votes.toLocaleString()} votes
-                    </span>
+        {/* What is climbing, scrolling past */}
+        {ticker.length > 0 && (
+          <div className="mt-2 overflow-hidden relative h-5">
+            <motion.div
+              className="flex items-center gap-4 absolute whitespace-nowrap"
+              animate={{ x: ['0%', '-50%'] }}
+              transition={{ duration: 26, repeat: Infinity, ease: 'linear' }}
+            >
+              {[...ticker, ...ticker].map((entry, index) => (
+                <span
+                  key={`${entry.title}-${index}`}
+                  className="text-[10.5px] font-bold text-stone-500 flex items-center gap-1.5"
+                >
+                  <span className="w-1 h-1 rounded-full bg-[#E91E63]" />
+                  <span className="text-stone-900">{entry.title}</span>
+                  <span className="tabular-nums text-stone-400">
+                    {entry.votes.toLocaleString()} votes
                   </span>
-                ))}
-              </motion.div>
-            </div>
-          )}
-        </div>
+                </span>
+              ))}
+            </motion.div>
+          </div>
+        )}
       </div>
 
       {/* Category bars: they move, so the order is worth watching */}
