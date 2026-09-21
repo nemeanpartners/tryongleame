@@ -37,18 +37,22 @@ export const TargetBoard: React.FC<TargetBoardProps> = ({ items, onSelect }) => 
   if (top.length === 0) return null;
 
   return (
-    <div className="glass-card rounded-[24px] p-4 text-left font-montserrat h-full flex flex-col relative overflow-hidden">
-      <span className="text-[9px] font-extrabold uppercase tracking-widest text-stone-500 block">
-        On target
-      </span>
-      <h3 className="text-base font-display font-black text-stone-900 tracking-tight leading-tight mt-0.5">
-        The Wanted Collection
-      </h3>
-      <p className="text-[9.5px] font-bold text-stone-400 leading-snug mt-0.5">
-        The next filters we make
-      </p>
+    <div className="neu-inset p-4 text-left font-montserrat relative overflow-hidden">
+      <div className="flex items-baseline justify-between gap-2">
+        <div>
+          <span className="text-[9px] font-extrabold uppercase tracking-widest text-stone-500 block">
+            On target
+          </span>
+          <h3 className="text-lg font-display font-black text-stone-900 tracking-tight leading-tight mt-0.5">
+            The Wanted Collection
+          </h3>
+        </div>
+        <p className="text-[9.5px] font-bold text-stone-400 leading-snug shrink-0">
+          The next filters we make
+        </p>
+      </div>
 
-      <div className="relative w-full mt-2" style={{ aspectRatio: '1 / 1' }}>
+      <div className="relative w-full mt-3 mx-auto" style={{ aspectRatio: '1 / 1', maxWidth: 340 }}>
         {/* A plain target: three rings and a black centre, nothing else */}
         <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full">
           <circle cx="50" cy="50" r="49" fill="#f7f4f1" />
@@ -102,17 +106,17 @@ export const TargetBoard: React.FC<TargetBoardProps> = ({ items, onSelect }) => 
       </div>
 
       {/* Who is where, because a target shows the gap but not the names */}
-      <div className="mt-2.5 space-y-0.5">
-        {top.slice(0, 4).map((item, index) => (
+      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1">
+        {top.map((item, index) => (
           <div key={item.id} className="flex items-center gap-1.5 min-w-0">
-            <span className="text-[9px] font-black text-stone-400 tabular-nums w-2.5 shrink-0">
+            <span className="text-[10px] font-black text-stone-400 tabular-nums w-3 shrink-0">
               {index + 1}
             </span>
             <span
               className="w-2 h-2 rounded-full shrink-0 border border-white shadow-xs"
               style={{ backgroundColor: item.colors[0] }}
             />
-            <span className="text-[9.5px] font-bold text-stone-700 truncate">{item.name}</span>
+            <span className="text-[10px] font-bold text-stone-700 truncate">{item.name}</span>
           </div>
         ))}
       </div>

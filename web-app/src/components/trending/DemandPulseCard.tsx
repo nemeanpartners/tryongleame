@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RefreshCw, X } from 'lucide-react';
 import { MakeupBagFill } from './MakeupBagFill';
+import { CategoryBars } from './CategorySquare';
 
 export interface DemandCategoryStat {
   name: string;
@@ -204,6 +205,15 @@ export const DemandPulseCard: React.FC<DemandPulseCardProps> = ({
             </motion.div>
           </div>
         )}
+      </div>
+
+      {/* The tally: what is in the bag, product by product */}
+      <div className="mt-4 relative z-10">
+        <CategoryBars
+          categories={categories}
+          activeCategoryFilter={activeCategoryFilter}
+          onSelectCategory={onSelectCategory}
+        />
       </div>
 
       {/* Hot now */}

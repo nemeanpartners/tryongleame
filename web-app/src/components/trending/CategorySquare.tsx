@@ -27,25 +27,20 @@ const CATEGORY_COLOURS: Record<string, string> = {
 const colourFor = (name: string) => CATEGORY_COLOURS[name] || '#C9BDB6';
 
 /**
- * Which part of the face the board is asking for, as bars that reorder as
- * they move. Small enough to sit beside the target rather than run the width
- * of the page.
+ * Which part of the face the board is asking for, as bars that reorder as they
+ * move. No card of its own: it sits under the bag, so the tally and what is in
+ * the bag read as the same thing.
  */
-export const CategorySquare: React.FC<CategorySquareProps> = ({
+export const CategoryBars: React.FC<CategorySquareProps> = ({
   categories,
   activeCategoryFilter,
   onSelectCategory
 }) => (
-  <div className="glass-card rounded-[24px] p-4 text-left font-montserrat h-full flex flex-col">
-    <div className="flex items-start justify-between gap-2">
-      <div>
-        <span className="text-[9px] font-extrabold uppercase tracking-widest text-stone-500 block">
-          Popularity
-        </span>
-        <h3 className="text-base font-display font-black text-stone-900 tracking-tight leading-tight mt-0.5">
-          What is wanted where
-        </h3>
-      </div>
+  <div className="space-y-2">
+    <div className="flex items-center justify-between">
+      <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-400">
+        What is in the bag
+      </span>
       {activeCategoryFilter && (
         <button
           type="button"
@@ -58,46 +53,45 @@ export const CategorySquare: React.FC<CategorySquareProps> = ({
       )}
     </div>
 
-    <div className="mt-4 space-y-2.5 grow flex flex-col justify-center">
-      {categories.slice(0, 5).map((stat) => {
-        const isSelected = activeCategoryFilter === stat.name;
-        return (
-          <motion.button
-            key={stat.name}
-            layout
-            transition={{ type: 'spring', stiffness: 360, damping: 32 }}
-            type="button"
-            onClick={() => onSelectCategory(isSelected ? null : stat.name)}
-            className={`w-full text-left cursor-pointer rounded-xl px-2 py-1.5 transition-colors ${
-              isSelected ? 'bg-white/80' : 'hover:bg-white/60'
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-bold text-stone-700 flex items-center gap-1.5 min-w-0">
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: colourFor(stat.name) }}
-                />
-                <span className="truncate">{stat.name}</span>
-              </span>
-              <span className="text-[10px] font-black text-stone-900 tabular-nums shrink-0">
-                {stat.percentage}%
-              </span>
-            </div>
-            <span className="mt-1 block h-1.5 rounded-full bg-white/70 overflow-hidden">
-              <motion.span
-                className="block h-full rounded-full"
-                style={{
-                  background: `linear-gradient(90deg, ${colourFor(stat.name)}55, ${colourFor(stat.name)})`
-                }}
-                initial={false}
-                animate={{ width: `${stat.percentage}%` }}
-                transition={{ type: 'spring', stiffness: 110, damping: 20 }}
-              />
-            </span>
-          </motion.button>
-        );
-      })}
-    </div>
+    {categories.slice(0, 5).map((stat) => {
+      const isSelected = activeCategoryFilter === stat.name;
+      return (
+        <motion.button
+          key={stat.name}
+          layout
+          transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+          type="button"
+          onClick={() => onSelectCategory(isSelected ? null : stat.name)}
+          className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl transition-colors cursor-pointer ${
+            isSelected ? 'bg-white/80' : 'hover:bg-white/60'
+          }`}
+        >
+          <span
+            className="w-2 h-2 rounded-full shrink-0"
+            style={{ backgroundColor: colourFor(stat.name) }}
+          />
+          <span className="text-[11px] font-bold text-stone-700 w-16 shrink-0 text-left">
+            {stat.name}
+          </span>
+          <span className="grow h-2 rounded-full bg-white/70 overflow-hidden relative">
+            <motion.span
+              className="block h-full rounded-full"
+              style={{
+                background: `linear-gradient(90deg, ${colourFor(stat.name)}55, ${colourFor(stat.name)})`
+              }}
+              initial={false}
+              animate={{ width: `${stat.percentage}%` }}
+              transition={{ type: 'spring', stiffness: 110, damping: 20 }}
+            />
+            {isSelected && (
+              <span className="absolute inset-0 shimmer-sweep pointer-events-none" />
+            )}
+          </span>
+          <span className="text-[11px] font-black text-stone-900 tabular-nums w-9 text-right shrink-0">
+            {stat.percentage}%
+          </span>
+        </motion.button>
+      );
+    })}
   </div>
 );

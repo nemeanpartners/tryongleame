@@ -11,6 +11,7 @@ import {
 } from '../../services/wantedLooksService';
 import { useCountUp } from '../../lib/liveCounters';
 import { DemandOrbs } from './DemandOrbs';
+import { TargetBoard } from './TargetBoard';
 import { fuseShades, Fusion } from '../../lib/shadeFusion';
 import { openLookInNative } from '../../lib/nativeLooks';
 
@@ -365,6 +366,11 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
           </button>
         </div>
 
+        {/* What is wanted and what is winning, before the list to vote on */}
+        <div className="mt-4">
+          <TargetBoard items={ranked} />
+        </div>
+
         {/* What the front runner still needs to get made */}
         {leader && (
           <div className="mt-4 neu-inset px-3.5 py-3">
@@ -638,18 +644,26 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
       {/* SHADE FUSION - its own card, after the board it is built from */}
       <div className="glass-card p-5 sm:p-6 text-left relative overflow-hidden font-montserrat">
         {/* SHADE FUSION - the field is where you pick, not just look */}
-        <div className="mt-4 flex items-center justify-between gap-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+        <div>
+          <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-500 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-[#E91E63]" />
             Shade Fusion
           </span>
-          <span className="text-[9.5px] font-bold text-stone-400">
+          <h3 className="text-2xl font-display font-black text-stone-900 tracking-tight mt-0.5">
+            Make one of your own
+          </h3>
+          <p className="text-[11px] text-stone-500 font-medium mt-1 leading-relaxed">
+            Blend two shades from the board above into one nobody has yet. Wear
+            it on your own face, or add it to the requested shades for everyone
+            else to vote on.
+          </p>
+          <p className="text-[10px] font-black uppercase tracking-wider text-[#E91E63] mt-2">
             {fusionPicks.length === 0
-              ? 'tap one to filter · two to fuse'
+              ? 'Tap one to filter · two to fuse'
               : fusionPicks.length === 1
-                ? 'tap a second to fuse them'
-                : 'wear it, or put it on the board'}
-          </span>
+                ? 'Tap a second to fuse them'
+                : 'Wear it, or put it on the board'}
+          </p>
         </div>
 
         <DemandOrbs

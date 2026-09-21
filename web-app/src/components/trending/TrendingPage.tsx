@@ -27,8 +27,6 @@ import { LookRequest } from '../../types';
 import { GlitterConfetti } from '../common/GlitterConfetti';
 import { DemandPulseCard } from './DemandPulseCard';
 import { WantedQuickActionCard } from './WantedQuickActionCard';
-import { TargetBoard } from './TargetBoard';
-import { CategorySquare } from './CategorySquare';
 import { WANTED_LOOKS_100 } from '../../data/wantedLooks100';
 import { subscribeWantedLooks } from '../../services/wantedLooksService';
 import { useCountUp } from '../../lib/liveCounters';
@@ -555,24 +553,6 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
           playDrop={playBagDrop}
           onDropFinished={() => setPlayBagDrop(false)}
         />
-
-        {/* 2. TWO SQUARES - where the wanting is, and what is closest to made */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-6">
-          <CategorySquare
-            categories={trendingStats.categories}
-            activeCategoryFilter={activeCategoryFilter}
-            onSelectCategory={(name) => {
-              setActiveCategoryFilter(name);
-              setPulseToast(
-                name ? `Filtered demand board to: ${name}` : 'Cleared category filter'
-              );
-              setTimeout(() => setPulseToast(null), 2500);
-            }}
-          />
-          <TargetBoard
-            items={[...wantedLooks].sort((a, b) => b.numericVotes - a.numericVotes)}
-          />
-        </div>
 
         {/* 2. WANTED QUICK ACTION CARD (MATCHING DESIGN WITH WANT BUTTONS, SWATCHES & SEE MORE) */}
         <WantedQuickActionCard
