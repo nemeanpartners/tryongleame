@@ -656,16 +656,16 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
           ) : (
             /* EXPANDED COMPLETE FORM WITH COLLAPSE X BUTTON */
             <div className="p-5 sm:p-6 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-[#B8887A]/15">
+              <div className="flex items-start justify-between gap-3 mb-4">
                 <div>
-                  <h3 className="text-base font-display font-bold text-[#2A1715]">Propose Next Shades</h3>
-                  <p className="text-[11px] text-stone-500 font-semibold">Request a specific makeup shade or finishing filter formula to be modeled next.</p>
+                  <h3 className="text-xl font-display font-black text-stone-900 tracking-tight">Ask for the one you want</h3>
+                  <p className="text-[11px] text-stone-500 font-medium mt-0.5">Name it, colour it, and it goes on the board.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsFormExpanded(false)}
                   title="Collapse proposal form"
-                  className="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                  className="w-8 h-8 rounded-full neu-pill text-stone-500 hover:text-stone-900 flex items-center justify-center transition-colors cursor-pointer shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -673,31 +673,31 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
 
               <form onSubmit={handleSubmitRequest} className="space-y-4">
                 {formSuccess && (
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-2 text-emerald-600 text-xs">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3 flex items-center gap-2 text-emerald-600 text-xs">
                     <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>Proposed successfully! Initial vote credited.</span>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Look Name / Concept</label>
+                  <label className="block text-[9.5px] font-black text-stone-400 uppercase tracking-widest mb-1.5">Look Name / Concept</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Chrome Prism Violet"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full text-xs px-3.5 py-2.5 border border-[#B8887A]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50 font-semibold text-stone-800 bg-[#faf6f5]"
+                    className="w-full text-[13px] px-3.5 py-2.5 border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#E91E63]/30 font-semibold text-stone-800 bg-white/70"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Category</label>
+                    <label className="block text-[9.5px] font-black text-stone-400 uppercase tracking-widest mb-1.5">Category</label>
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className="w-full text-xs bg-[#faf6f5] border border-[#B8887A]/35 rounded-lg px-2.5 py-2.5 font-semibold text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50"
+                      className="w-full text-xs bg-white/70 border border-white/80 rounded-2xl px-3 py-2.5 font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#E91E63]/30"
                     >
                       {categories.map(cat => (
                         <option key={cat} value={cat} className="bg-white text-stone-800">{cat}</option>
@@ -706,20 +706,20 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Your Name</label>
+                    <label className="block text-[9.5px] font-black text-stone-400 uppercase tracking-widest mb-1.5">Your Name</label>
                     <input
                       type="text"
                       placeholder="designer_99"
                       value={requestedBy}
                       onChange={(e) => setRequestedBy(e.target.value)}
-                      className="w-full text-xs px-3.5 py-2.5 border border-[#B8887A]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50 font-semibold text-stone-800 bg-[#faf6f5]"
+                      className="w-full text-[13px] px-3.5 py-2.5 border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#E91E63]/30 font-semibold text-stone-800 bg-white/70"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Associated Palette Colors (Pick 3)</label>
-                  <div className="flex items-center gap-3 bg-[#faf6f5] p-2.5 border border-[#B8887A]/25 rounded-xl justify-between shadow-xs">
+                  <label className="block text-[9.5px] font-black text-stone-400 uppercase tracking-widest mb-1.5">Associated Palette Colors (Pick 3)</label>
+                  <div className="flex items-center gap-3 bg-white/70 p-2.5 border border-white/80 rounded-2xl justify-between shadow-xs">
                     <div className="flex items-center gap-1.5">
                       <input 
                         type="color" 
@@ -751,21 +751,21 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide mb-1.5">Describe your Finish Vision</label>
+                  <label className="block text-[9.5px] font-black text-stone-400 uppercase tracking-widest mb-1.5">Describe your Finish Vision</label>
                   <textarea
                     required
                     placeholder="Describe texture specifications (e.g., high density chromatic glitter glaze, matte clay)..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
-                    className="w-full text-xs px-3.5 py-2.5 border border-[#B8887A]/35 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2A1715]/50 font-semibold text-stone-800 bg-[#faf6f5]"
+                    className="w-full text-[13px] px-3.5 py-2.5 border border-white/80 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#E91E63]/30 font-semibold text-stone-800 bg-white/70"
                   />
                 </div>
 
                 {/* PUBLICITY PRIVACY TOGGLE SETTING */}
                 <div className="space-y-1.5">
                   <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wide">Visibility Option</label>
-                  <div className="bg-[#faf6f5] p-3 rounded-xl border border-[#B8887A]/25 space-y-2">
+                  <div className="bg-white/70 p-3 rounded-2xl border border-white/80 space-y-2">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input 
                         type="checkbox"
@@ -781,7 +781,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                         🌟 This look request will be displayed publicly on the community board so other users can view, share, and vote to increase its development priority.
                       </p>
                     ) : (
-                      <p className="text-[10px] text-amber-700/80 font-bold leading-relaxed bg-amber-500/10 border border-amber-500/15 p-2 rounded-lg">
+                      <p className="text-[10px] text-amber-700/80 font-bold leading-relaxed bg-amber-500/10 border border-amber-500/15 p-2 rounded-2xl">
                         🔒 Private Submission: This request is set to private. Lab specialists will review your submission confidentially, but it will not appear on the public board for voting.
                       </p>
                     )}
@@ -791,14 +791,14 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                 <div className="flex items-center gap-2">
                   <button
                     type="submit"
-                    className="flex-1 bg-[#2A1715] hover:bg-[#1C1917] text-white font-extrabold text-xs tracking-widest uppercase py-3 px-4 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all active:scale-[0.99]"
+                    className="flex-1 bg-[#E91E63] hover:brightness-105 text-white font-extrabold text-xs tracking-widest uppercase py-3 px-4 rounded-2xl flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-all active:scale-[0.99]"
                   >
                     <Plus className="w-4 h-4" /> Submit Proposal
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsFormExpanded(false)}
-                    className="px-4 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                    className="px-4 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs rounded-2xl transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>

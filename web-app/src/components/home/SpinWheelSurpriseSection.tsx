@@ -750,10 +750,10 @@ export const SpinWheelSurpriseSection: React.FC<SpinWheelSurpriseSectionProps> =
       </div>
 
       {/* Outer Alabaster Sculptural Canvas (Matching reference image aesthetic) */}
-      <div className="rounded-[28px] sm:rounded-[40px] px-3.5 sm:px-8 py-6 sm:py-10 bg-[#FAF8F7] border border-[#EFE8E3] shadow-[0_20px_50px_rgba(180,145,135,0.14),0_2px_12px_rgba(180,145,135,0.06),inset_0_2px_4px_rgba(255,255,255,1)] relative">
+      <div className="glass-card rounded-[28px] px-3.5 sm:px-8 py-6 sm:py-9 relative">
         
         {/* Soft Ambient Warm Blush Center Glow (Contained inside card rounded boundary) */}
-        <div className="absolute inset-0 rounded-[28px] sm:rounded-[40px] overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 rounded-[28px] overflow-hidden pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 sm:w-[500px] h-80 sm:h-[500px] bg-gradient-to-tr from-[#F7C6D7]/20 via-[#FCE4E8]/25 to-[#F5D5DC]/20 rounded-full blur-3xl pointer-events-none" />
         </div>
 
@@ -1061,7 +1061,7 @@ export const SpinWheelSurpriseSection: React.FC<SpinWheelSurpriseSectionProps> =
 
         {/* SWITCH MODE SMALL BUTTON UNDER THE FULL CIRCLE */}
         <div className="relative z-20 flex flex-col items-center justify-center gap-2 pt-2 sm:pt-3">
-          <div className="inline-flex items-center p-1 rounded-full bg-[#EFE9E4] border border-[#DDD5CE] shadow-xs text-xs">
+          <div className="inline-flex items-center gap-1 p-1 glass-card rounded-full text-xs">
             <button
               type="button"
               id="wheel-mode-spotlight-btn"
@@ -1069,14 +1069,14 @@ export const SpinWheelSurpriseSection: React.FC<SpinWheelSurpriseSectionProps> =
                 if (isSpinning) return;
                 setWheelMode('spotlight');
               }}
-              className={`px-3.5 py-1.5 rounded-full transition-all duration-200 flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-full transition-all duration-200 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider cursor-pointer ${
                 wheelMode === 'spotlight'
-                  ? 'bg-white text-[#2E2420] shadow-xs font-bold'
-                  : 'text-[#7F7068] hover:text-[#2E2420]'
+                  ? 'bg-[#2A1715] text-white'
+                  : 'text-stone-500 hover:text-[#2A1715]'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#E91E63]" />
-              <span>Spotlight Mode</span>
+              <Sparkles className={`w-3.5 h-3.5 ${wheelMode === 'spotlight' ? 'text-white' : 'text-[#E91E63]'}`} />
+              <span>Spotlight</span>
             </button>
 
             <button
@@ -1086,14 +1086,14 @@ export const SpinWheelSurpriseSection: React.FC<SpinWheelSurpriseSectionProps> =
                 if (isSpinning) return;
                 setWheelMode('motion');
               }}
-              className={`px-3.5 py-1.5 rounded-full transition-all duration-200 flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-full transition-all duration-200 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider cursor-pointer ${
                 wheelMode === 'motion'
-                  ? 'bg-white text-[#2E2420] shadow-xs font-bold'
-                  : 'text-[#7F7068] hover:text-[#2E2420]'
+                  ? 'bg-[#2A1715] text-white'
+                  : 'text-stone-500 hover:text-[#2A1715]'
               }`}
             >
-              <RotateCw className="w-3.5 h-3.5 text-[#E91E63]" />
-              <span>Motion Wheel</span>
+              <RotateCw className={`w-3.5 h-3.5 ${wheelMode === 'motion' ? 'text-white' : 'text-[#E91E63]'}`} />
+              <span>Motion</span>
             </button>
           </div>
         </div>

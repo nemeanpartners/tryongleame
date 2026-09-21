@@ -341,60 +341,60 @@ export const TryOnEditWeeklyCard: React.FC<TryOnEditWeeklyCardProps> = ({
           </div>
 
           {/* RIGHT 6 COLS: FORMULA BREAKDOWN, EDITOR MEMO & SWATCHES */}
-          <div className="md:col-span-6 p-5 sm:p-7 flex flex-col justify-between space-y-6 text-left bg-[#f4efec]">
+          <div className="md:col-span-6 p-5 flex flex-col justify-start gap-4 text-left bg-[#f4efec]">
             
             {/* Header & Description */}
-            <div className="space-y-2">
-              <p className="m-0 mb-2 text-xs sm:text-sm font-extrabold tracking-[0.18em] text-[#8a7066] uppercase">
+            <div>
+              <p className="m-0 mb-1.5 text-[10px] font-extrabold tracking-[0.18em] text-[#8a7066] uppercase">
                 Weekly Capsule Breakdown
               </p>
-              <h3 className="m-0 text-2xl sm:text-[28px] lg:text-[31px] font-[780] text-[#171515] leading-[1.1] tracking-[-0.035em]">
+              <h3 className="m-0 text-xl sm:text-[23px] font-[780] text-[#171515] leading-[1.15] tracking-[-0.03em]">
                 {activeLook.headline}
               </h3>
-              <p className="mt-3 text-sm sm:text-base text-[#5f5753] leading-[1.55]">
+              <p className="mt-2 text-[12.5px] text-[#5f5753] leading-[1.5] line-clamp-3">
                 {activeLook.description}
               </p>
             </div>
 
             {/* LAYER CONFIGURATION CARD */}
             <section 
-              className="rounded-[28px] p-5 sm:p-5.5 bg-[#f7f3f0]"
+              className="rounded-[24px] p-4 bg-[#f7f3f0]"
               style={{
                 boxShadow: '10px 12px 24px rgba(72,57,49,0.10), -8px -8px 20px rgba(255,255,255,0.55), inset 1px 1px 0 rgba(255,255,255,0.40)'
               }}
             >
-              <div className="flex items-center gap-3 pb-4 border-b border-[rgba(78,62,54,0.08)]">
-                <svg className="w-7 h-7 shrink-0 stroke-[#ff2f68] fill-none stroke-[2] stroke-linejoin-round" viewBox="0 0 24 24">
+              <div className="flex items-center gap-2.5 pb-3 border-b border-[rgba(78,62,54,0.08)]">
+                <svg className="w-5 h-5 shrink-0 stroke-[#ff2f68] fill-none stroke-[2] stroke-linejoin-round" viewBox="0 0 24 24">
                   <path d="M12 3 3 8l9 5 9-5-9-5Z"/>
                   <path d="m3 12 9 5 9-5"/>
                   <path d="m3 16 9 5 9-5"/>
                 </svg>
-                <div className="min-w-0 font-extrabold text-sm sm:text-base tracking-[0.14em] uppercase leading-tight text-[#171515] flex-1">
-                  Layer<br />Configuration
+                <div className="min-w-0 font-extrabold text-[11px] tracking-[0.14em] uppercase leading-tight text-[#171515] flex-1">
+                  Layer configuration
                 </div>
-                <div className="shrink-0 px-3.5 py-2 rounded-full text-[#ff2f68] bg-[#fde8ee] text-xs sm:text-[13px] font-extrabold tracking-[0.09em] uppercase">
-                  4 Verified Steps
+                <div className="shrink-0 px-2.5 py-1 rounded-full text-[#ff2f68] bg-[#fde8ee] text-[9.5px] font-extrabold tracking-[0.09em] uppercase">
+                  4 steps
                 </div>
               </div>
 
               {/* 4-Layer Tiles Grid */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-3.5 mt-4">
+              <div className="grid grid-cols-2 gap-2.5 mt-3">
                 {/* Tile 1: Eyeshadow */}
                 <article 
-                  className="min-h-[130px] rounded-[24px] p-4 sm:p-4.5 bg-[#f0ebe7] flex flex-col justify-between text-left"
+                  className="min-h-[86px] rounded-[18px] p-3 bg-[#f0ebe7] flex flex-col justify-between text-left"
                   style={{
                     boxShadow: '6px 8px 16px rgba(74,58,50,0.08), -5px -5px 14px rgba(255,255,255,0.50), inset 1px 1px 0 rgba(255,255,255,0.35)'
                   }}
                 >
-                  <svg viewBox="0 0 24 24" className="w-6 h-6 mb-3 stroke-[#4b4643] fill-none stroke-[1.8] stroke-linecap-round stroke-linejoin-round">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 mb-2 stroke-[#4b4643] fill-none stroke-[1.8] stroke-linecap-round stroke-linejoin-round">
                     <path d="M2.8 12s3.3-5 9.2-5 9.2 5 9.2 5-3.3 5-9.2 5S2.8 12 2.8 12Z"/>
                     <path d="M8.5 12c.8 1.2 2 1.8 3.5 1.8s2.7-.6 3.5-1.8"/>
                   </svg>
                   <div>
-                    <p className="m-0 mb-1 text-[11px] sm:text-xs font-extrabold text-[#9d928c] tracking-[0.13em] uppercase">
+                    <p className="m-0 mb-0.5 text-[9.5px] font-extrabold text-[#9d928c] tracking-[0.12em] uppercase">
                       Eyeshadow
                     </p>
-                    <p className="m-0 text-sm sm:text-base font-[720] text-[#171515] leading-snug tracking-[-0.015em] break-words">
+                    <p className="m-0 text-[12.5px] font-[720] text-[#171515] leading-snug tracking-[-0.015em] break-words">
                       {activeLook.layers.eyes.split('(')[0].trim()}
                     </p>
                   </div>
@@ -402,19 +402,19 @@ export const TryOnEditWeeklyCard: React.FC<TryOnEditWeeklyCardProps> = ({
 
                 {/* Tile 2: Cheek Blush */}
                 <article 
-                  className="min-h-[130px] rounded-[24px] p-4 sm:p-4.5 bg-[#f0ebe7] flex flex-col justify-between text-left"
+                  className="min-h-[86px] rounded-[18px] p-3 bg-[#f0ebe7] flex flex-col justify-between text-left"
                   style={{
                     boxShadow: '6px 8px 16px rgba(74,58,50,0.08), -5px -5px 14px rgba(255,255,255,0.50), inset 1px 1px 0 rgba(255,255,255,0.35)'
                   }}
                 >
-                  <svg viewBox="0 0 24 24" className="w-6 h-6 mb-3 stroke-[#4b4643] fill-none stroke-[1.8] stroke-linecap-round stroke-linejoin-round">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 mb-2 stroke-[#4b4643] fill-none stroke-[1.8] stroke-linecap-round stroke-linejoin-round">
                     <circle cx="12" cy="12" r="6" strokeDasharray="2.4 3.2"/>
                   </svg>
                   <div>
-                    <p className="m-0 mb-1 text-[11px] sm:text-xs font-extrabold text-[#9d928c] tracking-[0.13em] uppercase">
+                    <p className="m-0 mb-0.5 text-[9.5px] font-extrabold text-[#9d928c] tracking-[0.12em] uppercase">
                       Cheek Blush
                     </p>
-                    <p className="m-0 text-sm sm:text-base font-[720] text-[#171515] leading-snug tracking-[-0.015em] break-words">
+                    <p className="m-0 text-[12.5px] font-[720] text-[#171515] leading-snug tracking-[-0.015em] break-words">
                       {activeLook.layers.blush.split('(')[0].trim()}
                     </p>
                   </div>
@@ -422,20 +422,20 @@ export const TryOnEditWeeklyCard: React.FC<TryOnEditWeeklyCardProps> = ({
 
                 {/* Tile 3: Lip Finish */}
                 <article 
-                  className="min-h-[130px] rounded-[24px] p-4 sm:p-4.5 bg-[#f0ebe7] flex flex-col justify-between text-left"
+                  className="min-h-[86px] rounded-[18px] p-3 bg-[#f0ebe7] flex flex-col justify-between text-left"
                   style={{
                     boxShadow: '6px 8px 16px rgba(74,58,50,0.08), -5px -5px 14px rgba(255,255,255,0.50), inset 1px 1px 0 rgba(255,255,255,0.35)'
                   }}
                 >
-                  <svg viewBox="0 0 24 24" className="w-6 h-6 mb-3 stroke-[#4b4643] fill-none stroke-[1.8] stroke-linecap-round stroke-linejoin-round">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 mb-2 stroke-[#4b4643] fill-none stroke-[1.8] stroke-linecap-round stroke-linejoin-round">
                     <path d="M3.5 12c4.2-4.3 7.2-5.5 8.5-3 1.3-2.5 4.3-1.3 8.5 3-2.8 4.2-5.7 6-8.5 6s-5.7-1.8-8.5-6Z"/>
                     <path d="M5 12h14"/>
                   </svg>
                   <div>
-                    <p className="m-0 mb-1 text-[11px] sm:text-xs font-extrabold text-[#9d928c] tracking-[0.13em] uppercase">
+                    <p className="m-0 mb-0.5 text-[9.5px] font-extrabold text-[#9d928c] tracking-[0.12em] uppercase">
                       Lip Finish
                     </p>
-                    <p className="m-0 text-sm sm:text-base font-[720] text-[#171515] leading-snug tracking-[-0.015em] break-words">
+                    <p className="m-0 text-[12.5px] font-[720] text-[#171515] leading-snug tracking-[-0.015em] break-words">
                       {activeLook.layers.lips.split('(')[0].trim()}
                     </p>
                   </div>
@@ -443,20 +443,20 @@ export const TryOnEditWeeklyCard: React.FC<TryOnEditWeeklyCardProps> = ({
 
                 {/* Tile 4: Lashes Style */}
                 <article 
-                  className="min-h-[130px] rounded-[24px] p-4 sm:p-4.5 bg-[#f0ebe7] flex flex-col justify-between text-left"
+                  className="min-h-[86px] rounded-[18px] p-3 bg-[#f0ebe7] flex flex-col justify-between text-left"
                   style={{
                     boxShadow: '6px 8px 16px rgba(74,58,50,0.08), -5px -5px 14px rgba(255,255,255,0.50), inset 1px 1px 0 rgba(255,255,255,0.35)'
                   }}
                 >
-                  <svg viewBox="0 0 24 24" className="w-6 h-6 mb-3 stroke-[#4b4643] fill-none stroke-[1.8] stroke-linecap-round stroke-linejoin-round">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 mb-2 stroke-[#4b4643] fill-none stroke-[1.8] stroke-linecap-round stroke-linejoin-round">
                     <path d="M3 9c2.4 4.5 5.4 6.8 9 6.8S18.6 13.5 21 9"/>
                     <path d="M6 11 4.5 15M10 13l-.6 4M14 13l.6 4M18 11l1.5 4"/>
                   </svg>
                   <div>
-                    <p className="m-0 mb-1 text-[11px] sm:text-xs font-extrabold text-[#9d928c] tracking-[0.13em] uppercase">
+                    <p className="m-0 mb-0.5 text-[9.5px] font-extrabold text-[#9d928c] tracking-[0.12em] uppercase">
                       Lashes Style
                     </p>
-                    <p className="m-0 text-sm sm:text-base font-[720] text-[#171515] leading-snug tracking-[-0.015em] break-words">
+                    <p className="m-0 text-[12.5px] font-[720] text-[#171515] leading-snug tracking-[-0.015em] break-words">
                       {activeLook.layers.lashes}
                     </p>
                   </div>
@@ -466,30 +466,30 @@ export const TryOnEditWeeklyCard: React.FC<TryOnEditWeeklyCardProps> = ({
 
             {/* EDITOR'S STYLING NOTE */}
             <section 
-              className="rounded-[28px] p-5 sm:p-5.5 bg-[#f0ebe7] text-left"
+              className="rounded-[24px] p-4 bg-[#f0ebe7] text-left"
               style={{
                 boxShadow: '8px 10px 20px rgba(72,57,49,0.09), -6px -6px 16px rgba(255,255,255,0.52), inset 1px 1px 0 rgba(255,255,255,0.38)'
               }}
             >
-              <div className="flex items-center gap-3 mb-3">
-                <svg viewBox="0 0 24 24" className="w-6 h-6 stroke-[#786a63] fill-none stroke-[1.8]">
+              <div className="flex items-center gap-2 mb-2">
+                <svg viewBox="0 0 24 24" className="w-4 h-4 stroke-[#786a63] fill-none stroke-[1.8]">
                   <path d="M6 3h9l3 3v15H6V3Z"/>
                   <path d="M15 3v4h4M9 11h6M9 15h6"/>
                 </svg>
-                <div className="text-xs sm:text-sm font-extrabold text-[#7e6960] tracking-[0.15em] uppercase">
+                <div className="text-[10px] font-extrabold text-[#7e6960] tracking-[0.15em] uppercase">
                   Editor's Styling Note
                 </div>
               </div>
-              <blockquote className="m-0 text-sm sm:text-base leading-[1.55] text-[#504a46] italic">
+              <blockquote className="m-0 text-[12.5px] leading-[1.5] text-[#504a46] italic line-clamp-3">
                 “{activeLook.editorQuote}”
               </blockquote>
             </section>
 
             {/* CAPSULE SWATCHES & ACTIONS */}
-            <div className="space-y-4 pt-3 border-t border-[#4E3E36]/10">
+            <div className="space-y-3 pt-3 border-t border-[#4E3E36]/10">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-extrabold text-[#756b66] uppercase tracking-[0.14em]">
-                  Capsule Swatches
+                <span className="text-[10px] font-extrabold text-[#756b66] uppercase tracking-[0.14em]">
+                  Capsule swatches
                 </span>
                 <div className="flex flex-wrap items-center gap-2">
                   {activeLook.swatches.map((sw, sIdx) => (
@@ -508,33 +508,14 @@ export const TryOnEditWeeklyCard: React.FC<TryOnEditWeeklyCardProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 pt-1">
-                <button
-                  type="button"
-                  onClick={handleTryOnSpotlight}
-                  className="flex-1 min-h-[52px] sm:min-h-[56px] rounded-full bg-[#f7f3f0] hover:bg-[#efe9e4] text-[#171515] text-xs sm:text-sm font-black uppercase tracking-[0.16em] flex items-center justify-center gap-2 px-6 transition-all duration-200 active:scale-[0.98] cursor-pointer border border-white/50"
-                  style={{
-                    boxShadow: '8px 10px 18px rgba(72,57,49,0.09), -6px -6px 16px rgba(255,255,255,0.55), inset 1px 1px 0 rgba(255,255,255,0.40)'
-                  }}
-                >
-                  <span>TRY THIS LOOK</span>
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-[#ff2f68] text-[#ff2f68] shrink-0">
-                    <path d="M12 2l2.6 7.4L22 12l-7.4 2.6L12 22l-2.6-7.4L2 12l7.4-2.6z"/>
-                  </svg>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onNavigate('gallery')}
-                  className="px-4 sm:px-5 min-h-[52px] sm:min-h-[56px] rounded-full bg-[#f7f3f0] hover:bg-[#ede7e3] border border-white/50 text-[#6f5d55] text-xs sm:text-sm font-extrabold uppercase tracking-wider flex items-center gap-1.5 transition-all duration-200 active:scale-[0.98] cursor-pointer"
-                  style={{
-                    boxShadow: '6px 8px 16px rgba(74,58,50,0.07), -5px -5px 12px rgba(255,255,255,0.50), inset 1px 1px 0 rgba(255,255,255,0.38)'
-                  }}
-                >
-                  <span>More</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-[#756b66]" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate('gallery')}
+                className="text-[11px] font-black uppercase tracking-wider text-[#6f5d55] hover:text-[#171515] flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <span>More looks like this</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
             </div>
 
           </div>

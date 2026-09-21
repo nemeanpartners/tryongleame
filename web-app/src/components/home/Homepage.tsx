@@ -1169,6 +1169,64 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate, onLoadPreset, us
         </p>
       </section>
 
+      {/* THE SHADE MACHINE - turn the knob, wear what falls out */}
+      <section id="shade-machine-banner">
+        <button
+          type="button"
+          onClick={() => onNavigate('capsule-game')}
+          className="w-full rounded-[28px] p-5 sm:p-6 text-left cursor-pointer active:scale-[0.99] transition-transform relative overflow-hidden"
+          style={{
+            background: 'linear-gradient(140deg, #fbdde6 0%, #f4b9cb 52%, #e79bb1 100%)',
+            boxShadow: '0 16px 34px rgba(150,90,110,0.2)'
+          }}
+        >
+          <div className="relative z-10 max-w-[62%]">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-white/90 block">
+              The Shade Machine
+            </span>
+            <h3 className="text-2xl font-display font-black text-white tracking-tight mt-0.5 leading-tight">
+              Turn for a look
+            </h3>
+            <p className="text-[11px] font-semibold text-white/85 mt-1.5 leading-snug">
+              One turn, one capsule, one look to wear. Twenty in the machine.
+            </p>
+            <span className="inline-flex items-center gap-1.5 mt-3 px-3.5 py-1.5 rounded-full bg-white text-[#2A1715] text-[11px] font-black uppercase tracking-wider">
+              Take a turn
+            </span>
+          </div>
+
+          {/* The capsules, spilling in from the right */}
+          <div className="absolute -right-4 -top-2 bottom-0 w-[46%] pointer-events-none">
+            {[
+              { x: 62, y: 16, r: 30, c: '#f43f5e' },
+              { x: 22, y: 44, r: 38, c: '#ffffff' },
+              { x: 70, y: 58, r: 34, c: '#be123c' },
+              { x: 34, y: 82, r: 26, c: '#fda4af' },
+              { x: 86, y: 34, r: 22, c: '#9f1239' }
+            ].map((ball, index) => (
+              <span
+                key={index}
+                className="absolute rounded-full"
+                style={{
+                  left: `${ball.x}%`,
+                  top: `${ball.y}%`,
+                  width: ball.r,
+                  height: ball.r,
+                  transform: 'translate(-50%, -50%)',
+                  background: `radial-gradient(circle at 32% 26%, #ffffff 0%, ${ball.c}cc 40%, ${ball.c} 100%)`,
+                  boxShadow: 'inset 0 -4px 8px rgba(120,70,88,0.25), 0 3px 7px rgba(120,70,88,0.25)'
+                }}
+              />
+            ))}
+          </div>
+        </button>
+      </section>
+
+      {/* SIGNATURE LIPS - the wall of kisses, under the inspiration wall */}
+      <section id="signature-lips-board">
+        <SignatureLipsBoard onOpen={() => onNavigate('signature-lips')} />
+      </section>
+
       {/* 4J. INSPIRATION WALL: GRID OF INSPIRATION LOOKS */}
       <section 
         className="space-y-4 text-left pt-2"
@@ -1456,64 +1514,6 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate, onLoadPreset, us
             </div>
           </div>
         </div>
-      </section>
-
-      {/* THE SHADE MACHINE - turn the knob, wear what falls out */}
-      <section id="shade-machine-banner">
-        <button
-          type="button"
-          onClick={() => onNavigate('capsule-game')}
-          className="w-full rounded-[28px] p-5 sm:p-6 text-left cursor-pointer active:scale-[0.99] transition-transform relative overflow-hidden"
-          style={{
-            background: 'linear-gradient(140deg, #fbdde6 0%, #f4b9cb 52%, #e79bb1 100%)',
-            boxShadow: '0 16px 34px rgba(150,90,110,0.2)'
-          }}
-        >
-          <div className="relative z-10 max-w-[62%]">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-white/90 block">
-              The Shade Machine
-            </span>
-            <h3 className="text-2xl font-display font-black text-white tracking-tight mt-0.5 leading-tight">
-              Turn for a look
-            </h3>
-            <p className="text-[11px] font-semibold text-white/85 mt-1.5 leading-snug">
-              One turn, one capsule, one look to wear. Twenty in the machine.
-            </p>
-            <span className="inline-flex items-center gap-1.5 mt-3 px-3.5 py-1.5 rounded-full bg-white text-[#2A1715] text-[11px] font-black uppercase tracking-wider">
-              Take a turn
-            </span>
-          </div>
-
-          {/* The capsules, spilling in from the right */}
-          <div className="absolute -right-4 -top-2 bottom-0 w-[46%] pointer-events-none">
-            {[
-              { x: 62, y: 16, r: 30, c: '#f43f5e' },
-              { x: 22, y: 44, r: 38, c: '#ffffff' },
-              { x: 70, y: 58, r: 34, c: '#be123c' },
-              { x: 34, y: 82, r: 26, c: '#fda4af' },
-              { x: 86, y: 34, r: 22, c: '#9f1239' }
-            ].map((ball, index) => (
-              <span
-                key={index}
-                className="absolute rounded-full"
-                style={{
-                  left: `${ball.x}%`,
-                  top: `${ball.y}%`,
-                  width: ball.r,
-                  height: ball.r,
-                  transform: 'translate(-50%, -50%)',
-                  background: `radial-gradient(circle at 32% 26%, #ffffff 0%, ${ball.c}cc 40%, ${ball.c} 100%)`,
-                  boxShadow: 'inset 0 -4px 8px rgba(120,70,88,0.25), 0 3px 7px rgba(120,70,88,0.25)'
-                }}
-              />
-            ))}
-          </div>
-        </button>
-      </section>
-
-      {/* SIGNATURE LIPS - the wall of kisses, under the inspiration wall */}
-      <section id="signature-lips-board">
-        <SignatureLipsBoard onOpen={() => onNavigate('signature-lips')} />
       </section>
 
       {/* Shade Interest Modal for Explore page */}
