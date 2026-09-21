@@ -36,13 +36,13 @@ export const CategorySquare: React.FC<CategorySquareProps> = ({
   activeCategoryFilter,
   onSelectCategory
 }) => (
-  <div className="glass-card rounded-[28px] p-5 text-left font-montserrat h-full flex flex-col">
+  <div className="glass-card rounded-[24px] p-4 text-left font-montserrat h-full flex flex-col">
     <div className="flex items-start justify-between gap-2">
       <div>
-        <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-500 block">
+        <span className="text-[9px] font-extrabold uppercase tracking-widest text-stone-500 block">
           Popularity
         </span>
-        <h3 className="text-lg font-display font-black text-stone-900 tracking-tight leading-tight mt-0.5">
+        <h3 className="text-base font-display font-black text-stone-900 tracking-tight leading-tight mt-0.5">
           What is wanted where
         </h3>
       </div>
@@ -73,14 +73,14 @@ export const CategorySquare: React.FC<CategorySquareProps> = ({
             }`}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold text-stone-700 flex items-center gap-1.5 min-w-0">
+              <span className="text-[10px] font-bold text-stone-700 flex items-center gap-1.5 min-w-0">
                 <span
                   className="w-2 h-2 rounded-full shrink-0"
                   style={{ backgroundColor: colourFor(stat.name) }}
                 />
                 <span className="truncate">{stat.name}</span>
               </span>
-              <span className="text-[11px] font-black text-stone-900 tabular-nums shrink-0">
+              <span className="text-[10px] font-black text-stone-900 tabular-nums shrink-0">
                 {stat.percentage}%
               </span>
             </div>

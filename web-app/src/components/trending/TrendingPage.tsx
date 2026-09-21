@@ -557,7 +557,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
         />
 
         {/* 2. TWO SQUARES - where the wanting is, and what is closest to made */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6">
           <CategorySquare
             categories={trendingStats.categories}
             activeCategoryFilter={activeCategoryFilter}
