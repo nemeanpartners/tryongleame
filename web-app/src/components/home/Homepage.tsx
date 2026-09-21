@@ -1460,7 +1460,7 @@ export const Homepage: React.FC<HomepageProps> = ({ onNavigate, onLoadPreset, us
 
       {/* SIGNATURE LIPS - the wall of kisses, under the inspiration wall */}
       <section id="signature-lips-board">
-        <SignatureLipsBoard />
+        <SignatureLipsBoard onOpen={() => onNavigate('signature-lips')} />
       </section>
 
       {/* Shade Interest Modal for Explore page */}

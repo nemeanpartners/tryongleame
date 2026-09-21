@@ -160,7 +160,13 @@ export const SignatureShadeWall: React.FC<SignatureShadeWallProps> = ({ savedSha
   };
 
   const wear = (shade: SignatureShade) => {
-    openLookInNative({ id: shade.id, name: shade.name, lipColor: shade.hex });
+    // Back from here belongs on this page, not on Discover.
+    openLookInNative({
+      id: shade.id,
+      name: shade.name,
+      lipColor: shade.hex,
+      returnTo: '/settings-signature'
+    });
   };
 
   /** Puts a print on the board everyone sees, under the person who made it. */

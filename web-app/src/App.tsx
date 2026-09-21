@@ -47,8 +47,9 @@ import { installGleameNativeBridge } from './lib/nativeBridge';
 import { trackDwellTime } from './lib/analytics';
 import { getEffectiveAvatar, loadUserProfileFromFirestore, hasProfilePhoto } from './lib/userProfileService';
 import { openLookInNative, isNativeApp } from './lib/nativeLooks';
+import { SignatureLipsPage } from './components/home/SignatureLipsPage';
 
-type LabNavTarget = 'sandbox' | 'gallery' | 'gallery-looks' | 'gallery-challenges' | 'gallery-inspiration' | 'gallery-wanted' | 'wanted-list' | 'wanted-scrollfeed' | 'hall-of-fame' | 'trending' | 'built-looks' | 'votes' | 'profile' | 'looks' | 'tiktok-effects' | 'inspiration-wall' | 'inspirationlooks-scrollfeed' | 'shade-edit' | 'admin';
+type LabNavTarget = 'sandbox' | 'gallery' | 'gallery-looks' | 'gallery-challenges' | 'gallery-inspiration' | 'gallery-wanted' | 'wanted-list' | 'wanted-scrollfeed' | 'hall-of-fame' | 'trending' | 'built-looks' | 'votes' | 'profile' | 'looks' | 'tiktok-effects' | 'inspiration-wall' | 'signature-lips' | 'inspirationlooks-scrollfeed' | 'shade-edit' | 'admin';
 
 /**
  * In the iOS wrapper the Try On and Create dock tabs open the app's own native
@@ -155,6 +156,9 @@ export default function App() {
         return 'looks';
       case '/tiktok-effects':
         return 'tiktok-effects';
+      case '/signature-lips':
+      case '/wall-of-kisses':
+        return 'signature-lips';
       case '/inspiration-wall':
       case '/inspiration':
       case '/moodboard':
@@ -212,6 +216,8 @@ export default function App() {
         return '/tiktok-effects';
       case 'inspiration-wall':
         return '/inspiration-wall';
+      case 'signature-lips':
+        return '/signature-lips';
       case 'inspirationlooks-scrollfeed':
         return '/inspirationlooks-scrollfeed';
       case 'shade-edit':
@@ -448,6 +454,8 @@ export default function App() {
       case 'inspiration-wall':
       case 'inspirationlooks-scrollfeed':
         return 'Inspiration Wall';
+      case 'signature-lips':
+        return 'Signature Lips';
       case 'gallery-wanted':
       case 'wanted-list':
       case 'wanted-scrollfeed':
@@ -834,6 +842,10 @@ export default function App() {
 
         {activeTab === 'tiktok-effects' && (
           <TiktokEffectsPage />
+        )}
+
+        {activeTab === 'signature-lips' && (
+          <SignatureLipsPage onBack={() => handleNavigate('home')} />
         )}
 
         {activeTab === 'inspiration-wall' && (

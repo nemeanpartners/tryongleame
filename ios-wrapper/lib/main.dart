@@ -122,6 +122,10 @@ class _LookLabPageState extends State<LookLabPage>
   /// Shown once, on a fresh install, before anything else.
   bool _showOnboarding = false;
 
+  /// Where the back arrow goes after this look. Signature lips come from the
+  /// settings page and belong back on it; everything else belongs on Discover.
+  String? _returnPath;
+
   /// Set when the renderer reports a failure, which is the one case where the
   /// loading screen gives way to the message instead of staying up.
   bool _tryOnStudioFailed = false;
@@ -319,6 +323,7 @@ class _LookLabPageState extends State<LookLabPage>
             // Any look card in the web app: open it on a live face here
             // rather than handing the user a page they have to tap again.
             if (type == 'gleame:apply-look') {
+              _returnPath = decoded['returnTo'] as String?;
               unawaited(_applyWebLook(decoded));
               return;
             }
@@ -2064,13 +2069,16 @@ class _LookLabPageState extends State<LookLabPage>
 
   Future<void> _openExploreTab() async {
     await _closeTryOnStudioRenderer();
-    // Always land on Discover, wherever the web view had been left. Routing
-    // the SPA in place keeps the signed-in session rather than reloading.
+    // Discover, unless the look said where it came from. Routing the SPA in
+    // place keeps the signed-in session rather than reloading.
+    final path = _returnPath ?? '/gallery';
+    _returnPath = null;
+    final target = jsonEncode(path);
     unawaited(
       _homeWebController.runJavaScript(
-        "if (location.pathname !== '/gallery') {"
-        "history.pushState(null, '', '/gallery');"
-        "window.dispatchEvent(new PopStateEvent('popstate'));}",
+        'if (location.pathname !== $target) {'
+        'history.pushState(null, \'\', $target);'
+        'window.dispatchEvent(new PopStateEvent(\'popstate\'));}',
       ),
     );
     _activeSlotPaths.remove('tryonstudio');

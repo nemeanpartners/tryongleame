@@ -21,6 +21,11 @@ export type TryOnLook = {
   lipGloss?: boolean;
   lashesStyle?: string;
   glitterLevel?: number;
+  /**
+   * Where the app's back arrow should land after this look. Left out, it goes
+   * to Discover like everything else.
+   */
+  returnTo?: string;
 };
 
 /** Where the look was saved from, which is how the Saved page groups them. */
@@ -55,7 +60,8 @@ export function openLookInNative(look: TryOnLook): boolean {
       eyelinerColor: look.eyelinerColor || null,
       lipGloss: look.lipGloss ?? null,
       lashesStyle: look.lashesStyle || null,
-      glitterLevel: look.glitterLevel ?? null
+      glitterLevel: look.glitterLevel ?? null,
+      returnTo: look.returnTo || null
     })
   );
   return true;

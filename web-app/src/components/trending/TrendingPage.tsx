@@ -28,6 +28,7 @@ import { GlitterConfetti } from '../common/GlitterConfetti';
 import { DemandPulseCard } from './DemandPulseCard';
 import { WantedQuickActionCard } from './WantedQuickActionCard';
 import { TargetBoard } from './TargetBoard';
+import { CategorySquare } from './CategorySquare';
 import { WANTED_LOOKS_100 } from '../../data/wantedLooks100';
 import { subscribeWantedLooks } from '../../services/wantedLooksService';
 import { useCountUp } from '../../lib/liveCounters';
@@ -517,7 +518,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
       {/* LEFT COLUMN: Controls & Distribution Form (Cols: 4) */}
       <div className="xl:col-span-4 space-y-6">
         
-        {/* DEMAND PULSE - the live instrument for the whole board */}
+        {/* 1. THE BAG - what is wanted right now, as it fills up */}
         <DemandPulseCard
           totalVotes={trendingStats.totalVotes}
           votesToday={votesToday}
@@ -535,9 +536,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
           onSelectCategory={(name) => {
             setActiveCategoryFilter(name);
             setPulseToast(
-              name
-                ? `Filtered demand board to: ${name}`
-                : "Cleared category filter"
+              name ? `Filtered demand board to: ${name}` : "Cleared category filter"
             );
             setTimeout(() => setPulseToast(null), 2500);
           }}
@@ -549,19 +548,31 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
           onApplyHotFormula={handleApplyHotFormula}
           onInspectTotal={() => {
             setActiveCategoryFilter(null);
-            setPulseToast(
-              `Tracking ${trendingStats.totalVotes} total community votes`
-            );
+            setPulseToast(`Tracking ${trendingStats.totalVotes} total community votes`);
             setTimeout(() => setPulseToast(null), 2500);
           }}
           toast={pulseToast}
           playDrop={playBagDrop}
           onDropFinished={() => setPlayBagDrop(false)}
         />
-        {/* ON TARGET - the top ten, by how close they are to being made */}
-        <TargetBoard
-          items={[...wantedLooks].sort((a, b) => b.numericVotes - a.numericVotes)}
-        />
+
+        {/* 2. TWO SQUARES - where the wanting is, and what is closest to made */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <CategorySquare
+            categories={trendingStats.categories}
+            activeCategoryFilter={activeCategoryFilter}
+            onSelectCategory={(name) => {
+              setActiveCategoryFilter(name);
+              setPulseToast(
+                name ? `Filtered demand board to: ${name}` : 'Cleared category filter'
+              );
+              setTimeout(() => setPulseToast(null), 2500);
+            }}
+          />
+          <TargetBoard
+            items={[...wantedLooks].sort((a, b) => b.numericVotes - a.numericVotes)}
+          />
+        </div>
 
         {/* 2. WANTED QUICK ACTION CARD (MATCHING DESIGN WITH WANT BUTTONS, SWATCHES & SEE MORE) */}
         <WantedQuickActionCard

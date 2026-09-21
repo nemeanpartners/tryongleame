@@ -435,128 +435,6 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
           </div>
         )}
 
-        {/* SHADE FUSION - the field is where you pick, not just look */}
-        <div className="mt-4 flex items-center justify-between gap-2">
-          <span className="text-[10px] font-black uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#E91E63]" />
-            Shade Fusion
-          </span>
-          <span className="text-[9.5px] font-bold text-stone-400">
-            {fusionPicks.length === 0
-              ? 'tap one to filter · two to fuse'
-              : fusionPicks.length === 1
-                ? 'tap a second to fuse them'
-                : 'wear it, or put it on the board'}
-          </span>
-        </div>
-
-        <DemandOrbs
-          orbs={ranked.slice(0, 7).map((item) => ({
-            id: item.id,
-            name: item.name,
-            votes: item.numericVotes,
-            colour: item.colors[0] || '#E91E63'
-          }))}
-          selectedIds={fusionIds}
-          onSelect={(orb) => toggleFusion(orb.id)}
-        />
-
-        {/* The tray: what is picked, and what it makes */}
-        {fusionPicks.length > 0 && (
-          <motion.div
-            layout
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="neu-inset px-3.5 py-3 mt-1"
-          >
-            <div className="flex items-center gap-2.5">
-              {fusionPicks.map((pick, index) => (
-                <React.Fragment key={pick.id}>
-                  {index > 0 && (
-                    <span className="text-xs font-black text-stone-400">+</span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => toggleFusion(pick.id)}
-                    title={`Take ${pick.name} out`}
-                    className="flex items-center gap-1.5 cursor-pointer group/pick min-w-0"
-                  >
-                    <span
-                      className="w-6 h-6 rounded-full border-2 border-white shadow-xs shrink-0"
-                      style={{ backgroundColor: pick.colors[0] }}
-                    />
-                    <span className="text-[10.5px] font-bold text-stone-700 truncate max-w-[74px]">
-                      {pick.name}
-                    </span>
-                    <X className="w-3 h-3 text-stone-300 group-hover/pick:text-stone-600 shrink-0" />
-                  </button>
-                </React.Fragment>
-              ))}
-
-              {fusion && (
-                <>
-                  <span className="text-xs font-black text-stone-400">=</span>
-                  <motion.span
-                    key={fusion.hex}
-                    initial={{ scale: 0.6, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 340, damping: 16 }}
-                    className="w-9 h-9 rounded-full shrink-0"
-                    style={{
-                      background: `radial-gradient(circle at 32% 26%, ${fusion.hex}ff 0%, ${fusion.hex}cc 55%, ${fusion.hex}88 100%)`,
-                      boxShadow: `0 0 18px ${fusion.hex}99, inset 0 4px 10px rgba(255,255,255,0.45)`
-                    }}
-                  />
-                </>
-              )}
-            </div>
-
-            {fusion && (
-              <>
-                <div className="mt-2.5">
-                  <p className="text-sm font-display font-black text-stone-900 leading-tight">
-                    {fusion.name}
-                  </p>
-                  <p className="text-[10px] font-bold text-stone-400 tabular-nums">
-                    {fusion.hex.toUpperCase()} · born of{' '}
-                    {fusion.inheritedVotes.toLocaleString()} votes · nobody has this yet
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 mt-3">
-                  <button
-                    type="button"
-                    onClick={wearFusion}
-                    className="grow py-2 rounded-full bg-[#2A1715] text-white text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
-                  >
-                    <Play className="w-3 h-3 fill-current" />
-                    Wear it
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void requestFusion()}
-                    className="grow py-2 rounded-full bg-[#E91E63] text-white text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
-                  >
-                    <Sparkles className="w-3 h-3" />
-                    Put it on the board
-                  </button>
-                </div>
-              </>
-            )}
-
-            {!fusion && (
-              <p className="text-[10px] font-bold text-stone-400 mt-2">
-                Showing everything in {fusionPicks[0].category}. Pick a second
-                shade to fuse them into one nobody has asked for yet.
-              </p>
-            )}
-
-            {fusionSaved && (
-              <p className="text-[10px] font-black text-[#E91E63] mt-2">{fusionSaved}</p>
-            )}
-          </motion.div>
-        )}
-
         {/* The board */}
         <div className="mt-4 space-y-1">
           {visibleItems.map((item, index) => {
@@ -756,6 +634,133 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
           </button>
         </div>
       </div>
+
+      {/* SHADE FUSION - its own card, after the board it is built from */}
+      <div className="glass-card p-5 sm:p-6 text-left relative overflow-hidden font-montserrat">
+        {/* SHADE FUSION - the field is where you pick, not just look */}
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <span className="text-[10px] font-black uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[#E91E63]" />
+            Shade Fusion
+          </span>
+          <span className="text-[9.5px] font-bold text-stone-400">
+            {fusionPicks.length === 0
+              ? 'tap one to filter · two to fuse'
+              : fusionPicks.length === 1
+                ? 'tap a second to fuse them'
+                : 'wear it, or put it on the board'}
+          </span>
+        </div>
+
+        <DemandOrbs
+          orbs={ranked.slice(0, 7).map((item) => ({
+            id: item.id,
+            name: item.name,
+            votes: item.numericVotes,
+            colour: item.colors[0] || '#E91E63'
+          }))}
+          selectedIds={fusionIds}
+          onSelect={(orb) => toggleFusion(orb.id)}
+        />
+
+        {/* The tray: what is picked, and what it makes */}
+        {fusionPicks.length > 0 && (
+          <motion.div
+            layout
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="neu-inset px-3.5 py-3 mt-1"
+          >
+            <div className="flex items-center gap-2.5">
+              {fusionPicks.map((pick, index) => (
+                <React.Fragment key={pick.id}>
+                  {index > 0 && (
+                    <span className="text-xs font-black text-stone-400">+</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => toggleFusion(pick.id)}
+                    title={`Take ${pick.name} out`}
+                    className="flex items-center gap-1.5 cursor-pointer group/pick min-w-0"
+                  >
+                    <span
+                      className="w-6 h-6 rounded-full border-2 border-white shadow-xs shrink-0"
+                      style={{ backgroundColor: pick.colors[0] }}
+                    />
+                    <span className="text-[10.5px] font-bold text-stone-700 truncate max-w-[74px]">
+                      {pick.name}
+                    </span>
+                    <X className="w-3 h-3 text-stone-300 group-hover/pick:text-stone-600 shrink-0" />
+                  </button>
+                </React.Fragment>
+              ))}
+
+              {fusion && (
+                <>
+                  <span className="text-xs font-black text-stone-400">=</span>
+                  <motion.span
+                    key={fusion.hex}
+                    initial={{ scale: 0.6, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 340, damping: 16 }}
+                    className="w-9 h-9 rounded-full shrink-0"
+                    style={{
+                      background: `radial-gradient(circle at 32% 26%, ${fusion.hex}ff 0%, ${fusion.hex}cc 55%, ${fusion.hex}88 100%)`,
+                      boxShadow: `0 0 18px ${fusion.hex}99, inset 0 4px 10px rgba(255,255,255,0.45)`
+                    }}
+                  />
+                </>
+              )}
+            </div>
+
+            {fusion && (
+              <>
+                <div className="mt-2.5">
+                  <p className="text-sm font-display font-black text-stone-900 leading-tight">
+                    {fusion.name}
+                  </p>
+                  <p className="text-[10px] font-bold text-stone-400 tabular-nums">
+                    {fusion.hex.toUpperCase()} · born of{' '}
+                    {fusion.inheritedVotes.toLocaleString()} votes · nobody has this yet
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    type="button"
+                    onClick={wearFusion}
+                    className="grow py-2 rounded-full bg-[#2A1715] text-white text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
+                  >
+                    <Play className="w-3 h-3 fill-current" />
+                    Wear it
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void requestFusion()}
+                    className="grow py-2 rounded-full bg-[#E91E63] text-white text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    Put it on the board
+                  </button>
+                </div>
+              </>
+            )}
+
+            {!fusion && (
+              <p className="text-[10px] font-bold text-stone-400 mt-2">
+                Showing everything in {fusionPicks[0].category}. Pick a second
+                shade to fuse them into one nobody has asked for yet.
+              </p>
+            )}
+
+            {fusionSaved && (
+              <p className="text-[10px] font-black text-[#E91E63] mt-2">{fusionSaved}</p>
+            )}
+          </motion.div>
+        )}
+
+      </div>
+
 
       {/* SEE MORE WANTED LOOKS LIST VIEW MODAL / DRAWER */}
       {isSeeMoreModalOpen && (
