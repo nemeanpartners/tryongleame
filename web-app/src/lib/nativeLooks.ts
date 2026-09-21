@@ -67,6 +67,23 @@ export function openLookInNative(look: TryOnLook): boolean {
   return true;
 }
 
+/**
+ * Opens the app's own Mix & Match page. Returns false in a browser, where the
+ * caller falls back to the web route.
+ */
+export function openMixAndMatchInNative(): boolean {
+  const target = bridge();
+  if (!target?.postMessage) return false;
+  target.postMessage(
+    JSON.stringify({
+      source: 'tryon-beauty-web',
+      type: 'gleame:navigate-native',
+      target: 'build'
+    })
+  );
+  return true;
+}
+
 const savedDocId = (lookId: string) =>
   `web_${lookId.replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 96)}`;
 

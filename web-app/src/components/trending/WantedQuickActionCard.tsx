@@ -12,7 +12,7 @@ import { useCountUp } from '../../lib/liveCounters';
 import { DemandOrbs } from './DemandOrbs';
 import { TargetBoard } from './TargetBoard';
 import { fuseShades, Fusion } from '../../lib/shadeFusion';
-import { openLookInNative } from '../../lib/nativeLooks';
+import { openLookInNative, openMixAndMatchInNative } from '../../lib/nativeLooks';
 
 
 export interface WantedLookItem {
@@ -34,6 +34,8 @@ export const INITIAL_WANTED_LOOKS: WantedLookItem[] = WANTED_LOOKS_100;
 
 interface WantedQuickActionCardProps {
   onRequestClick: () => void;
+  /** Used in a browser, where there is no native Mix & Match to open. */
+  onOpenMixMatch?: () => void;
   onSelectLook?: (item: WantedLookItem) => void;
   onSeeMore?: () => void;
   onNavigate?: (tab: any) => void;
@@ -50,6 +52,7 @@ const formatVotes = (votes: number) =>
 
 export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
   onRequestClick,
+  onOpenMixMatch,
   onSelectLook,
   onSeeMore,
   onNavigate
@@ -353,9 +356,27 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
                 <Crown className="w-3.5 h-3.5 text-[#E91E63]" />
                 In the lead
               </span>
-              <span className="text-[10px] font-bold text-stone-500 tabular-nums">
-                {Math.max(0, leaderNextMilestone - leader.numericVotes)} to go
-              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10px] font-bold text-stone-500 tabular-nums">
+                  {Math.max(0, leaderNextMilestone - leader.numericVotes)} to go
+                </span>
+                {/* Wear the one that is winning, without hunting for it */}
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openLookInNative({
+                      id: leader.id,
+                      name: leader.name,
+                      lipColor: leader.colors[0]
+                    });
+                  }}
+                  className="px-2.5 py-1 rounded-full bg-[#E91E63] text-white text-[9.5px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+                >
+                  <Play className="w-2.5 h-2.5 fill-current" />
+                  Try on
+                </button>
+              </div>
             </div>
             <p className="text-xs font-black text-stone-900 mt-1.5 truncate">{leader.name}</p>
             <div className="mt-2 h-2 rounded-full bg-white/70 overflow-hidden relative">
@@ -649,6 +670,23 @@ export const WantedQuickActionCard: React.FC<WantedQuickActionCardProps> = ({
           selectedIds={fusionIds}
           onSelect={(orb) => toggleFusion(orb.id)}
         />
+
+        {/* Where a blend can be built properly, shade by shade */}
+        <button
+          type="button"
+          onClick={() => {
+            if (!openMixAndMatchInNative()) onOpenMixMatch?.();
+          }}
+          className="w-full neu-pill px-4 py-2.5 mt-1 flex items-center justify-between gap-2 cursor-pointer active:scale-[0.99] transition-transform"
+        >
+          <span className="text-[10.5px] font-black uppercase tracking-wider text-[#2A1715]">
+            Build one shade by shade
+          </span>
+          <span className="text-[9.5px] font-black uppercase tracking-wider text-[#E91E63] flex items-center gap-1">
+            Mix &amp; Match
+            <ChevronRight className="w-3 h-3" />
+          </span>
+        </button>
 
         {/* The tray: what is picked, and what it makes */}
         {fusionPicks.length > 0 && (

@@ -29,7 +29,7 @@ import { DemandPulseCard } from './DemandPulseCard';
 import { WantedQuickActionCard } from './WantedQuickActionCard';
 import { WANTED_LOOKS_100 } from '../../data/wantedLooks100';
 import { subscribeWantedLooks } from '../../services/wantedLooksService';
-import { productTally } from '../../lib/wantedProducts';
+import { productTally, PRODUCTS } from '../../lib/wantedProducts';
 import { openLookInNative } from '../../lib/nativeLooks';
 import { auth } from '../../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -104,6 +104,9 @@ interface TrendingPageProps {
 /** Every field in the proposal form, so they are all exactly the same box. */
 const fieldBox =
   'w-full h-11 rounded-2xl bg-white/70 border border-white/80 px-3.5 text-[13px] font-semibold text-stone-800 placeholder-stone-400 appearance-none focus:outline-none focus:ring-2 focus:ring-[#E91E63]/30';
+/** What a proposal can be for: the products, not parts of the face. */
+const PROPOSAL_CATEGORIES = [...PRODUCTS, 'Other'];
+
 const fieldLabel =
   'block text-[9.5px] font-black text-stone-400 uppercase tracking-widest mb-1.5';
 
@@ -116,7 +119,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
   const [isFormExpanded, setIsFormExpanded] = useState<boolean>(false);
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
-  const [category, setCategory] = useState<string>('Eyes');
+  const [category, setCategory] = useState<string>('Lipstick');
   const [requestedBy, setRequestedBy] = useState<string>(
     () =>
       auth.currentUser?.displayName ||
@@ -136,7 +139,9 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
   const [color1, setColor1] = useState<string>('#db2777');
   const [color2, setColor2] = useState<string>('#9333ea');
   const [color3, setColor3] = useState<string>('#f59e0b');
-  const [isPublic, setIsPublic] = useState<boolean>(true);
+  const [isPublic] = useState<boolean>(true);
+  /** A proposal always goes to the board; the choice is whose name is on it. */
+  const [postAnonymously, setPostAnonymously] = useState<boolean>(false);
 
   // Animation and Success State
   const [isAnimatingSubmit, setIsAnimatingSubmit] = useState<boolean>(false);
@@ -263,8 +268,12 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
 
-    const finalUsername = requestedBy.trim() || 'Anonymous';
-    localStorage.setItem('tryon_beauty_username', finalUsername);
+    const finalUsername = postAnonymously
+      ? 'Anonymous'
+      : requestedBy.trim() || 'Anonymous';
+    if (!postAnonymously && requestedBy.trim()) {
+      localStorage.setItem('tryon_beauty_username', requestedBy.trim());
+    }
 
     const newRequestData = {
       title: title.trim(),
@@ -593,6 +602,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
 
         {/* 2. WANTED QUICK ACTION CARD (MATCHING DESIGN WITH WANT BUTTONS, SWATCHES & SEE MORE) */}
         <WantedQuickActionCard
+          onOpenMixMatch={() => onNavigate?.('sandbox')}
           onSeeMore={() => {
             if (onNavigate) {
               onNavigate('wanted-list');
@@ -631,13 +641,13 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                 Ask for the one you want
               </h3>
               <p className="text-[11px] text-stone-500 font-medium mt-1 leading-relaxed">
-                Name a shade nobody has made yet and it goes on the board for
-                everyone else to vote on. Takes about a minute.
+                Name a shade nobody has made yet. It goes on the board for
+                everyone to vote on.
               </p>
 
               {/* Whose it will be, so it is clearly yours before you start */}
               <div className="flex items-center gap-2.5 mt-4">
-                <span className="w-9 h-9 rounded-full bg-[#2A1715] text-white text-[11px] font-black flex items-center justify-center shrink-0 uppercase">
+                <span className="w-8 h-8 rounded-full bg-[#2A1715] text-white text-[10px] font-black flex items-center justify-center shrink-0 uppercase">
                   {(currentUser || 'you').slice(0, 2)}
                 </span>
                 <div className="min-w-0">
@@ -651,14 +661,14 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
               </div>
 
               {/* The colours it starts from, which is most of the work done */}
-              <div className="flex items-center gap-2 mt-3.5">
+              <div className="flex items-center gap-2 mt-3">
                 <span className="text-[9.5px] font-black uppercase tracking-wider text-stone-400">
                   Starts with
                 </span>
                 {[color1, color2, color3].map((hex, index) => (
                   <span
                     key={index}
-                    className="w-6 h-6 rounded-full border-2 border-white shadow-xs"
+                    className="w-5 h-5 rounded-full border-2 border-white shadow-xs"
                     style={{ backgroundColor: hex }}
                   />
                 ))}
@@ -670,7 +680,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                   e.stopPropagation();
                   setIsFormExpanded(true);
                 }}
-                className="w-full mt-4 py-3 rounded-full bg-[#E91E63] text-white text-[11.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
+                className="w-full mt-4 h-12 rounded-full bg-[#E91E63] text-white text-[11.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[3]" />
                 Propose a shade
@@ -725,7 +735,7 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
                         onChange={(e) => setCategory(e.target.value)}
                         className={`${fieldBox} pr-8`}
                       >
-                        {categories.map(cat => (
+                        {PROPOSAL_CATEGORIES.map(cat => (
                           <option key={cat} value={cat} className="bg-white text-stone-800">{cat}</option>
                         ))}
                       </select>
@@ -796,22 +806,22 @@ export const TrendingPage: React.FC<TrendingPageProps> = ({ externalSearchQuery,
 
                 <button
                   type="button"
-                  onClick={() => setIsPublic(!isPublic)}
+                  onClick={() => setPostAnonymously(!postAnonymously)}
                   className="w-full flex items-center gap-2.5 rounded-2xl bg-white/70 border border-white/80 px-3.5 py-2.5 text-left cursor-pointer"
                 >
                   <span
                     className={`w-4 h-4 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                      isPublic ? 'bg-[#E91E63]' : 'bg-white border border-stone-300'
+                      postAnonymously ? 'bg-[#E91E63]' : 'bg-white border border-stone-300'
                     }`}
                   >
-                    {isPublic && <Check className="w-3 h-3 text-white stroke-[3]" />}
+                    {postAnonymously && <Check className="w-3 h-3 text-white stroke-[3]" />}
                   </span>
                   <span className="min-w-0">
                     <span className="block text-[11.5px] font-black text-stone-900 leading-tight">
-                      Put it on the community board
+                      Post anonymously
                     </span>
                     <span className="block text-[10px] font-medium text-stone-400 leading-snug">
-                      Others can see it and vote it up the list.
+                      It still goes on the board, just without your name.
                     </span>
                   </span>
                 </button>

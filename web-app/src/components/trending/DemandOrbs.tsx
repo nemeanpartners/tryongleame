@@ -22,8 +22,8 @@ interface DemandOrbsProps {
  * is a shape - one glance and you know what is pulling ahead - and each orb
  * drifts on its own, so the cluster is never quite the same twice.
  */
-const ORB_MIN = 46;
-const ORB_MAX = 96;
+const ORB_MIN = 54;
+const ORB_MAX = 104;
 
 /** Fixed seats around the middle, so the cluster never overlaps itself. */
 const SEATS = [
@@ -97,14 +97,15 @@ export const DemandOrbs: React.FC<DemandOrbsProps> = ({
                 {pick + 1}
               </span>
             )}
-            <span className="px-2">
+            <span className="px-1.5">
+              {/* The whole name: a shade you cannot read is not a choice */}
               <span
-                className="block text-[9px] sm:text-[10px] font-black uppercase tracking-wide leading-tight text-white"
-                style={{ textShadow: '0 1px 4px rgba(0,0,0,0.35)' }}
+                className="block text-[8.5px] sm:text-[9.5px] font-black uppercase tracking-tight leading-[1.15] text-white break-words"
+                style={{ textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}
               >
-                {orb.name.length > 16 ? `${orb.name.slice(0, 15)}…` : orb.name}
+                {orb.name}
               </span>
-              {size > 66 && (
+              {size > 74 && (
                 <span
                   className="block text-[8.5px] font-bold text-white/85 tabular-nums mt-0.5"
                   style={{ textShadow: '0 1px 3px rgba(0,0,0,0.35)' }}
